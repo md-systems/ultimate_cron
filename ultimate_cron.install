@@ -1,0 +1,129 @@
+<?php
+/**
+ * @file
+ *
+ * Installation file for Ultimate Cron
+ */
+
+/**
+ * Implementation of hook_schema().
+ */
+function ultimate_cron_schema() {
+  $schema = array();
+
+  $schema['ultimate_cron_function'] = array(
+    'description' => 'Cron job function list',
+    'fields' => array(
+      'fid' => array(
+        'description' => 'Function ID',
+        'type' => 'serial',
+        'size' => 'normal',
+        'not null' => TRUE,
+      ),
+      'function' => array(
+        'description' => 'Function name',
+        'type' => 'varchar',
+        'length' => 127,
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('fid'),
+    'unique key' => array('function'),
+  );
+
+  $schema['ultimate_cron_configuration'] = array(
+    'description' => 'Cron job configuration',
+    'fields' => array(
+      'fid' => array(
+        'description' => 'Function ID',
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+      ),
+      'configuration' => array(
+        'description' => 'Configuration',
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('fid'),
+  );
+
+  $schema['ultimate_cron_log'] = array(
+    'description' => t('Logs'),
+    'fields' => array(
+      'lid' => array(
+        'description' => 'Log ID',
+        'type' => 'serial',
+        'size' => 'normal',
+        'not null' => TRUE,
+      ),
+      'fid' => array(
+        'description' => 'Function ID',
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+      ),
+      'start' => array(
+        'description' => 'Timstamp of execution start',
+        'type' => 'float',
+        'size' => 'big',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'end' => array(
+        'description' => 'Timstamp of execution end',
+        'type' => 'float',
+        'size' => 'big',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'status' => array(
+        'description' => 'Status of the execution',
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => FALSE,
+        'default' => NULL,
+      ),
+    ),
+    'primary key' => array('lid'),
+    'indexes' => array(
+       'idx_last' => array('fid', 'start'),
+       'idx_count' => array('fid', 'end'),
+    ),
+  );
+
+  $schema['ultimate_cron_log_message'] = array(
+    'description' => 'Cron job log messages',
+    'fields' => array(
+      'lid' => array(
+        'description' => 'Log ID',
+        'type' => 'serial',
+        'size' => 'normal',
+        'not null' => TRUE,
+      ),
+      'msg' => array(
+        'description' => 'Message',
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
+    ),
+    'primary key' => array('lid'),
+  );
+
+  return $schema;
+}
+
+/**
+ * Implementation of hook_install().
+ */
+function ultimate_cron_install() {
+  drupal_install_schema('ultimate_cron');
+}
+
+/**
+ * Implementation of hook_uninstall().
+ */
+function ultimate_cron_uninstall() {
+  drupal_uninstall_schema('ultimate_cron');
+}

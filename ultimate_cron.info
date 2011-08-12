@@ -1,1 +1,4 @@
-name = Ultimate Cron
+name = "Ultimate Cron"
+description = "Cron"
+core = 6.x
+
