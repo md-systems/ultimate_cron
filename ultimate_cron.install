@@ -127,3 +127,11 @@ function ultimate_cron_install() {
 function ultimate_cron_uninstall() {
   drupal_uninstall_schema('ultimate_cron');
 }
+
+/**
+ * Implementation of hook_enable().
+ */
+function ultimate_cron_enable() {
+  module_load_include('module', 'ultimate_cron');
+  ultimate_cron_reclaim();
+}
