@@ -1,7 +1,6 @@
 Place in modules directory
 
-Call parallel_cron.php from crond instead of cron.php.
+Call ultimate_cron.php from crond instead of cron.php.
 
-For load-balancing use the ?group= parameter and create a group for each server.
 
 
