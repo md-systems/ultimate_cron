@@ -378,6 +378,8 @@ function ultimate_cron_execute($function, $hook) {
   if ($fid = ultimate_cron_get_function_id($function)) {
     $handle = "ultimate_cron:" . $fid;
     $process = new BackgroundProcess($handle);
+    // Always run cron job as anonymous user
+    $process->uid = 0;
     if (!empty($hook['configuration']['service_group'])) {
       $process->service_group = $hook['configuration']['service_group'];
     }

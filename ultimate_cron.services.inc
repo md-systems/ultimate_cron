@@ -27,9 +27,8 @@ function ultimate_cron_service_start($function) {
   }
   else {
     drupal_set_message(t('%function started', array('%function' => $function)));
-    // return t('Handle: %handle', array('%handle' => $handle));
   }
-  // return '';
+
   drupal_goto();
 }
 
