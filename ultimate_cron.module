@@ -20,7 +20,7 @@ define('ULTIMATE_CRON_SIMULTANEOUS_CONNECTIONS', 40);
 /**
  * Default rule.
  */
-define('ULTIMATE_CRON_RULE',         '* * * * *');
+define('ULTIMATE_CRON_RULE',         '*/10 * * * *');
 
 /**
  * Default rule for easy hook "hourly".
