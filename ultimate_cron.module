@@ -85,19 +85,17 @@ function ultimate_cron_help($path, $arg) {
  */
 function ultimate_cron_menu() {
   $items = array();
-  $items['admin/settings/cron'] = array(
+  /*
+  $items['admin/config/system/cron/overview'] = array(
     'title' => 'Cron',
     'description' => 'View and manage cron table',
     'page callback' => 'ultimate_cron_view_page',
     'access arguments' => array('administer ultimate cron'),
     'file' => 'ultimate_cron.pages.inc',
   );
-  $items['admin/settings/cron/view'] = array(
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'title' => 'Status',
-    'weight' => -10,
-  );
-  $items['admin/settings/cron/view/%'] = array(
+  */
+  /*
+  $items['admin/config/system/cron/overview/%'] = array(
     'title' => 'Cron',
     'description' => 'View and manage cron table',
     'page callback' => 'ultimate_cron_view_page',
@@ -105,26 +103,28 @@ function ultimate_cron_menu() {
     'access arguments' => array('administer ultimate cron'),
     'file' => 'ultimate_cron.pages.inc',
   );
-  $items['admin/settings/cron/settings'] = array(
-    'type' => MENU_LOCAL_TASK,
+  */
+  $items['admin/config/system/cron/settings'] = array(
     'title' => 'Settings',
+    'description' => 'Cron settings',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('ultimate_cron_settings_form'),
     'access arguments' => array('administer ultimate cron'),
-    'weight' => 0,
+    'type' => MENU_LOCAL_TASK,
     'file' => 'ultimate_cron.pages.inc',
   );
-  $items['admin/settings/cron/settings/%'] = array(
-    'type' => MENU_LOCAL_TASK,
+  $items['admin/config/system/cron/settings/%'] = array(
+    // 'type' => MENU_LOCAL_TASK,
     'title' => 'Settings',
     'page callback' => 'drupal_get_form',
-    'page arguments' => array('ultimate_cron_function_settings_form', 4),
+    'page arguments' => array('ultimate_cron_function_settings_form', 5),
     'access callback' => 'ultimate_cron_function_settings_form_access',
-    'access arguments' => array(4),
+    'access arguments' => array(5),
     'weight' => 0,
     'file' => 'ultimate_cron.pages.inc',
   );
-  $items['admin/settings/cron/log/%'] = array(
+  /*
+  $items['admin/config/system/cron/log/%'] = array(
     'type' => MENU_CALLBACK,
     'title' => 'Cron job history',
     'description' => 'Cron job history',
@@ -160,7 +160,35 @@ function ultimate_cron_menu() {
     'access arguments' => array('administer ultimate cron'),
     'file' => 'ultimate_cron.services.inc',
   );
+  /**/
   return $items;
+}
+
+/**
+ * Implementation of hook_menu_alter().
+ *
+ * Steal the run-cron, so when you "run cron manually" from the status-reports
+ * page the ultimate_cron cron handler is run.
+ */
+function ultimate_cron_menu_alter(&$items) {
+  $items['admin/config/system/cron'] = array(
+    'title' => 'Cron',
+    'description' => 'View and manage cron table',
+    'page callback' => 'ultimate_cron_view_page',
+    'access arguments' => array('administer ultimate cron'),
+    'module' => 'ultimate_cron',
+    'file' => 'ultimate_cron.pages.inc',
+  );
+  $items['admin/config/system/cron/overview'] = array(
+    'title' => 'List',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+
+  return;
+  var_dump($items);
+  die("TEST");
+  
 }
 
 /**
@@ -199,7 +227,7 @@ function ultimate_cron_cron($return = FALSE) {
   while (!empty($schedule) && time() < $expire) {
     // If maximum number of connections are running, wait .5 seconds, and then 
     // try again.
-    $r = db_result(db_query("SELECT COUNT(1) AS running FROM {background_process}"));
+    $r = db_query("SELECT COUNT(1) AS running FROM {background_process}")->fetchField();
     if ($r > $msc) {
       usleep(500000);
       continue;
@@ -242,7 +270,7 @@ function ultimate_cron_cron($return = FALSE) {
     if ($running) {
       $placeholder = db_placeholders(array_keys($running), 'varchar');
       $result = db_query("SELECT p.name FROM {progress} p WHERE p.name IN ($placeholder)", array_keys($running));
-      while ($handle = db_fetch_object($result)) {
+      while ($handle = $result->fetchObject()) {
         fclose($running[$handle->name]);
         unset($running[$handle->name]);
       }
@@ -271,6 +299,7 @@ function ultimate_cron_cronapi($op, $job = NULL) {
     case 'list':
       $jobs['ultimate_cron_cleanup_log'] = t('Cleanup log entries');
       return $jobs;
+      /*
     case 'edit':
       return array(
         'ultimate_cron_cleanup_log' => 'admin/settings/cron/settings',
@@ -278,22 +307,10 @@ function ultimate_cron_cronapi($op, $job = NULL) {
         'dblog_cron' => 'admin/settings/logging/dblog',
         'update_cron' => 'admin/reports/updates/settings',
       );
+       * 
+       */
   }
 }
-
-/**
- * Implementation of hook_menu_alter().
- *
- * Steal the run-cron, so when you "run cron manually" from the status-reports
- * page the ultimate_cron cron handler is run.
- */
-function ultimate_cron_menu_alter(&$callbacks) {
-  // Steal "run-cron" from system!!!
-  $callbacks['admin/reports/status/run-cron']['page callback'] = 'ultimate_cron_run_cron';
-  $callbacks['admin/reports/status/run-cron']['file'] = 'ultimate_cron.pages.inc';
-  $callbacks['admin/reports/status/run-cron']['module'] = 'ultimate_cron';
-}
-
 
 /**
  * Implementation of hook_requirements().
@@ -487,9 +504,15 @@ function ultimate_cron_background_process_shutdown($process, $result = NULL, $ms
     );
     drupal_write_record('ultimate_cron_log', $object);
     if ($result !== NULL && !$result && $msg) {
-      db_query("INSERT INTO {ultimate_cron_log_message} SET lid = %d, msg = '%s'", $object->lid, $msg);
+      // db_query("INSERT INTO {ultimate_cron_log_message} SET lid = %d, msg = '%s'", $object->lid, $msg);
+      db_insert('ultimate_cron_log_message')
+        ->fields(array(
+          'lid' => $object->lid,
+          'msg' => $msg,
+        ))
+        ->execute();
     }
-    $function = db_result(db_query("SELECT `function` FROM {ultimate_cron_function} WHERE fid = %d", $fid));
+    $function = db_query("SELECT `function` FROM {ultimate_cron_function} WHERE fid = %d", $fid)->fetchField();
     watchdog('ultimate_cron', 'Shutdown: %function (%result) - %msg', array('%function' => $function, '%result' => $result, '%msg' => $msg), WATCHDOG_DEBUG);
   }
 }
@@ -555,7 +578,7 @@ function ultimate_cron_get_hooks() {
   // Which modules are not hook_cron() safe?
   $uncronable_modules = ultimate_cron_uncronable_modules();
   $cron_data = _ultimate_cron_preload_cron_data();
-
+  
   // Generate list of hooks
   $modules = module_list();
   foreach ($modules as $module) {
@@ -573,6 +596,12 @@ function ultimate_cron_get_hooks() {
           $hooks[$function]['fid'] = $fid;
           $handle = "ultimate_cron:" . $fid;
           $hooks[$function]['background_process'] = $cron_data[$function]['background_process'];
+        }
+        if ($hook === 'cron') {
+          $info = drupal_parse_info_file(drupal_get_path('module', $module) .'/' . $module . '.info');
+          if (isset($info['configure'])) {
+            $hooks[$function]['configure'] = $info['configure'];
+          }
         }
       }
     }
@@ -635,7 +664,7 @@ function ultimate_cron_get_configuration($function) {
     return NULL;
   }
 
-  $conf = db_fetch_object(db_query("SELECT * FROM {ultimate_cron_configuration} WHERE fid = %d", $fid));
+  $conf = db_query("SELECT fid, configuration FROM {ultimate_cron_configuration} WHERE fid = :fid", array(':fid' => $fid))->fetchObject();
   $conf = $conf && $conf->configuration ? unserialize($conf->configuration) : array();
   return $conf;
 }
@@ -680,12 +709,12 @@ function ultimate_cron_set_configuration($function, $conf) {
     return NULL;
   }
 
-  $conf = serialize($conf);
-  $result = db_query("UPDATE {ultimate_cron_configuration} SET configuration = '%s' WHERE fid = %d", $conf, $fid);
-  if (db_affected_rows() === 0) {
-    $result = @db_query("INSERT INTO {ultimate_cron_configuration} SET configuration = '%s', fid = %d", $conf, $fid);
-  }
-  return $result;
+  return db_merge('ultimate_cron_configuration')
+    ->key(array('fid' => $fid))
+    ->fields(array(
+      'configuration' => serialize($conf),
+    ))
+    ->execute();
 }
 
 /**
@@ -697,14 +726,14 @@ function ultimate_cron_set_configuration($function, $conf) {
  *   Log line.
  */
 function ultimate_cron_get_log($function) {
-  $log = db_fetch_array(db_query_range("
+  $log = db_query_range("
     SELECT l.*, m.msg FROM {ultimate_cron_log} l
     JOIN {ultimate_cron_function} f ON l.fid = f.fid
     LEFT JOIN {ultimate_cron_log_message} m ON l.lid = m.lid
-    WHERE f.function = '%s'
+    WHERE f.function = :function
     ORDER BY l.start DESC",
-    $function, 0, 1
-  ));
+    0, 1, array(':function' => $function))
+      ->fetchAssoc();
   // $log['count'] = db_result(db_query("SELECT COUNT(1) FROM {ultimate_cron_log} l JOIN {ultimate_cron_function} f ON l.fid = f.fid WHERE f.function = '%s'", $function));
   return $log;
 }
@@ -722,12 +751,11 @@ function ultimate_cron_get_logs($function) {
     SELECT l.*, m.msg FROM {ultimate_cron_log} l
     JOIN {ultimate_cron_function} f ON l.fid = f.fid
     LEFT JOIN {ultimate_cron_log_message} m ON l.lid = m.lid
-    WHERE f.function = '%s'
+    WHERE f.function = :function
     ORDER BY l.start DESC",
-    $function, 0, 100
-  );
+    0, 100, array(':function' => $function));
   $logs = array();
-  while ($log = db_fetch_array($result)) {
+  while ($log = $result->fetchObject()) {
     $logs[] = $log;
   }
   return $logs;
@@ -858,12 +886,17 @@ function ultimate_cron_get_function_id($function, $fid = NULL) {
   if (isset($ids[$function])) {
     return $ids[$function];
   }
-  $fid = db_result(db_query("SELECT fid FROM {ultimate_cron_function} WHERE `function` = '%s'", $function));
+  $fid = db_query("SELECT fid FROM {ultimate_cron_function} WHERE `function` = :function ", array(':function' => $function))->fetchField();
   if (!$fid) {
-    @db_query("INSERT INTO {ultimate_cron_function} SET `function` = '%s'", $function);
-    $fid = db_last_insert_id('ultimate_cron_function', 'fid');
-    if (!$fid) {
-      $fid = db_result(db_query("SELECT fid FROM {ultimate_cron_function} WHERE `function` = '%s'", $function));
+    try {
+      $fid = db_insert('ultimate_cron_function')
+        ->fields(array(
+          'function' => $function
+        ))
+        ->execute();
+    }
+    catch (Exception $e) {
+      $fid = db_query("SELECT fid FROM {ultimate_cron_function} WHERE `function` = :function ", array(':function' => $function))->fetchField();
     }
   }
   $ids[$function] = $fid;
@@ -874,9 +907,15 @@ function ultimate_cron_get_function_id($function, $fid = NULL) {
  * Reclaims position as the first module in the module list.
  */
 function ultimate_cron_reclaim() {
-  $weight = db_result(db_query("SELECT MIN(weight) FROM {system}"));
+  $weight = db_query("SELECT MIN(weight) FROM {system}")->fetchField();
   $weight --;
-  db_query("UPDATE {system} SET weight = '%d' WHERE name = '%s'", $weight, 'ultimate_cron');
+  // db_query("UPDATE {system} SET weight = '%d' WHERE name = '%s'", $weight, 'ultimate_cron');
+  db_update('system')
+    ->fields(array(
+      'weight' => $weight
+    ))
+    ->condition('name', 'ultimate_cron')
+    ->execute();
 }
 
 /**
@@ -906,7 +945,7 @@ LEFT JOIN background_process p ON p.handle = CONCAT('ultimate_cron:', f.fid)
 ");
 
   $data = array();
-  while ($row = db_fetch_object($result)) {
+  while ($row = $result->fetchObject()) {
     ultimate_cron_get_function_id($row->function, $row->fid);
     $data[$row->function] = array(
       'configuration' => $row->configuration ? unserialize($row->configuration) : array(),

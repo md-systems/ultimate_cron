@@ -64,10 +64,14 @@ function ultimate_cron_reclaim_submit($form, &$form_state) {
   drupal_set_message(t('Module position reclaimed.'));
 }
 
-function ultimate_cron_function_settings_form(&$form_state, $function) {
+function ultimate_cron_function_settings_form($form, &$form_state, $function) {
   // Load configuration
   $fid = ultimate_cron_get_function_id($function);
-  $conf = db_fetch_object(db_query("SELECT * FROM {ultimate_cron_configuration} WHERE fid = %d", $fid));
+  $conf = db_select('ultimate_cron_configuration', 'ucc')
+    ->fields('ucc', array('fid', 'configuration'))
+    ->condition('fid', $fid)
+    ->execute()
+    ->fetchObject();
   $conf = $conf && $conf->configuration ? unserialize($conf->configuration) : array();
   $conf += array(
     'enabled' => TRUE,
@@ -119,9 +123,9 @@ function ultimate_cron_function_settings_form(&$form_state, $function) {
   $form['general']['service_group'] = array(
     '#type' => 'select',
     '#title' => t('Service group'),
-    '#description' => t('Service group to use for this job. See Background Process !url for managing service groups.', array('!url' => l(t('settings'), 'admin/settings/background-process'))),
+    '#description' => t('Service group to use for this job. See Background Process !url for managing service groups.', array('!url' => l(t('settings'), 'admin/config/background-process'))),
     '#options' => $options,
-    '#default_value' => $conf['service_group'],
+    '#default_value' => isset($conf['service_group']) ? $conf['service_group'] : NULL,
   );
 
   $form['buttons'] = array(
@@ -131,7 +135,7 @@ function ultimate_cron_function_settings_form(&$form_state, $function) {
     '#type' => 'submit',
     '#value' => t('Save configuration'),
   );
-  $form['#redirect'] = 'admin/settings/cron';
+  $form['#redirect'] = 'admin/config/system/cron';
 
   return $form;
 }
@@ -175,6 +179,7 @@ function ultimate_cron_view_page($module = NULL) {
   $headers = array('', t('Module'), t('Function'), t('Rules'), t('Start'), t('Duration'), t('Status'), t('Action'));
   $output = '';
   $rows = array();
+  
   foreach ($modules as $module => $hooks) {
     foreach ($hooks as $function => $hook) {
       $process = $hook['background_process'];
@@ -184,11 +189,11 @@ function ultimate_cron_view_page($module = NULL) {
       $msg = $log['status'] === NULL ? '' : ($log['status'] ? t('No errors') : strip_tags($log['msg']));
       $msg = $msg ? $msg : t('No information');
       $service_host = empty($process->service_host) ? t('default') : $process->service_host;
-      
+
       if ($charts_graphs_installed) {
         $link_log = l(
           '<img title="' . t('Log') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/chart_line.png"/>', 
-          'admin/settings/cron/log/' . $function, 
+          'admin/config/system/cron/log/' . $function, 
           array(
             'html' => TRUE, 
             'attributes' => array(
@@ -200,28 +205,30 @@ function ultimate_cron_view_page($module = NULL) {
       }
 
       $link_edit = '';
+      $edit_links[$function] = empty($edit_links[$function]) && isset($hook['configure']) ? $hook['configure'] : $edit_links[$function];
+      $link_log = '';
       if (!empty($edit_links[$function])) {
         $link_edit = l('<img title="' . t('Edit') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/application_form_edit.png"/>', $edit_links[$function], array('html' => TRUE));
       }
 
       $inprogress = $process ? TRUE : FALSE;
       
-      $link_settings = l('<img title="' . t('Settings') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/cog.png"/>', 'admin/settings/cron/settings/' . $function, array('html' => TRUE));
-      $link_execute = l('<img title="' . t('Run') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/application_go.png"/>', 'admin/ultimate-cron/service/start/' . $function, array('html' => TRUE, 'query' => 'destination=' . trim(request_uri(), '/')));
+      $link_settings = l('<img title="' . t('Settings') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/cog.png"/>', 'admin/config/system/cron/settings/' . $function, array('html' => TRUE));
+      $link_execute = l('<img title="' . t('Run') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/application_go.png"/>', 'admin/ultimate-cron/service/start/' . $function, array('html' => TRUE, 'query' => array('destination' => trim(request_uri(), '/'))));
       if ($process) {
-        $link_unlock = l('<img title="' . t('Unlock') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/lock_open.png"/>', 'background-process/unlock/' . $process->handle, array('html' => TRUE, 'query' => 'destination=' . trim(request_uri(), '/')));
+        $link_unlock = l('<img title="' . t('Unlock') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/lock_open.png"/>', 'background-process/unlock/' . $process->handle, array('html' => TRUE, 'query' => array('destination' => trim(request_uri(), '/'))));
       }
       $link_inprogress = '<img title="' . t('Running on @host', array('@host' => $service_host)) . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png"/>';
       $link_status = '<img title="' . $msg . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/' . ($log['status'] === NULL ? 'information.png' : ($log['status'] ? 'tick.png' : 'error.png')). '"/>';
 
 
       if (empty($conf['enabled'])) {
-        $link_toggle = l('<img title="' . t('Enable') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/add.png"/>', 'admin/ultimate-cron/service/enable/' . $function, array('html' => TRUE, 'query' => 'destination=' . trim(request_uri(), '/')));
+        $link_toggle = l('<img title="' . t('Enable') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/add.png"/>', 'admin/ultimate-cron/service/enable/' . $function, array('html' => TRUE, 'query' => array('destination' => trim(request_uri(), '/'))));
       }
       else {
-        $link_toggle = l('<img title="' . t('Disable') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/delete.png"/>', 'admin/ultimate-cron/service/disable/' . $function, array('html' => TRUE, 'query' => 'destination=' . trim(request_uri(), '/')));
+        $link_toggle = l('<img title="' . t('Disable') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/delete.png"/>', 'admin/ultimate-cron/service/disable/' . $function, array('html' => TRUE, 'query' => array('destination' => trim(request_uri(), '/'))));
       }
-      
+
       if ($inprogress) {
         $progress = progress_get_progress($process->handle);
         $start = $progress->start;
@@ -244,7 +251,7 @@ function ultimate_cron_view_page($module = NULL) {
       $data = array(
         'data' => array(
           $link_toggle,
-          l(ultimate_cron_module_name($module), 'admin/settings/cron/view/' . $module),
+          l(ultimate_cron_module_name($module), 'admin/config/system/cron/overview/' . $module),
           array(
             'data' => $hook['description'],
             'title' => $service_group_info,
@@ -253,10 +260,10 @@ function ultimate_cron_view_page($module = NULL) {
             'data' => $conf['rules'][0],
             'title' => join("\n", $conf['rules']),
           ) : t('N/A'),
-          $start ? format_date_hires($start, 'custom', 'Y-m-d H:i:s:u', 0) : ($inprogress ? t('Starting') : t('Never')),
+          $start ? format_date_hires($start, 'custom', 'Y-m-d H:i:s:u') : ($inprogress ? t('Starting') : t('Never')),
           $start ? array(
-            'data' => format_date_hires($end - $start, 'custom', 'H:i:s:u', 0),
-            'title' => t('Finished @ !timestamp', array('!timestamp' => format_date_hires($end, 'custom', 'Y-m-d H:i:s:u', 0))),
+            'data' => gmdate('H:i:s:u', $end - $start),
+            'title' => t('Finished @ !timestamp', array('!timestamp' => format_date_hires($end, 'custom', 'Y-m-d H:i:s:u'))),
           ) : t('N/A'),
           $inprogress ? $link_inprogress : $link_status,
           $link_log . 
@@ -270,7 +277,11 @@ function ultimate_cron_view_page($module = NULL) {
       $rows[] = $data;
     }
   }
-  $output .= theme('table', $headers, $rows, array('id' => 'ultimate-cron-view'));
+  $output .= theme('table', array(
+    'headers' => $headers, 
+    'rows' => $rows, 
+    'attributes' => array('id' => 'ultimate-cron-view')
+  ));
 
   // drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/jquery.tableSort.js');
   // $script = '$(\'#ultimate-cron-view\').sortTable({ onCol: 2, keepRelations: true });';
@@ -284,6 +295,7 @@ function ultimate_cron_view_page($module = NULL) {
 }
 
 function format_date_hires($timestamp, $type, $format, $timezone = NULL, $langcode = NULL) {
+  return date($format, $timestamp);
   $format_date = format_date($timestamp, $type, $format, $timezone, $langcode);
   $ms = sprintf('%03d', ($timestamp - floor($timestamp)) * 1000);
   $format_date = str_replace('u', $ms, $format_date);
