@@ -500,10 +500,14 @@ function ultimate_cron_run_hook($function, $hook) {
       '%invoke' => format_date($hook['timestamp'], 'custom', 'Y-m-d H:i:s'),
       '%start' => format_date($time, 'custom', 'Y-m-d H:i:s'),
     ), WATCHDOG_ERROR);
-    ultimate_cron_background_process_shutdown($process, FALSE, ultimate_cron_record_log(NULL));
+    ultimate_cron_background_process_shutdown($process, FALSE);
     return FALSE;
   }
 
+  // Trap errors for logging purposes
+  $callback = &drupal_static('ultimate_cron_error_handler', NULL);
+  $callback = set_error_handler('_ultimate_cron_error_handler');
+  
   // Let other modules do stuff before execution, if they need to.
   module_invoke_all('cron_pre_execute', $function, $hook);
   module_invoke_all('cron_pre_execute_' . $function, $hook);
@@ -515,7 +519,7 @@ function ultimate_cron_run_hook($function, $hook) {
     $result = module_invoke($hook['module'], 'cronapi', 'execute', $function);
   }
 
-  ultimate_cron_background_process_shutdown($process, $result, ultimate_cron_record_log(NULL));
+  ultimate_cron_background_process_shutdown($process, $result);
 
   // Let other modules do stuff before execution, if they need to.
   module_invoke_all('cron_post_execute', $function, $hook);
@@ -524,12 +528,21 @@ function ultimate_cron_run_hook($function, $hook) {
   return TRUE;
 }
 
+function _ultimate_cron_error_handler($errno, $errstr, $errfile, $errline, $errcontext) {
+  ultimate_cron_record_log($errstr);
+  $callback = &drupal_static('ultimate_cron_error_handler');
+  if (is_callable($callback)) {
+    return call_user_func($callback, $errno, $errstr, $errfile, $errline, $errcontext);
+  }
+}
+
 /**
  * Implements hook_background_process_shutdown().
  *
  * Shutdown handler for cronjobs.
  */
-function ultimate_cron_background_process_shutdown($process, $result = NULL, $msg = NULL) {
+function ultimate_cron_background_process_shutdown($process, $result = NULL) {
+  $msg = ultimate_cron_record_log(NULL);
   $fid = str_replace('ultimate_cron:', '', $process->handle);
   if ($fid !== $process->handle && is_numeric($fid)) {
     static $has_run = array();
@@ -542,13 +555,11 @@ function ultimate_cron_background_process_shutdown($process, $result = NULL, $ms
     $end = microtime(TRUE);
 
     // If only one argument was passed to this function, assume it was called by
-    // a shutdown handler, and conclude that something went wrong
+    // a shutdown handler, and conclude that something went wrong.
+    // If no message has been recorded, provide a default one.
     if (func_num_args() == 1) {
       $result = FALSE;
-      if ($err = error_get_last()) {
-        $msg = sprintf("%s at %s:%d", $err['message'], $err['file'], $err['line']);
-      }
-      else {
+      if (!$msg) {
         $msg = t('Died unexpectedly');
       }
     }
