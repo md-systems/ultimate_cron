@@ -36,9 +36,10 @@ class CronRule {
    *   (string) comma-separated list of values
    */
   function expandInterval($matches) {
-    // var_dump($matches);
     $result = array();
-    if (isset($matches[5]) && $matches[5] <= 0) return '';
+    $matches[5] = isset($matches[5]) ? $matches[5] : 1;
+    $matches[7] = isset($matches[7]) ? $matches[7] : 0;
+    if ($matches[5] <= 0) return '';
     $step = ($matches[5] > 0) ? $matches[5] : 1;
     for ($i = $matches[1]; $i <= $matches[2]; $i+=$step) {
       $result[] = ($i + $matches[7]) % ($matches[2] + 1);

@@ -43,6 +43,12 @@ function ultimate_cron_settings_form() {
     '#default_value' => variable_get('ultimate_cron_cleanup_log', ULTIMATE_CRON_CLEANUP_LOG),
     '#description' => t('Enter maximum age, in seconds, for log entries')
   );
+  $form['general']['ultimate_cron_poorman'] = array(
+    '#title' => t("Poormans cron"),
+    '#type' => 'checkbox',
+    '#default_value' => variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN),
+    '#description' => t('Keep background process alive, checking for cron every minute.'),
+  );
   
   $form = system_settings_form($form);
   
@@ -171,10 +177,6 @@ function ultimate_cron_view_page($module = NULL) {
       $modules[$hook['module']][$function] = $hook;
     }
   }
-
-  $charts_graphs_installed = module_exists('charts_graphs');
-
-  $edit_links = module_invoke_all('cronapi', 'edit');
   
   $headers = array('', t('Module'), t('Function'), t('Rules'), t('Start'), t('Duration'), t('Status'), t('Action'));
   $output = '';
@@ -190,46 +192,28 @@ function ultimate_cron_view_page($module = NULL) {
       $msg = $msg ? $msg : t('No information');
       $service_host = empty($process->service_host) ? t('default') : $process->service_host;
 
-      if ($charts_graphs_installed) {
-        $link_log = l(
-          '<img title="' . t('Log') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/chart_line.png"/>', 
-          'admin/config/system/cron/log/' . $function, 
-          array(
-            'html' => TRUE, 
-            'attributes' => array(
-              'rel' => 'lightframe',
-              'target' => '_blank',
-            )
-          )
-        );
+      $link_configure = '';
+      if (!empty($hook['configure'])) {
+        $link_configure = l('Configure', $hook['configure'], array('attributes' => array('class' => 'module-link module-link-configure')));
       }
 
-      $link_edit = '';
-      $edit_links[$function] = empty($edit_links[$function]) && isset($hook['configure']) ? $hook['configure'] : $edit_links[$function];
-      $link_log = '';
-      if (!empty($edit_links[$function])) {
-        $link_edit = l('<img title="' . t('Edit') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/application_form_edit.png"/>', $edit_links[$function], array('html' => TRUE));
-      }
-
-      $inprogress = $process ? TRUE : FALSE;
-      
-      $link_settings = l('<img title="' . t('Settings') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/cog.png"/>', 'admin/config/system/cron/settings/' . $function, array('html' => TRUE));
-      $link_execute = l('<img title="' . t('Run') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/application_go.png"/>', 'admin/ultimate-cron/service/start/' . $function, array('html' => TRUE, 'query' => array('destination' => trim(request_uri(), '/'))));
+      $link_settings = l('Settings', 'admin/config/system/cron/settings/' . $function, array('attributes' => array('class' => 'module-link module-link-configure')));
+      $link_execute = l('Run', 'admin/ultimate-cron/service/start/' . $function, array('attributes' => array('class' => 'module-link module-link-run'), 'query' => array('destination' => trim(request_uri(), '/'))));
       if ($process) {
-        $link_unlock = l('<img title="' . t('Unlock') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/lock_open.png"/>', 'background-process/unlock/' . $process->handle, array('html' => TRUE, 'query' => array('destination' => trim(request_uri(), '/'))));
+        $link_unlock = l('Unlock', 'background-process/unlock/' . $process->handle, array('query' => array('destination' => trim(request_uri(), '/'))));
       }
       $link_inprogress = '<img title="' . t('Running on @host', array('@host' => $service_host)) . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png"/>';
       $link_status = '<img title="' . $msg . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/' . ($log['status'] === NULL ? 'information.png' : ($log['status'] ? 'tick.png' : 'error.png')). '"/>';
 
 
       if (empty($conf['enabled'])) {
-        $link_toggle = l('<img title="' . t('Enable') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/add.png"/>', 'admin/ultimate-cron/service/enable/' . $function, array('html' => TRUE, 'query' => array('destination' => trim(request_uri(), '/'))));
+        $link_toggle = l('Enable', 'admin/ultimate-cron/service/enable/' . $function, array('attributes' => array('class' => 'module-link module-link-configure'), 'query' => array('destination' => trim(request_uri(), '/'))));
       }
       else {
-        $link_toggle = l('<img title="' . t('Disable') . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/delete.png"/>', 'admin/ultimate-cron/service/disable/' . $function, array('html' => TRUE, 'query' => array('destination' => trim(request_uri(), '/'))));
+        $link_toggle = l('Disable', 'admin/ultimate-cron/service/disable/' . $function, array('attributes' => array('class' => 'module-link module-link-configure'), 'query' => array('destination' => trim(request_uri(), '/'))));
       }
 
-      if ($inprogress) {
+      if ($process) {
         $progress = progress_get_progress($process->handle);
         $start = $progress->start;
         $end = microtime(TRUE);
@@ -251,7 +235,7 @@ function ultimate_cron_view_page($module = NULL) {
       $data = array(
         'data' => array(
           $link_toggle,
-          l(ultimate_cron_module_name($module), 'admin/config/system/cron/overview/' . $module),
+          ultimate_cron_module_name($module),
           array(
             'data' => $hook['description'],
             'title' => $service_group_info,
@@ -260,19 +244,16 @@ function ultimate_cron_view_page($module = NULL) {
             'data' => $conf['rules'][0],
             'title' => join("\n", $conf['rules']),
           ) : t('N/A'),
-          $start ? format_date_hires($start, 'custom', 'Y-m-d H:i:s:u') : ($inprogress ? t('Starting') : t('Never')),
+          $start ? substr(format_date((int)$start, 'custom', 'Y-m-d H:i:s:u'), 0, -3) : ($process ? t('Starting') : t('Never')),
           $start ? array(
-            'data' => gmdate('H:i:s:u', $end - $start),
-            'title' => t('Finished @ !timestamp', array('!timestamp' => format_date_hires($end, 'custom', 'Y-m-d H:i:s:u'))),
+            'data' => substr(gmdate('H:i:s:u', (int)($end - $start)), 0, -3),
+            'title' => t('Finished @ !timestamp', array('!timestamp' => substr(format_date((int)$end, 'custom', 'Y-m-d H:i:s:u'), 0, -3))),
           ) : t('N/A'),
-          $inprogress ? $link_inprogress : $link_status,
-          $link_log . 
-          '&nbsp' . $link_settings .
-          ($inprogress ? '&nbsp' . $link_unlock : '&nbsp' . $link_execute) . 
-          ($link_edit ? '&nbsp' . $link_edit : ''),
+          $process ? $link_inprogress : $link_status,
+          $link_settings,
+          $link_configure,
+          ($process ? $link_unlock : $link_execute),
         ),
-        'style' => empty($hook['configuration']['enabled']) ? 'color: red' : '',
-        'class' => $conf['enabled'] ? '' : 'error',
       );
       $rows[] = $data;
     }
@@ -283,45 +264,5 @@ function ultimate_cron_view_page($module = NULL) {
     'attributes' => array('id' => 'ultimate-cron-view')
   ));
 
-  // drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/jquery.tableSort.js');
-  // $script = '$(\'#ultimate-cron-view\').sortTable({ onCol: 2, keepRelations: true });';
-  // drupal_add_js($script, 'inline');
-
-  // drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/jquery.tablesorter.min.js');
-  // $script = '$(document).ready(function() { $(\'#ultimate-cron-view\').tablesorter({ headers: { 0: { sorter: false }, 6: { sorter: false }, 7: { sorter: false } } }); });';
-  // drupal_add_js($script, 'inline');
-
   return $output;
-}
-
-function format_date_hires($timestamp, $type, $format, $timezone = NULL, $langcode = NULL) {
-  return date($format, $timestamp);
-  $format_date = format_date($timestamp, $type, $format, $timezone, $langcode);
-  $ms = sprintf('%03d', ($timestamp - floor($timestamp)) * 1000);
-  $format_date = str_replace('u', $ms, $format_date);
-  return $format_date;
-}
-
-function ultimate_cron_history($function) {
-  $canvas = charts_graphs_get_graph('open-flash');
-
-  $logs = ultimate_cron_get_logs($function);
-  
-  $hooks = ultimate_cron_get_hooks();
-  
-  $canvas->title = $hooks[$function]['description'];
-  $canvas->type = "bar_glass"; // a chart type supported by the charting engine. See further in the doc for the list.
-  $canvas->y_legend = t('Seconds');
-  #$canvas->colour = '#D54C78';
-  $canvas->theme = 'keynote';
-  $key = t('Execution Time');
-  $canvas->series = array($key => array());
-  $canvas->x_labels = array();
-  foreach (array_reverse($logs) as $log) {
-    $canvas->series[$key][] =  $log['end'] - $log['start'];
-    $canvas->x_labels[] = format_date($log['start'], 'custom', 'H:i:s');
-  }
-
-  $out = $canvas->get_chart();
-  return $out;
 }
