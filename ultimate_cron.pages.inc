@@ -178,7 +178,7 @@ function ultimate_cron_view_page($module = NULL) {
     }
   }
   
-  $headers = array('', t('Module'), t('Function'), t('Rules'), t('Start'), t('Duration'), t('Status'), t('Action'));
+  $headers = array('', t('Module'), t('Function'), t('Rules'), t('Start'), t('Duration'), t('Status'), array('colspan' => 3, 'data' => ''));
   $output = '';
   $rows = array();
   
@@ -259,7 +259,7 @@ function ultimate_cron_view_page($module = NULL) {
     }
   }
   $output .= theme('table', array(
-    'headers' => $headers, 
+    'header' => $headers, 
     'rows' => $rows, 
     'attributes' => array('id' => 'ultimate-cron-view')
   ));
