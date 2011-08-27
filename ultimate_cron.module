@@ -386,7 +386,10 @@ function ultimate_cron_exit($destination = NULL) {
         }
       }
       if (!$process) {
-        background_process_start_locked($handle, '_ultimate_cron_poorman');
+        $process = new BackgroundProcess($handle);
+        // Because anyone can launch poormans cron, run it as anonymous
+        $process->uid = 0;
+        $result = $process->start('_ultimate_cron_poorman');
       }
     }
   }
