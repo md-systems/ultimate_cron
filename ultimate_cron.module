@@ -286,8 +286,6 @@ function ultimate_cron_cronapi($op, $job = NULL) {
       $queues = module_invoke_all('cron_queue_info');
       drupal_alter('cron_queue_info', $queues);
       foreach ($queues as $queue_name => $info) {
-        // error_log($queue_name);
-        // error_log(print_r($info, TRUE));
         $jobs['ultimate_cron_queue_' . $queue_name] = t('Queue: %name', array('%name' => $queue_name));
       }
       return $jobs;
@@ -369,20 +367,21 @@ function ultimate_cron_watchdog($log = array()) {
  * Implements hook_exit().
  */
 function ultimate_cron_exit($destination = NULL) {
+  // Launch poormans cron if applicable
   if (variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN)) {
     $last = variable_get('cron_last', 0);
     $last = floor($last / 60) * 60;
     $time = time();
     $time = floor($time / 60) * 60;
+    // Don't attempt, if already run within last minute
     if ($last && $last < $time) {
-      error_log('launching poorman');
       $handle = 'ultimate_cron_poorman';
-      // @todo Implement atomic reacquiring lock!
       if ($process = background_process_get_process($handle)) {
         if ($process->start + 120 < time()) {
           // Must have timed out or something ... remove it!
-          background_process_remove_process($handle);
-          $process = NULL;
+          if (background_process_remove_process($handle, $process->start)) {
+            $process = NULL;
+          }
         }
       }
       if (!$process) {
@@ -403,15 +402,11 @@ function _ultimate_cron_poorman() {
   $time = time();
   $time = floor($time / 60) * 60;
   $expire = $time + 30;
-  error_log('starting poorman');
-  error_log('Running poorman: ' . date('Y-m-d H:i:s', $time));
   _ultimate_cron_cron(TRUE);
   $wait = $time + 60 - time();
   if ($wait > 0 && $wait <= 60) {
-    error_log("Sleeping: $wait");
     sleep($wait);
   }
-  error_log('exiting poorman');
 }
 
 
