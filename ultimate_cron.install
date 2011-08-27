@@ -85,23 +85,6 @@ function ultimate_cron_schema() {
         'not null' => FALSE,
         'default' => NULL,
       ),
-    ),
-    'primary key' => array('lid'),
-    'indexes' => array(
-       'idx_last' => array('fid', 'start'),
-       'idx_count' => array('fid', 'end'),
-    ),
-  );
-
-  $schema['ultimate_cron_log_message'] = array(
-    'description' => 'Cron job log messages',
-    'fields' => array(
-      'lid' => array(
-        'description' => 'Log ID',
-        'type' => 'serial',
-        'size' => 'normal',
-        'not null' => TRUE,
-      ),
       'msg' => array(
         'description' => 'Message',
         'type' => 'text',
@@ -109,6 +92,10 @@ function ultimate_cron_schema() {
       ),
     ),
     'primary key' => array('lid'),
+    'indexes' => array(
+       'idx_last' => array('fid', 'start'),
+       'idx_count' => array('fid', 'end'),
+    ),
   );
 
   return $schema;

@@ -188,8 +188,7 @@ function ultimate_cron_view_page($module = NULL) {
       
       $log = ultimate_cron_get_log($function);
       $conf = $hook['configuration'];
-      $msg = $log['status'] === NULL ? '' : ($log['status'] ? t('No errors') : strip_tags($log['msg']));
-      $msg = $msg ? $msg : t('No information');
+      $msg = $log['msg'] ? $log['msg'] : ($log['status'] ? t('No errors') : t('No information'));
       $service_host = empty($process->service_host) ? t('default') : $process->service_host;
 
       $link_configure = '';
@@ -203,7 +202,7 @@ function ultimate_cron_view_page($module = NULL) {
         $link_unlock = l('Unlock', 'background-process/unlock/' . $process->handle, array('query' => array('destination' => trim(request_uri(), '/'))));
       }
       $link_inprogress = '<img title="' . t('Running on @host', array('@host' => $service_host)) . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png"/>';
-      $link_status = '<img title="' . $msg . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/' . ($log['status'] === NULL ? 'information.png' : ($log['status'] ? 'tick.png' : 'error.png')). '"/>';
+      $link_status = '<img title="' . strip_tags($msg) . '" src="/' . drupal_get_path('module', 'ultimate_cron') . '/icons/' . ($log['status'] === NULL ? 'information.png' : ($log['status'] ? 'tick.png' : 'error.png')). '"/>';
 
 
       if (empty($conf['enabled'])) {

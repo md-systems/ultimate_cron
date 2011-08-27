@@ -358,7 +358,8 @@ function ultimate_cron_theme_registry_alter(&$theme_registry) {
  * Implementation of hook_watchdog().
  */
 function ultimate_cron_watchdog($log = array()) {
-  if ($log['severity'] <= WATCHDOG_WARNING) {
+  $record = &drupal_static('ultimate_cron_record', FALSE);
+  if ($record && $log['severity'] <= WATCHDOG_WARNING) {
     $log['variables'] = is_array($log['variables']) ? $log['variables'] : array();
     ultimate_cron_record_log(t($log['message'], $log['variables']));
   }
@@ -476,6 +477,7 @@ function ultimate_cron_execute($function, $hook) {
  */
 function ultimate_cron_run_hook($function, $hook) {
   set_time_limit(variable_get('ultimate_cron_max_execution_time', ULTIMATE_CRON_MAX_EXECUTION_TIME));
+  drupal_save_session(FALSE);
 
   $fid = ultimate_cron_get_function_id($function);
   if (!$fid) {
@@ -486,6 +488,8 @@ function ultimate_cron_run_hook($function, $hook) {
   // Load current process
   $process = background_process_get_process(background_process_current_handle());
 
+  $record = &drupal_static('ultimate_cron_record', FALSE);
+  $record = TRUE;
   ultimate_cron_record_log(NULL, TRUE);
 
   $time = time();
@@ -549,9 +553,17 @@ function ultimate_cron_background_process_shutdown($process, $result = NULL, $ms
       }
     }
 
+    $messages = drupal_get_messages(NULL, TRUE);
+    if (!empty($messages['error'])) {
+      $msg .= join("\n", $messages['error']);
+    }
+    
     // If result not set by cronjob, use watchdog errors (if any) as result.
     if ($result === NULL) {
       $result = empty($msg);
+    }
+    if ($result && empty($msg)) {
+      $msg = join("\n", $messages['status']);
     }
 
     // log results here ...
@@ -560,17 +572,9 @@ function ultimate_cron_background_process_shutdown($process, $result = NULL, $ms
       'start' => $process->start,
       'end' => $end,
       'status' => $result,
+      'msg' => $msg,
     );
     drupal_write_record('ultimate_cron_log', $object);
-    if ($result !== NULL && !$result && $msg) {
-      // db_query("INSERT INTO {ultimate_cron_log_message} SET lid = %d, msg = '%s'", $object->lid, $msg);
-      db_insert('ultimate_cron_log_message')
-        ->fields(array(
-          'lid' => $object->lid,
-          'msg' => $msg,
-        ))
-        ->execute();
-    }
     $function = db_query("SELECT `function` FROM {ultimate_cron_function} WHERE fid = :fid", array(':fid' => $fid))->fetchField();
     watchdog('ultimate_cron', 'Shutdown: %function (%result) - %msg', array('%function' => $function, '%result' => $result, '%msg' => $msg), WATCHDOG_DEBUG);
   }
@@ -797,9 +801,8 @@ function ultimate_cron_set_configuration($function, $conf) {
  */
 function ultimate_cron_get_log($function) {
   $log = db_query_range("
-    SELECT l.*, m.msg FROM {ultimate_cron_log} l
+    SELECT l.* FROM {ultimate_cron_log} l
     JOIN {ultimate_cron_function} f ON l.fid = f.fid
-    LEFT JOIN {ultimate_cron_log_message} m ON l.lid = m.lid
     WHERE f.function = :function
     ORDER BY l.start DESC",
     0, 1, array(':function' => $function))
@@ -818,9 +821,8 @@ function ultimate_cron_get_log($function) {
  */
 function ultimate_cron_get_logs($function) {
   $result = db_query_range("
-    SELECT l.*, m.msg FROM {ultimate_cron_log} l
+    SELECT l.* FROM {ultimate_cron_log} l
     JOIN {ultimate_cron_function} f ON l.fid = f.fid
-    LEFT JOIN {ultimate_cron_log_message} m ON l.lid = m.lid
     WHERE f.function = :function
     ORDER BY l.start DESC",
     0, 100, array(':function' => $function));
