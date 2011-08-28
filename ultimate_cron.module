@@ -70,7 +70,7 @@ define('ULTIMATE_CRON_CLEANUP_LOG', 86400 * 30);
 /**
  * Default setting for poorman.
  */
-define('ULTIMATE_CRON_POORMAN', FALSE);
+define('ULTIMATE_CRON_POORMAN', TRUE);
 
 // ---------- HOOKS ----------
 
@@ -110,6 +110,22 @@ function ultimate_cron_menu() {
     'access callback' => 'ultimate_cron_function_settings_form_access',
     'access arguments' => array(5),
     'weight' => 0,
+    'file' => 'ultimate_cron.pages.inc',
+  );
+  $items['admin/reports/cron'] = array(
+    'title' => 'Cron logs',
+    'description' => 'View logs for all cron jobs.',
+    'page callback' => 'ultimate_cron_view_page',
+    'access arguments' => array('administer ultimate cron'),
+    'file' => 'ultimate_cron.pages.inc',
+  );
+  $items['admin/reports/cron/%'] = array(
+    'title' => 'Cron log',
+    'description' => 'View log for specific function.',
+    'page callback' => 'ultimate_cron_function_log_page',
+    'page arguments' => array(3),
+    'access callback' => 'ultimate_cron_function_settings_form_access',
+    'access arguments' => array(3),
     'file' => 'ultimate_cron.pages.inc',
   );
   $items['admin/ultimate-cron/service/start/%'] = array(
@@ -511,13 +527,13 @@ function ultimate_cron_run_hook($function, $hook) {
   module_invoke_all('cron_pre_execute_' . $function, $hook);
 
   if (function_exists($function)) {
-    $result = $function();
+    $function();
   }
   else {
-    $result = module_invoke($hook['module'], 'cronapi', 'execute', $function);
+    module_invoke($hook['module'], 'cronapi', 'execute', $function);
   }
 
-  ultimate_cron_background_process_shutdown($process, $result);
+  ultimate_cron_background_process_shutdown($process, NULL);
 
   // Let other modules do stuff before execution, if they need to.
   module_invoke_all('cron_post_execute', $function, $hook);
@@ -539,8 +555,12 @@ function _ultimate_cron_error_handler($errno, $errstr, $errfile, $errline, $errc
  *
  * Shutdown handler for cronjobs.
  */
-function ultimate_cron_background_process_shutdown($process, $result = NULL) {
+function ultimate_cron_background_process_shutdown($process, $result = NULL, $shutdown_msg = '') {
   $msg = ultimate_cron_record_log(NULL);
+  if ($shutdown_msg) {
+    $msg .= $msg ? "\n$shutdown_msg" : $shutdown_msg;
+  }
+  
   $fid = str_replace('ultimate_cron:', '', $process->handle);
   if ($fid !== $process->handle && is_numeric($fid)) {
     static $has_run = array();
@@ -829,17 +849,13 @@ function ultimate_cron_get_log($function) {
  *   Log line.
  */
 function ultimate_cron_get_logs($function) {
-  $result = db_query_range("
-    SELECT l.* FROM {ultimate_cron_log} l
-    JOIN {ultimate_cron_function} f ON l.fid = f.fid
-    WHERE f.function = :function
-    ORDER BY l.start DESC",
-    0, 100, array(':function' => $function));
-  $logs = array();
-  while ($log = $result->fetchObject()) {
-    $logs[] = $log;
-  }
-  return $logs;
+  $query = db_select('ultimate_cron_log', 'l');
+  $query->fields('l', array('lid', 'fid', 'start', 'end', 'status', 'msg'));
+  $query->join('ultimate_cron_function', 'f', 'l.fid = f.fid');
+  $query->condition('f.function', $function);
+  $query->orderBy('l.start', 'DESC');
+  $query->range(0, 100);
+  return $query->execute()->fetchAll();
 }
 
 /**
