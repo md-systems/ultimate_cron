@@ -243,10 +243,10 @@ function ultimate_cron_view_page($module = NULL) {
             'data' => $conf['rules'][0],
             'title' => join("\n", $conf['rules']),
           ) : t('N/A'),
-          $start ? substr(format_date((int)$start, 'custom', 'Y-m-d H:i:s:u'), 0, -3) : ($process ? t('Starting') : t('Never')),
+          $start ? format_date((int)$start, 'custom', 'Y-m-d H:i:s') : ($process ? t('Starting') : t('Never')),
           $start ? array(
-            'data' => substr(gmdate('H:i:s:u', (int)($end - $start)), 0, -3),
-            'title' => t('Finished @ !timestamp', array('!timestamp' => substr(format_date((int)$end, 'custom', 'Y-m-d H:i:s:u'), 0, -3))),
+            'data' => gmdate('H:i:s', (int)($end - $start)),
+            'title' => t('Finished @ !timestamp', array('!timestamp' => format_date((int)$end, 'custom', 'Y-m-d H:i:s'))),
           ) : t('N/A'),
           $process ? $link_inprogress : $link_status,
           $link_settings,
