@@ -2,3 +2,5 @@ name = "Ultimate Cron"
 description = "Cron"
 core = 7.x
 
+dependencies[] = background_process
+dependencies[] = progress

@@ -188,8 +188,13 @@ function ultimate_cron_menu_alter(&$items) {
 /**
  * Implementation of hook_perm().
  */
-function ultimate_cron_perm() {
-  return array('administer ultimate cron');
+function ultimate_cron_permission() {
+  return array(
+    'administer ultimate cron' => array(
+      'title' => t('Administer Ultimate Cron'),
+      'description' => t('Lets you configure everything in Ultimate Cron')
+    )
+  );
 }
 
 /**
