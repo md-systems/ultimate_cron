@@ -4,3 +4,5 @@ core = 7.x
 
 dependencies[] = background_process
 dependencies[] = progress
+
+configure = admin/config/system/cron/settings
