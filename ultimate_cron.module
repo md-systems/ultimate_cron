@@ -325,6 +325,23 @@ function ultimate_cron_cronapi($op, $job = NULL) {
 }
 
 /**
+ * Implements hook_cron_alter().
+ * Add better description to core modules.
+ */
+function ultimate_cron_cron_alter(&$hooks) {
+  $update['dblog_cron'] = t('Remove expired log messages and flood control events');
+  $update['field_cron'] = t('Purges deleted Field API data');
+  $update['node_cron'] = t('Mark old nodes as read');
+  $update['search_cron'] = t('Update indexes');
+  $update['system_cron'] = t('Cleanup (batch, flood, temp-files, etc.)');
+  foreach ($update as $function => $description) {
+    if (isset($hooks[$function])) {
+      $hooks[$function]['description'] = $description;
+    }
+  }
+}
+
+/**
  * Implementation of hook_requirements().
  */
 function ultimate_cron_requirements($phase) {
