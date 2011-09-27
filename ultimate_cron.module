@@ -760,12 +760,15 @@ function ultimate_cron_get_hooks() {
   // Generate list of hooks
   $modules = module_list();
   foreach ($modules as $module) {
+    $file = drupal_get_path('module', $module) .'/'. $module .'.info';
+    $info = drupal_parse_info_file($file);
     foreach (ultimate_cron_easy_hooks() as $hook => $description) {
       if (module_hook($module, $hook)) {
         $function = $module . '_' . $hook;
         $hooks[$function]['unsafe'] = (isset($uncronable_modules[$module]) && $hook === 'cron') ? TRUE : FALSE;
         $hooks[$function]['description'] = $description;
         $hooks[$function]['module'] = $module;
+        $hooks[$function]['configure'] = isset($info['configure']) ? $info['configure'] : '';
       }
     }
     if ($cronapi = module_invoke($module, 'cronapi', 'list')) {
@@ -777,10 +780,14 @@ function ultimate_cron_get_hooks() {
     }
   }
 
+  $configure = module_invoke_all('cronapi', 'configure');
   foreach ($hooks as $function => &$hook) {
     $hook['function'] = $function;
     $hook['fid'] = ultimate_cron_get_function_id($function);
     $hook['rules'] = ultimate_cron_get_default_rules($module, $function);
+    if (isset($configure[$function])) {
+      $hook['configure'] = $configure[$function];
+    }
   }
   // Remove ourselves from the list
   unset($hooks['ultimate_cron_cron']);
