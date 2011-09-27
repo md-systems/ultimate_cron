@@ -1,0 +1,30 @@
+.ultimate-cron-admin-status span {
+  display: none;
+}
+
+.ultimate-cron-admin-status-noinfo {
+  background: url(../icons/information.ong) center no-repeat;
+}
+
+.ultimate-cron-admin-status-error {
+  background: url(../icons/error.png) center no-repeat;
+}
+
+.ultimate-cron-admin-status-noerror {
+  background: url(../icons/tick.png) center no-repeat;
+}
+
+.ultimate-cron-admin-status-running {
+  background: url(../icons/hourglass.png) center no-repeat;
+}
+
+.ultimate-cron-admin-start,
+.ultimate-cron-admin-end,
+.ultimate-cron-admin-duration,
+.ultimate-cron-admin-rules {
+  white-space: nowrap;
+}
+
+.ultimate-cron-admin-message {
+  white-space: pre-line;
+}
