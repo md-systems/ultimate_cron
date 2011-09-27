@@ -274,7 +274,7 @@ function ultimate_cron_view_page($module = NULL) {
       $data[7]['data'] = $link_settings;
       $data[8]['data'] = $link_configure;
       $data[9]['data'] = $link_log;
-      $data[10]['data'] = $process ? $link_unlock : $link_execute;
+      $data[10]['data'] = $hook['unsafe'] ? '' : ($process ? $link_unlock : $link_execute);
 
       $rows[] = $data;
     }
