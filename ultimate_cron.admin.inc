@@ -187,8 +187,14 @@ function ultimate_cron_view_page($module = NULL) {
   $output = '';
   $rows = array();
   
+  $unsafe = array();
   foreach ($modules as $module => $hooks) {
     foreach ($hooks as $function => $hook) {
+      // Collect unsafe functions for message to user
+      if ($hook['unsafe']) {
+        $unsafe[] = $function;
+      }
+      
       // Setup configration
       $conf = $hook['configuration'];
       $rules = empty($conf['rules']) ? $hook['rules'] : $conf['rules'];
@@ -278,6 +284,11 @@ function ultimate_cron_view_page($module = NULL) {
     'rows' => $rows, 
     'attributes' => array('id' => 'ultimate-cron-view')
   ));
+
+  if (!empty($unsafe)) {
+    $msg = t('Functions not handled by Ultimate Cron due to module weight: %functions', array('%functions' => join(', ', $unsafe)));
+    drupal_set_message($msg, 'warning');
+  }
 
   return $output;
 }

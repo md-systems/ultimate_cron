@@ -1049,6 +1049,7 @@ function ultimate_cron_reclaim() {
     ))
     ->condition('name', 'ultimate_cron')
     ->execute();
+  system_list_reset();
 }
 
 /**
