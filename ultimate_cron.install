@@ -112,3 +112,14 @@ function ultimate_cron_enable() {
   module_load_include('module', 'ultimate_cron');
   ultimate_cron_reclaim();
 }
+
+function ultimate_cron_update_7000() {
+  db_add_field('ultimate_cron_log', 'msg', array(
+    'description' => 'Message',
+    'type' => 'text',
+    'not null' => FALSE,
+  ));
+  db_query("UPDATE {ultimate_cron_log} l JOIN {ultimate_cron_log_message} m ON l.lid = m.lid SET l.msg = m.msg");
+  db_drop_table('ultimate_cron_log_message');
+}
+
