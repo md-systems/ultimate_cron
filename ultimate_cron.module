@@ -299,6 +299,12 @@ function ultimate_cron_cronapi($op, $job = NULL) {
         $jobs['ultimate_cron_queue_' . $queue_name] = t('Queue: %name', array('%name' => $queue_name));
       }
       return $jobs;
+    case 'rule':
+      $queue_name = str_replace('ultimate_cron_queue_', '', $job);
+      if ($queue_name === $job) {
+        return;
+      }
+      return '* * * * *';
     case 'execute':
       $queue_name = str_replace('ultimate_cron_queue_', '', $job);
       if ($queue_name === $job) {
@@ -784,7 +790,7 @@ function ultimate_cron_get_hooks() {
   foreach ($hooks as $function => &$hook) {
     $hook['function'] = $function;
     $hook['fid'] = ultimate_cron_get_function_id($function);
-    $hook['rules'] = ultimate_cron_get_default_rules($module, $function);
+    $hook['rules'] = ultimate_cron_get_default_rules($hook['module'], $function);
     if (isset($configure[$function])) {
       $hook['configure'] = $configure[$function];
     }
