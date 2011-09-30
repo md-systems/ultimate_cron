@@ -797,6 +797,7 @@ function ultimate_cron_get_hooks() {
         $hooks[$function]['description'] = $description;
         $hooks[$function]['module'] = $module;
         $hooks[$function]['configure'] = isset($info['configure']) ? $info['configure'] : '';
+        $hooks[$function]['rules'] = ultimate_cron_get_default_rules($module, $function, ultimate_cron_easy_hooks_rule($hook));
       }
     }
     if ($cronapi = module_invoke($module, 'cronapi', 'list')) {
@@ -804,6 +805,7 @@ function ultimate_cron_get_hooks() {
         $hooks[$function]['unsafe'] = isset($hooks[$function]['unsafe']) ? $hooks[$function]['unsafe'] : FALSE;
         $hooks[$function]['description'] = $description;
         $hooks[$function]['module'] = $module;
+        $hooks[$function]['rules'] = ultimate_cron_get_default_rules($module, $function, ultimate_cron_easy_hooks_rule('cron'));
       }
     }
   }
@@ -812,7 +814,6 @@ function ultimate_cron_get_hooks() {
   foreach ($hooks as $function => &$hook) {
     $hook['function'] = $function;
     $hook['fid'] = ultimate_cron_get_function_id($function);
-    $hook['rules'] = ultimate_cron_get_default_rules($hook['module'], $function);
     if (isset($configure[$function])) {
       $hook['configure'] = $configure[$function];
     }
@@ -834,10 +835,10 @@ function ultimate_cron_get_hooks() {
  * @param type $function
  * @return array
  */
-function ultimate_cron_get_default_rules($module, $function) {
+function ultimate_cron_get_default_rules($module, $function, $default_rule) {
   $rules = module_invoke($module, 'cronapi', 'rule', $function);
   if (empty($rules)) {
-    $rules = array(variable_get('ultimate_cron_rule', ULTIMATE_CRON_RULE));
+    $rules = array($default_rule);
   }
   elseif (!is_array($rules)) {
     $rules = array($rules);

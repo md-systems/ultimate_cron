@@ -78,7 +78,10 @@ function ultimate_cron_reclaim_submit($form, &$form_state) {
 
 function ultimate_cron_function_settings_form($form, &$form_state, $function) {
   // Load configuration
-  $fid = ultimate_cron_get_function_id($function);
+  $hooks = ultimate_cron_get_hooks();
+  $hook = $hooks[$function];
+  $fid = $hook['fid'];
+
   $conf = db_select('ultimate_cron_configuration', 'ucc')
     ->fields('ucc', array('fid', 'configuration'))
     ->condition('fid', $fid)
@@ -118,7 +121,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
     '#title' => t('Rules'),
     '#type' => 'textfield',
     '#default_value' => implode(';', $conf['rules']),
-    '#description' => t('Comma separated list of rules for this job. (blank = ' . variable_get('ultimate_cron_rule', ULTIMATE_CRON_RULE) . ')'),
+    '#description' => t('Semi-colon separated list of rules for this job. (blank = ' . implode(';', $hook['rules']) . ')'),
   );
   $form['general']['catch_up'] = array(
     '#title' => t('Catch up'),
