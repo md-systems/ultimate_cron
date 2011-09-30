@@ -226,31 +226,25 @@ function ultimate_cron_view_page($module = NULL) {
         $log['end'] = microtime(TRUE);
       }
 
-
-
       $link_configure = '';
       if (!empty($hook['configure'])) {
-        $link_configure = l('Configure', $hook['configure'], array('attributes' => array('class' => 'module-link module-link-configure')));
+        $link_configure = _ultimate_cron_l('Module settings', $hook['configure']);
       }
 
       $link_unlock = '';
       if ($process) {
-        $link_unlock = l('Unlock', 'background-process/unlock/' . $process->handle, array('query' => array('destination' => trim(request_uri(), '/'))));
+        $link_unlock = _ultimate_cron_l('Unlock', 'background-process/unlock/' . $process->handle);
       }
 
-      $link_settings = l('Settings', 'admin/config/system/cron/settings/' . $function, array('attributes' => array('class' => 'module-link module-link-configure'), 'query' => array('destination' => trim(request_uri(), '/'))));
-      $link_execute = l('Run', 'admin/ultimate-cron/service/start/' . $function, array('attributes' => array('class' => 'module-link'), 'query' => array('destination' => trim(request_uri(), '/'))));
-      $link_log = l('Log', 'admin/reports/cron/' . $function, array('attributes' => array('class' => 'module-link')));
+      $link_settings = _ultimate_cron_l('Cron settings', 'admin/config/system/cron/settings/' . $function);
+      $link_execute = _ultimate_cron_l('Run', 'admin/ultimate-cron/service/start/' . $function);
+      $link_log = _ultimate_cron_l('Log', 'admin/reports/cron/' . $function);
       
-      if (!empty($conf) && empty($conf['enabled'])) {
-        $link_toggle = l('Enable', 'admin/ultimate-cron/service/enable/' . $function, array('attributes' => array('class' => 'module-link module-link-configure'), 'query' => array('destination' => trim(request_uri(), '/'))));
-      }
-      else {
-        $link_toggle = l('Disable', 'admin/ultimate-cron/service/disable/' . $function, array('attributes' => array('class' => 'module-link module-link-configure'), 'query' => array('destination' => trim(request_uri(), '/'))));
-      }
+      $enable = !empty($conf) && empty($conf['enabled']);
+      $link_toggle = _ultimate_cron_l($enable ? 'Enable' : 'Disable','admin/ultimate-cron/service/' . ($enable ? 'enable' : 'disable') . '/' . $function);
 
       $data = array(
-        array('class' => 'ultimate-cron-admin-enable'),
+        array('class' => $enable ? 'ultimate-cron-admin-enable' : 'ultimate-cron-admin-disable'),
         array('class' => 'ultimate-cron-admin-module'),
         array('class' => 'ultimate-cron-admin-function'),
         array('class' => 'ultimate-cron-admin-rules'),
@@ -260,15 +254,19 @@ function ultimate_cron_view_page($module = NULL) {
         array('class' => 'ultimate-cron-admin-settings'),
         array('class' => 'ultimate-cron-admin-configure'),
         array('class' => 'ultimate-cron-admin-log'),
-        array('class' => 'ultimate-cron-admin-execute'),
+        array('class' => $process ? 'ultimate-cron-admin-unlock' : 'ultimate-cron-admin-execute'),
       );
       $data[0]['data'] = $link_toggle;
+      $data[0]['title'] = $enable ? t('Enable') : t('Disable');
       $data[1]['data'] = ultimate_cron_module_name($module);
       $data[2]['data'] = $hook['description'];
+      $data[2]['title'] = $function;
       $data[3]['data'] = join("<br/>", $rules);
       $data[4]['data'] = $log['start'] ? format_date((int)$log['start'], 'custom', 'Y-m-d H:i:s') : ($process ? t('Starting') : t('Never'));
       $data[5]['data'] = $log['start'] ? gmdate('H:i:s', (int)($log['end'] - $log['start'])) : t('N/A');
-//            'title' => t('Finished @ !timestamp', array('!timestamp' => format_date((int)$log['end'], 'custom', 'Y-m-d H:i:s'))),
+      $data[5]['title'] = t('Finished @ !timestamp', array(
+        '!timestamp' => $log['end'] ? format_date((int)$log['end'], 'custom', 'Y-m-d H:i:s') : t('N/A')
+      ));
       if ($process) {
         $data[6]['data'] = '<span>' . t('Running') . '</span>';
         $data[6]['title'] = t('Running on @host', array('@host' => $service_host));
@@ -278,9 +276,13 @@ function ultimate_cron_view_page($module = NULL) {
         $data[6]['title'] = strip_tags($msg);
       }
       $data[7]['data'] = $link_settings;
+      $data[7]['title'] = t('Cron settings');
       $data[8]['data'] = $link_configure;
+      $data[8]['title'] = $link_configure ? t('Module settings') : '';
       $data[9]['data'] = $link_log;
+      $data[9]['title'] = t('Log');
       $data[10]['data'] = $hook['unsafe'] ? '' : ($process ? $link_unlock : $link_execute);
+      $data[10]['title'] = $hook['unsafe'] ? '' : ($process ? t('Unlock') : t('Run'));
 
       $rows[] = $data;
     }
@@ -392,4 +394,23 @@ function ultimate_cron_service_enable($function, $enabled) {
   $conf['enabled'] = $enabled;
   ultimate_cron_set_configuration($function, $conf);
   drupal_goto();
+}
+
+/**
+ * Helper function for links on cron list
+ * @param $text
+ *   Text for link
+ * @param $path
+ *   Path to link to
+ * @return type 
+ */
+function _ultimate_cron_l($text, $path) {
+  return l(
+    '<span>' . t($text) . '</span>',
+    $path,
+    array(
+      'query' => array('destination' => trim(request_uri(), '/')),
+      'html' => TRUE,
+    )
+  );
 }

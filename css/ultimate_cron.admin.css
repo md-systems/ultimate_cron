@@ -1,9 +1,32 @@
+/*
+.ultimate-cron-admin-enable a,
+.ultimate-cron-admin-disable a,
+.ultimate-cron-admin-settings a,
+.ultimate-cron-admin-configure a,
+.ultimate-cron-admin-log a,
+.ultimate-cron-admin-unlock a,
+.ultimate-cron-admin-execute a,
+*/
+.ultimate-cron-admin-status a {
+  width: 16px;
+  height: 16px;
+  display: block;
+}
+/*
+.ultimate-cron-admin-enable a span,
+.ultimate-cron-admin-disable a span,
+.ultimate-cron-admin-settings a span,
+.ultimate-cron-admin-configure a span,
+.ultimate-cron-admin-log a span,
+.ultimate-cron-admin-unlock a span,
+.ultimate-cron-admin-execute a span,
+*/
 .ultimate-cron-admin-status span {
   display: none;
 }
 
 .ultimate-cron-admin-status-noinfo {
-  background: url(../icons/information.ong) center no-repeat;
+  background: url(../icons/information.png) center no-repeat;
 }
 
 .ultimate-cron-admin-status-error {
@@ -17,7 +40,35 @@
 .ultimate-cron-admin-status-running {
   background: url(../icons/hourglass.png) center no-repeat;
 }
+/*
+.ultimate-cron-admin-enable a {
+  background: url(../icons/add.png) center no-repeat;
+}
 
+.ultimate-cron-admin-disable a {
+  background: url(../icons/delete.png) center no-repeat;
+}
+
+.ultimate-cron-admin-settings a {
+  background: url(../icons/cog.png) center no-repeat;
+}
+
+.ultimate-cron-admin-configure a {
+  background: url(../icons/application_form_edit.png) center no-repeat;
+}
+
+.ultimate-cron-admin-log a {
+  background: url(../icons/chart_line.png) center no-repeat;
+}
+
+.ultimate-cron-admin-unlock a {
+  background: url(../icons/lock_open.png) center no-repeat;
+}
+
+.ultimate-cron-admin-execute a {
+  background: url(../icons/application_go.png) center no-repeat;
+}
+*/
 .ultimate-cron-admin-start,
 .ultimate-cron-admin-end,
 .ultimate-cron-admin-duration,
