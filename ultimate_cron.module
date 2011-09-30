@@ -70,6 +70,11 @@ define('ULTIMATE_CRON_CLEANUP_LOG', 86400 * 30);
  */
 define('ULTIMATE_CRON_POORMAN', TRUE);
 
+/**
+ * Default queue polling latency.
+ */
+define('ULTIMATE_CRON_QUEUE_POLLING_LATENCY', '');
+
 // ---------- HOOKS ----------
 
 /**
@@ -311,14 +316,31 @@ function ultimate_cron_cronapi($op, $job = NULL) {
         return;
       }
 
+      $polling_latency = variable_get('ultimate_cron_queue_polling_latency', ULTIMATE_CRON_QUEUE_POLLING_LATENCY);
       $info = $queues[$queue_name];
       
       $function = $info['worker callback'];
       $end = time() + (isset($info['time']) ? $info['time'] : 15);
       $queue = DrupalQueue::get($queue_name);
-      while (time() < $end && ($item = $queue->claimItem())) {
+      $items = 0;
+      while (time() < $end) {
+        $item = $queue->claimItem();
+        if (!$item) {
+          if (is_numeric($polling_latency)) {
+            usleep($polling_latency);
+            continue;
+          }
+          else {
+            break;
+          }
+        }
         $function($item->data);
         $queue->deleteItem($item);
+        $items++;
+      }
+      drupal_set_message(t('Processed @items items', array('@items' => $items)));
+      if (is_numeric($polling_latency)) {
+        background_process_keepalive();
       }
       return;
     case 'configure':

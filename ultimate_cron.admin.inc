@@ -49,6 +49,12 @@ function ultimate_cron_settings_form() {
     '#default_value' => variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN),
     '#description' => t('Keep background process alive, checking for cron every minute.'),
   );
+  $form['general']['ultimate_cron_queue_polling_latency'] = array(
+    '#title' => t("Queue polling latency"),
+    '#type' => 'textfield',
+    '#default_value' => variable_get('ultimate_cron_queue_polling_latency', ULTIMATE_CRON_QUEUE_POLLING_LATENCY),
+    '#description' => t('Queue polling latency in micro seconds. Leave blank to disable continuous processing of queues.'),
+  );
   
   $form = system_settings_form($form);
   
