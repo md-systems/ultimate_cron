@@ -878,9 +878,7 @@ function ultimate_cron_get_configuration($function) {
   }
 
   $conf = db_query("SELECT fid, configuration FROM {ultimate_cron_configuration} WHERE fid = :fid", array(':fid' => $fid))->fetchObject();
-  if ($conf) {
-    $conf = $conf->configuration ? unserialize($conf->configuration) : array();
-  }
+  $conf = $conf && $conf->configuration ? unserialize($conf->configuration) : array();
   return $conf;
 }
 

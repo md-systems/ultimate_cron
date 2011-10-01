@@ -81,13 +81,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
   $hooks = ultimate_cron_get_hooks();
   $hook = $hooks[$function];
   $fid = $hook['fid'];
-
-  $conf = db_select('ultimate_cron_configuration', 'ucc')
-    ->fields('ucc', array('fid', 'configuration'))
-    ->condition('fid', $fid)
-    ->execute()
-    ->fetchObject();
-  $conf = $conf && $conf->configuration ? unserialize($conf->configuration) : array();
+  $conf = ultimate_cron_get_configuration($function);
   $conf += array(
     'enabled' => TRUE,
     'rules' => array(),
