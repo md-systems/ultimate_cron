@@ -422,7 +422,7 @@ function ultimate_cron_exit($destination = NULL) {
     $time = time();
     $time = floor($time / 60) * 60;
     // Don't attempt, if already run within last minute
-    if ($last && $last < $time) {
+    if ($last < $time) {
       $handle = 'ultimate_cron_poorman';
       if ($process = background_process_get_process($handle)) {
         if ($process->start + 120 < time()) {
