@@ -4,13 +4,8 @@
  * Menu callback: runs cron and returns to status-report page.
  */
 function ultimate_cron_run_cron() {
-  // Run cron manually
-  if (ultimate_cron_cron(TRUE)) {
-    // drupal_set_message(t('Ultimate Cron started.'));
-  }
-  else {
-    // drupal_set_message(t('Ultimate Cron could not start.'), 'error');
-  }
+  // Run the cron and return
+  ultimate_cron_cron(TRUE);
   drupal_goto('admin/reports/status');
 }
 
@@ -291,7 +286,7 @@ function ultimate_cron_view_page($module = NULL) {
   ));
 
   if (!empty($unsafe)) {
-    $msg = t('Functions not handled by Ultimate Cron due to module weight: %functions', array('%functions' => join(', ', $unsafe)));
+    $msg = t('Functions not handled by Ultimate Cron due to module weight, when cron is invoked through system crontab:<br/>%functions', array('%functions' => join(', ', $unsafe)));
     drupal_set_message($msg, 'warning');
   }
 
