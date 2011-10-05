@@ -75,6 +75,11 @@ define('ULTIMATE_CRON_POORMAN', TRUE);
  */
 define('ULTIMATE_CRON_QUEUE_POLLING_LATENCY', '');
 
+/**
+ * Time in seconds to spend on launcing cron jobs.
+ */
+define('ULTIMATE_CRON_LAUNCH_WINDOW', 55);
+
 // ---------- HOOKS ----------
 
 /**
@@ -221,18 +226,25 @@ function ultimate_cron_cron($return = FALSE) {
   $schedule = ultimate_cron_get_schedule($hooks, $schedule_unsafe);
   drupal_set_message(t('%jobs jobs scheduled for launch', array('%jobs' => count($schedule))));
 
-  // Start the jobs. Keep launching jobs until 55 seconds into the request.
+  // Start the jobs. Keep launching jobs until X seconds into the request.
+  set_time_limit(120);
   $time = time();
-  $expire = $time + 55;
+  $expire = $time + variable_get('ultimate_cron_launch_window', ULTIMATE_CRON_LAUNCH_WINDOW);
   $running = array();
   $launched = 0;
 
-  // Try to launch jobs for 55 seconds, or until there are no more jobs.
+  // Try to launch jobs within the given time frame
   while (!empty($schedule) && time() < $expire) {
+    $running_processes = db_select('background_process', 'bp')
+                          ->fields('bp', array('handle'))
+                          ->condition('bp.handle', 'ultimate_cron:%', 'LIKE')
+                          ->countQuery()
+                          ->execute()
+                          ->fetchField();
     // watchdog('ultimate_cron', "Jobs waiting to be launched: %jobs", array('%jobs' => count($schedule)), WATCHDOG_DEBUG);
     // Launch jobs.
     reset($schedule);
-    while (count($running) < $msc && list($function, $hook) = each($schedule)) {
+    while ($running_processes < $msc && (list($function, $hook) = each($schedule)) && time() < $expire) {
       $result = ultimate_cron_run_hook($function, $hook);
 
       // Handle errors.
@@ -241,6 +253,7 @@ function ultimate_cron_cron($return = FALSE) {
         $running[$handle] = $result;
         unset($schedule[$function]);
         $launched++;
+        $running_processes++;
       }
       else {
         if ($result === FALSE) {
@@ -263,6 +276,7 @@ function ultimate_cron_cron($return = FALSE) {
         unset($running[$handle->name]);
       }
     }
+    sleep(1);
   }
 
   // Close all jobs left
@@ -282,7 +296,11 @@ function ultimate_cron_cron($return = FALSE) {
   
   // And we're done ...
   if ($return) {
-    drupal_set_message(t('%jobs remaining to be launched', array('%jobs' => count($schedule))), empty($schedule) ? 'status' : 'error');
+    drupal_set_message(t('%jobs jobs launched', array('%jobs' => $launched)));
+    drupal_set_message(t('%jobs jobs failed to launch within %seconds seconds', array(
+      '%jobs' => count($schedule), 
+      '%seconds' => variable_get('ultimate_cron_launch_window', ULTIMATE_CRON_LAUNCH_WINDOW)
+    )), empty($schedule) ? 'status' : 'error');
     return empty($schedule);
   }
   else {
@@ -559,7 +577,7 @@ function _ultimate_cron_run_hook($function, $hook) {
 
   // Load configuration if not present
   if (!isset($hook['log'])) {
-    $hook['log'] = ultimate_cron_get_log($function);
+    $hook['log'] = ultimate_cron_get_log($hook['fid']);
   }
   
   $time = time();
@@ -574,10 +592,6 @@ function _ultimate_cron_run_hook($function, $hook) {
     return FALSE;
   }
 
-  // Trap errors for logging purposes
-  // $callback = &drupal_static('ultimate_cron_error_handler', NULL);
-  // $callback = set_error_handler('_ultimate_cron_error_handler');
-  
   // Let other modules do stuff before execution, if they need to.
   module_invoke_all('cron_pre_execute', $function, $hook);
   module_invoke_all('cron_pre_execute_' . $function, $hook);
@@ -599,51 +613,30 @@ function _ultimate_cron_run_hook($function, $hook) {
 }
 
 /**
- * PHP error handler
- * Records all errors produced while running cron job.
- */
-function _ultimate_cron_error_handler() {
-  $args = func_get_args();
-  $handle = background_process_current_handle();
-  $loglevel = variable_get('ultimate_cron_loglevel_record', E_ALL ^ E_NOTICE);
-  $errors = &drupal_static('ultimate_cron_error_log');
-  error_log("$handle - errno: " . $args[0]);
-  if ($args[0] & $loglevel) {
-    
-    error_log("logging");
-    // ultimate_cron_record_log($errstr);
-  }
-  $callback = &drupal_static('ultimate_cron_error_handler');
-  if (is_callable($callback)) {
-    return call_user_func_array($callback, $args);
-  }
-  return FALSE;
-}
-
-/**
  * Implements hook_background_process_shutdown().
  *
  * Shutdown handler for cronjobs.
  */
 function ultimate_cron_background_process_shutdown($process, $result = NULL, $shutdown_msg = '') {
-  $error = error_get_last();
-  $fatal_msg = '';
-  if ($error && ($error['type'] & (E_ERROR | E_CORE_ERROR | E_RECOVERABLE_ERROR))) {
-    $fatal_msg =  $error['message'] . ' (line ' . $error['line'] . ' of ' . $error['file'] . ').' . "\n";
-  }
-  $msg = ultimate_cron_record_log(NULL);
-  if ($shutdown_msg) {
-    $msg .= $msg ? "\n$shutdown_msg" : $shutdown_msg;
-  }
-  
+  $args = func_get_args();
   $fid = str_replace('ultimate_cron:', '', $process->handle);
-  if ($fid !== $process->handle && is_numeric($fid)) {
+  if (is_numeric($fid)) {
     static $has_run = array();
     if (!empty($has_run[$fid])) {
       return;
     }
     $has_run[$fid] = TRUE;
 
+    $error = error_get_last();
+    $fatal_msg = '';
+    if ($error) { // && ($error['type'] & (E_ERROR | E_CORE_ERROR | E_RECOVERABLE_ERROR))) {
+      $fatal_msg =  $error['message'] . ' (line ' . $error['line'] . ' of ' . $error['file'] . ').' . "\n";
+    }
+    $msg = ultimate_cron_record_log(NULL);
+    if ($shutdown_msg) {
+      $msg .= $msg ? "\n$shutdown_msg" : $shutdown_msg;
+    }
+    
     // Record end time
     $end = microtime(TRUE);
 
@@ -735,7 +728,7 @@ function ultimate_cron_load_hook_data(&$hook) {
 
   // Get log, used for checking last start time
   if (!isset($hook['log'])) {
-    $hook['log'] = ultimate_cron_get_log($hook['function']);
+    $hook['log'] = ultimate_cron_get_log($hook['fid']);
   }
 }
 
@@ -932,13 +925,12 @@ function ultimate_cron_set_configuration($function, $conf) {
  * @return object
  *   Log line.
  */
-function ultimate_cron_get_log($function) {
+function ultimate_cron_get_log($fid) {
   $log = db_query_range("
     SELECT l.* FROM {ultimate_cron_log} l
-    JOIN {ultimate_cron_function} f ON l.fid = f.fid
-    WHERE f.function = :function
+    WHERE l.fid = :fid
     ORDER BY l.start DESC",
-    0, 1, array(':function' => $function))
+    0, 1, array(':fid' => $fid))
       ->fetchAssoc();
   return $log;
 }
@@ -1117,7 +1109,7 @@ function ultimate_cron_module_name($module) {
  */
 function _ultimate_cron_preload_cron_data() {
   $result = db_query("
-SELECT f.fid, f.function, c.configuration, p.handle, p.service_host
+SELECT f.fid, f.function, c.configuration, p.handle, p.service_host, p.start
 FROM ultimate_cron_function f
 LEFT JOIN ultimate_cron_configuration c ON f.fid = c.fid
 LEFT JOIN background_process p ON p.handle = CONCAT('ultimate_cron:', f.fid)
@@ -1125,12 +1117,12 @@ LEFT JOIN background_process p ON p.handle = CONCAT('ultimate_cron:', f.fid)
 
   $data = array();
   while ($row = $result->fetchObject()) {
-    ultimate_cron_get_function_id($row->function, $row->fid);
     $data[$row->function] = array(
       'configuration' => $row->configuration ? unserialize($row->configuration) : array(),
       'background_process' => empty($row->handle) ? NULL : (object)array(
         'handle' => $row->handle,
         'service_host' => $row->service_host,
+        'start' => $row->start,
       ),
     );
   }

@@ -171,12 +171,14 @@ function ultimate_cron_view_page($module = NULL) {
   drupal_add_css(drupal_get_path('module', 'ultimate_cron') . '/css/ultimate_cron.admin.css');
 
   $hooks = ultimate_cron_get_hooks();
+  $data = _ultimate_cron_preload_cron_data();
   
   $modules = array();
   foreach ($hooks as $function => $hook) {
     if (!$module || $module == $hook['module']) {
+      $hook['configuration'] = $data[$function]['configuration'];
+      $hook['background_process'] = $data[$function]['background_process'];
       ultimate_cron_load_hook_data($hook);
-      $hook['background_process'] = background_process_get_process('ultimate_cron:' . $hook['fid']);
       $modules[$hook['module']][$function] = $hook;
     }
   }
@@ -184,7 +186,11 @@ function ultimate_cron_view_page($module = NULL) {
   $headers = array('', t('Module'), t('Function'), t('Rules'), t('Start'), t('Duration'), t('Status'), array('colspan' => 4, 'data' => ''));
   $output = '';
   $rows = array();
-  
+
+  $overview = array();
+  $overview['running'] = 0;
+  $overview['errors'] = 0;
+
   $unsafe = array();
   foreach ($modules as $module => $hooks) {
     foreach ($hooks as $function => $hook) {
@@ -214,10 +220,14 @@ function ultimate_cron_view_page($module = NULL) {
       $css_status = !empty($process) ? 'running' : (isset($log['status']) ? ($log['status'] ? 'noerror' : 'error') : 'noinfo');
       $msg = !empty($log['msg']) ? $log['msg'] : ($log['status'] ? t('No errors') : t('No information'));
       if ($process) {
+        $overview['running']++;
         $log['start'] = $process->start;
         $log['end'] = microtime(TRUE);
       }
 
+      if (isset($log['status']) && !$log['status']) {
+        $overview['errors']++;
+      }
       $link_configure = '';
       if (!empty($hook['configure'])) {
         $link_configure = _ultimate_cron_l('Module settings', $hook['configure']);
@@ -288,6 +298,12 @@ function ultimate_cron_view_page($module = NULL) {
   if (!empty($unsafe)) {
     $msg = t('Functions not handled by Ultimate Cron due to module weight, when cron is invoked through system crontab:<br/>%functions', array('%functions' => join(', ', $unsafe)));
     drupal_set_message($msg, 'warning');
+  }
+  if ($overview['running']) {
+    drupal_set_message(t('@jobs jobs are currently running', array('@jobs' => $overview['running'])));
+  }
+  if ($overview['errors']) {
+    drupal_set_message(t('@jobs jobs failed their last run', array('@jobs' => $overview['errors'])), 'error');
   }
 
   return $output;
