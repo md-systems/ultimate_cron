@@ -225,6 +225,7 @@ function ultimate_cron_cron($return = FALSE) {
   // Get schedule.
   $schedule = ultimate_cron_get_schedule($hooks, $schedule_unsafe);
   drupal_set_message(t('%jobs jobs scheduled for launch', array('%jobs' => count($schedule))));
+  watchdog('ultimate_cron', '%jobs jobs scheduled for launch', array('%jobs' => count($schedule)), WATCHDOG_INFO);
 
   // Start the jobs. Keep launching jobs until X seconds into the request.
   set_time_limit(120);
@@ -241,7 +242,6 @@ function ultimate_cron_cron($return = FALSE) {
                           ->countQuery()
                           ->execute()
                           ->fetchField();
-    // watchdog('ultimate_cron', "Jobs waiting to be launched: %jobs", array('%jobs' => count($schedule)), WATCHDOG_DEBUG);
     // Launch jobs.
     reset($schedule);
     while ($running_processes < $msc && (list($function, $hook) = each($schedule)) && time() < $expire) {
@@ -268,7 +268,6 @@ function ultimate_cron_cron($return = FALSE) {
     }
 
     // Jobs running ... check for start
-    // watchdog('ultimate_cron', "Jobs waiting to begin: %jobs", array('%jobs' => count($running)), WATCHDOG_DEBUG);
     if ($running) {
       $result = db_query("SELECT p.name FROM {progress} p WHERE p.name IN (:running)", array(':running' => array_keys($running)));
       while ($handle = $result->fetchObject()) {
@@ -280,7 +279,6 @@ function ultimate_cron_cron($return = FALSE) {
   }
 
   // Close all jobs left
-  // watchdog('ultimate_cron', "Closing jobs: %jobs", array('%jobs' => count($running)), WATCHDOG_DEBUG);
   if ($running) {
     foreach (array_keys($running) as $handle) {
       fclose($running[$handle]);
@@ -291,19 +289,27 @@ function ultimate_cron_cron($return = FALSE) {
   // Update drupals cron timestamp
   variable_set('cron_last', time());
 
-  // Release the lock
-  lock_release('cron');
-  
-  // And we're done ...
-  if ($return) {
-    drupal_set_message(t('%jobs jobs launched', array('%jobs' => $launched)));
+  drupal_set_message(t('%jobs jobs launched', array('%jobs' => $launched)));
+  watchdog('ultimate_cron', '%jobs jobs launched', array('%jobs' => $launched), WATCHDOG_INFO);
+  if (count($schedule)) {
     drupal_set_message(t('%jobs jobs failed to launch within %seconds seconds', array(
       '%jobs' => count($schedule), 
       '%seconds' => variable_get('ultimate_cron_launch_window', ULTIMATE_CRON_LAUNCH_WINDOW)
     )), empty($schedule) ? 'status' : 'error');
+    watchdog('ultimate_cron', '%jobs jobs failed to launch within %seconds seconds', array(
+      '%jobs' => count($schedule),
+      '%seconds' => variable_get('ultimate_cron_launch_window', ULTIMATE_CRON_LAUNCH_WINDOW)
+    ), WATCHDOG_WARNING);
+  }
+
+  // And we're done ...
+  if ($return) {
     return empty($schedule);
   }
   else {
+    // Release the lock
+    lock_release('cron');
+
     exit;
   }
 }
@@ -674,7 +680,6 @@ function ultimate_cron_background_process_shutdown($process, $result = NULL, $sh
     );
     drupal_write_record('ultimate_cron_log', $object);
     $function = db_query("SELECT `function` FROM {ultimate_cron_function} WHERE fid = :fid", array(':fid' => $fid))->fetchField();
-    // watchdog('ultimate_cron', 'Shutdown: %function (%result) - %msg', array('%function' => $function, '%result' => $result, '%msg' => $msg), WATCHDOG_DEBUG);
   }
 }
 
@@ -996,7 +1001,7 @@ function ultimate_cron_should_run($rules, $last_run, $now = NULL, $catch_up = 0)
   foreach ($rules as $rule) {
     $cron = new CronRule($rule);
     $last_ran = $cron->getLastRan();
-    if ($last_run < $last_ran && ($last_ran >= $now - $catch_up)) {
+    if ($last_run < $last_ran && ($last_ran > $now - $catch_up)) {
       return TRUE;
     }
   }
