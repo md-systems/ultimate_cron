@@ -275,7 +275,7 @@ function ultimate_cron_view_page($module = NULL) {
       }
       else {
         $data[6]['data'] = '<span>' . $short_msg . '</span>';
-        $data[6]['title'] = strip_tags($msg);
+        $data[6]['title'] = strip_tags(html_entity_decode($msg, ENT_QUOTES));
       }
       $data[7]['data'] = $link_settings;
       $data[7]['title'] = t('Cron settings');
