@@ -635,7 +635,7 @@ function ultimate_cron_background_process_shutdown($process, $result = NULL, $sh
 
     $error = error_get_last();
     $fatal_msg = '';
-    if ($error) { // && ($error['type'] & (E_ERROR | E_CORE_ERROR | E_RECOVERABLE_ERROR))) {
+    if ($error && ($error['type'] & (E_ERROR | E_CORE_ERROR | E_RECOVERABLE_ERROR))) {
       $fatal_msg =  $error['message'] . ' (line ' . $error['line'] . ' of ' . $error['file'] . ').' . "\n";
     }
     $msg = ultimate_cron_record_log(NULL);
