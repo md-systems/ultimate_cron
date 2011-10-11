@@ -245,6 +245,10 @@ function ultimate_cron_cron($return = FALSE) {
     // Launch jobs.
     reset($schedule);
     while ($running_processes < $msc && (list($function, $hook) = each($schedule)) && time() < $expire) {
+      if (!ultimate_cron_hook_should_run($hook)) {
+        unset($schedule[$function]);
+        continue;
+      }
       $result = ultimate_cron_run_hook($function, $hook);
 
       // Handle errors.
