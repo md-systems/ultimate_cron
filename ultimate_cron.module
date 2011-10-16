@@ -244,11 +244,17 @@ function ultimate_cron_cron($return = FALSE) {
                           ->fetchField();
     // Launch jobs.
     reset($schedule);
-    while ($running_processes < $msc && (list($function, $hook) = each($schedule)) && time() < $expire) {
+    while ((list($function, $hook) = each($schedule)) && time() < $expire) {
       if (!ultimate_cron_hook_should_run($hook)) {
         unset($schedule[$function]);
         continue;
       }
+
+      // Congestion protection
+      if (empty($hook['override_congestion_protection']) && $running_processes >= $msc) {
+        continue;
+      }
+
       $result = ultimate_cron_run_hook($function, $hook);
 
       // Handle errors.
@@ -598,7 +604,7 @@ function _ultimate_cron_run_hook($function, $hook) {
       '%invoke' => format_date($hook['timestamp'], 'custom', 'Y-m-d H:i:s'),
       '%start' => format_date($time, 'custom', 'Y-m-d H:i:s'),
     ), WATCHDOG_ERROR);
-    ultimate_cron_background_process_shutdown($process, FALSE);
+    ultimate_cron_background_process_shutdown($process);
     return FALSE;
   }
 
@@ -613,7 +619,7 @@ function _ultimate_cron_run_hook($function, $hook) {
     module_invoke($hook['module'], 'cronapi', 'execute', $function);
   }
 
-  ultimate_cron_background_process_shutdown($process, NULL);
+  ultimate_cron_background_process_shutdown($process);
 
   // Let other modules do stuff before execution, if they need to.
   module_invoke_all('cron_post_execute', $function, $hook);
@@ -627,7 +633,7 @@ function _ultimate_cron_run_hook($function, $hook) {
  *
  * Shutdown handler for cronjobs.
  */
-function ultimate_cron_background_process_shutdown($process, $result = NULL, $shutdown_msg = '') {
+function ultimate_cron_background_process_shutdown($process, $shutdown_msg = NULL) {
   $args = func_get_args();
   $fid = str_replace('ultimate_cron:', '', $process->handle);
   if (is_numeric($fid)) {
@@ -637,41 +643,37 @@ function ultimate_cron_background_process_shutdown($process, $result = NULL, $sh
     }
     $has_run[$fid] = TRUE;
 
-    $error = error_get_last();
+    // Record end time
+    $end = microtime(TRUE);
+
     $fatal_msg = '';
-    if ($error && ($error['type'] & (E_ERROR | E_CORE_ERROR | E_RECOVERABLE_ERROR))) {
-      $fatal_msg =  $error['message'] . ' (line ' . $error['line'] . ' of ' . $error['file'] . ').' . "\n";
+    if (is_null($shutdown_msg)) {
+      $error = error_get_last();
+      if ($error) {
+        if ($error['type'] & (E_ERROR | E_CORE_ERROR | E_RECOVERABLE_ERROR)) {
+          $fatal_msg =  $error['message'] . ' (line ' . $error['line'] . ' of ' . $error['file'] . ').' . "\n";
+        }
+        else {
+          $fatal_msg .= t('Died unexpectedly');
+        }
+      }
+      $messages = drupal_get_messages();
     }
+
     $msg = ultimate_cron_record_log(NULL);
     if ($shutdown_msg) {
       $msg .= $msg ? "\n$shutdown_msg" : $shutdown_msg;
     }
     
-    // Record end time
-    $end = microtime(TRUE);
-
-    $messages = drupal_get_messages(NULL, TRUE);
     if (!empty($messages['error'])) {
       $msg .= join("\n", $messages['error']) . "\n";
     }
     $msg .= $fatal_msg;
     
-    // If result not set by cronjob, use watchdog errors (if any) as result.
-    if ($result === NULL) {
-      $result = empty($msg);
-    }
-    if ($result && empty($msg) && !empty($messages['status'])) {
+    // If success, use status messages if any
+    $result = empty($msg);
+    if ($result && !empty($messages['status'])) {
       $msg = join("\n", $messages['status']) . "\n";
-    }
-
-    // If only one argument was passed to this function, assume it was called by
-    // a shutdown handler, and conclude that something went wrong.
-    // If no message has been recorded, provide a default one.
-    if (func_num_args() == 1) {
-      $result = FALSE;
-      if (!$fatal_msg) {
-        $msg .= t('Died unexpectedly');
-      }
     }
 
     // log results here ...
@@ -683,7 +685,6 @@ function ultimate_cron_background_process_shutdown($process, $result = NULL, $sh
       'msg' => $msg,
     );
     drupal_write_record('ultimate_cron_log', $object);
-    $function = db_query("SELECT `function` FROM {ultimate_cron_function} WHERE fid = :fid", array(':fid' => $fid))->fetchField();
   }
 }
 
