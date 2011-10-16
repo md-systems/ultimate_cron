@@ -455,7 +455,7 @@ function ultimate_cron_watchdog($log = array()) {
  */
 function ultimate_cron_exit($destination = NULL) {
   // Launch poormans cron if applicable
-  if (variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN)) {
+  if (variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN) && !_ultimate_cron_incompatible_modules()) {
     $last = variable_get('cron_last', 0);
     $last = floor($last / 60) * 60;
     $time = time();
@@ -604,7 +604,7 @@ function _ultimate_cron_run_hook($function, $hook) {
       '%invoke' => format_date($hook['timestamp'], 'custom', 'Y-m-d H:i:s'),
       '%start' => format_date($time, 'custom', 'Y-m-d H:i:s'),
     ), WATCHDOG_ERROR);
-    ultimate_cron_background_process_shutdown($process);
+    ultimate_cron_background_process_shutdown($process, NULL);
     return FALSE;
   }
 
@@ -619,7 +619,7 @@ function _ultimate_cron_run_hook($function, $hook) {
     module_invoke($hook['module'], 'cronapi', 'execute', $function);
   }
 
-  ultimate_cron_background_process_shutdown($process);
+  ultimate_cron_background_process_shutdown($process, NULL);
 
   // Let other modules do stuff before execution, if they need to.
   module_invoke_all('cron_post_execute', $function, $hook);
@@ -647,7 +647,7 @@ function ultimate_cron_background_process_shutdown($process, $shutdown_msg = NUL
     $end = microtime(TRUE);
 
     $fatal_msg = '';
-    if (is_null($shutdown_msg)) {
+    if (count(func_get_args()) == 1) {
       $error = error_get_last();
       if ($error) {
         if ($error['type'] & (E_ERROR | E_CORE_ERROR | E_RECOVERABLE_ERROR)) {
@@ -657,6 +657,8 @@ function ultimate_cron_background_process_shutdown($process, $shutdown_msg = NUL
           $fatal_msg .= t('Died unexpectedly');
         }
       }
+    }
+    if (is_null($shutdown_msg)) {
       $messages = drupal_get_messages();
     }
 
@@ -1137,3 +1139,22 @@ LEFT JOIN background_process p ON p.handle = CONCAT('ultimate_cron:', f.fid)
   }
   return $data;
 }
+
+/**
+ * Return a list of modules that are incompatible with Ultimate Cron
+ */
+function _ultimate_cron_incompatible_modules() {
+  static $modules = NULL;
+  if (isset($modules)) {
+    return $modules;
+  }
+  $modues = array();
+  $candidates = array('parallel_cron');
+  foreach ($candidates as $module) {
+    if (module_exists($module)) {
+      $modules[$module] = ultimate_cron_module_name($module);
+    }
+  }
+  return $modules;
+}
+
