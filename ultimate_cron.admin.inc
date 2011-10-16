@@ -1,4 +1,7 @@
 <?php
+/**
+ * @file
+ */
 
 /**
  * Menu callback: runs cron and returns to status-report page.
@@ -52,7 +55,7 @@ function ultimate_cron_settings_form() {
   );
   
   $form = system_settings_form($form);
-  
+
   // Add reclaim button and make sure all the buttons are show last.
   $form['buttons']['#weight'] = 1000;
   $form['buttons']['reclaim'] = array(
@@ -83,7 +86,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
   $conf += _ultimate_cron_default_settings();
 
   // Setup form
-  drupal_set_title($function);
+  drupal_set_title(check_plain($function));
   $form = array();
 
    // General settings -----------------------------------
@@ -146,7 +149,7 @@ function ultimate_cron_function_settings_form_validate($form, &$form_state) {
   $conf =& $form_state['values'];
   $conf['rules'] = trim($conf['rules']);
   $conf['rules'] = $conf['rules'] ? explode(';', $conf['rules']) : array();
-  
+
   if ($conf['rules']) {
     foreach ($conf['rules'] as &$rule) {
       $rule = trim($rule);
@@ -241,9 +244,9 @@ function ultimate_cron_view_page($module = NULL) {
       $link_settings = _ultimate_cron_l('Cron settings', 'admin/config/system/cron/settings/' . $function);
       $link_execute = _ultimate_cron_l('Run', 'admin/ultimate-cron/service/start/' . $function);
       $link_log = _ultimate_cron_l('Log', 'admin/reports/cron/' . $function);
-      
+
       $enable = !empty($conf) && empty($conf['enabled']);
-      $link_toggle = _ultimate_cron_l($enable ? 'Enable' : 'Disable','admin/ultimate-cron/service/' . ($enable ? 'enable' : 'disable') . '/' . $function);
+      $link_toggle = _ultimate_cron_l($enable ? 'Enable' : 'Disable', 'admin/ultimate-cron/service/' . ($enable ? 'enable' : 'disable') . '/' . $function);
 
       $data = array(
         array('class' => $enable ? 'ultimate-cron-admin-enable' : 'ultimate-cron-admin-disable'),
@@ -316,9 +319,11 @@ function ultimate_cron_function_log_page($function) {
     t('Message'),
   );
 
+  drupal_set_title(check_plain($function));
+
+  $fid = ultimate_cron_get_function_id($function);
   $query = db_select('ultimate_cron_log', 'l');
-  $query->join('ultimate_cron_function', 'f', 'l.fid = f.fid');
-  $query = $query->condition('f.function', $function)
+  $query = $query->condition('l.fid', $fid)
              ->extend('PagerDefault')
                ->limit(10)
              ->extend('TableSort')
@@ -392,7 +397,7 @@ function ultimate_cron_service_start($function) {
 /**
  * Enable/disable cron job
  * @param type $function
- * @param type $enabled 
+ * @param type $enabled
  */
 function ultimate_cron_service_enable($function, $enabled) {
   $conf = ultimate_cron_get_settings($function);
@@ -436,7 +441,7 @@ function ultimate_cron_import_form_submit($form, &$form_state) {
  *   Text for link
  * @param $path
  *   Path to link to
- * @return type 
+ * @return type
  */
 function _ultimate_cron_l($text, $path) {
   return l(

@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * 
+ *
  * @todo Add filter on overview page.
  * @todo Add log view (with graph).
  * @todo Make proper markup for overview page.
@@ -244,6 +244,7 @@ function ultimate_cron_cron($return = FALSE) {
                           ->countQuery()
                           ->execute()
                           ->fetchField();
+
     // Launch jobs.
     reset($schedule);
     while ((list($function, $hook) = each($schedule)) && time() < $expire) {
@@ -297,7 +298,7 @@ function ultimate_cron_cron($return = FALSE) {
       unset($running[$handle]);
     }
   }
-  
+
   // Update drupals cron timestamp
   variable_set('cron_last', time());
 
@@ -305,7 +306,7 @@ function ultimate_cron_cron($return = FALSE) {
   watchdog('ultimate_cron', '%jobs jobs launched', array('%jobs' => $launched), WATCHDOG_INFO);
   if (count($schedule)) {
     drupal_set_message(t('%jobs jobs failed to launch within %seconds seconds', array(
-      '%jobs' => count($schedule), 
+      '%jobs' => count($schedule),
       '%seconds' => variable_get('ultimate_cron_launch_window', ULTIMATE_CRON_LAUNCH_WINDOW)
     )), empty($schedule) ? 'status' : 'error');
     watchdog('ultimate_cron', '%jobs jobs failed to launch within %seconds seconds', array(
@@ -359,7 +360,7 @@ function ultimate_cron_cronapi($op, $job = NULL) {
 
       $polling_latency = variable_get('ultimate_cron_queue_polling_latency', ULTIMATE_CRON_QUEUE_POLLING_LATENCY);
       $info = $queues[$queue_name];
-      
+
       $function = $info['worker callback'];
       $end = time() + (isset($info['time']) ? $info['time'] : 15);
       $queue = DrupalQueue::get($queue_name);
@@ -492,23 +493,23 @@ function ultimate_cron_exit($destination = NULL) {
 
 /**
  * The actual poorman function
- * @return type 
+ * @return type
  */
 function _ultimate_cron_poorman() {
   if (!variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN)) {
     return;
   }
-  
+
   // Restart when done
   background_process_keepalive();
 
   // Derive current minute
   $time = time();
   $time = floor($time / 60) * 60;
-  
+
   // Run the cron
   ultimate_cron_cron(TRUE);
-  
+
   // Wait until end of "current" minute
   $wait = $time + 60 - time();
   if ($wait > 0 && $wait <= 60) {
@@ -560,17 +561,17 @@ function ultimate_cron_run_hook($function, $hook) {
   $result = NULL;
   $handle = "ultimate_cron:" . $hook['fid'];
   $process = new BackgroundProcess($handle);
-  
+
   // Always run cron job as anonymous user
   $process->uid = 0;
-  
+
   // Determine service group
   if (!empty($hook['settings']['service_group'])) {
     $process->service_group = $hook['settings']['service_group'];
   }
   $hook['timestamp'] = time();
   $result = $process->start('_ultimate_cron_run_hook', array($function, $hook));
-  
+
   return $result ? $process->connection : $result;
 }
 
@@ -600,7 +601,7 @@ function _ultimate_cron_run_hook($function, $hook) {
   if (!isset($hook['log'])) {
     $hook['log'] = ultimate_cron_get_log($hook['fid']);
   }
-  
+
   $time = time();
   if (empty($hook['skip_catch_up']) && !ultimate_cron_hook_should_run($hook)) {
     // Hook started too late!
@@ -671,12 +672,12 @@ function ultimate_cron_background_process_shutdown($process, $shutdown_msg = NUL
     if ($shutdown_msg) {
       $msg .= $msg ? "\n$shutdown_msg" : $shutdown_msg;
     }
-    
+
     if (!empty($messages['error'])) {
       $msg .= join("\n", $messages['error']) . "\n";
     }
     $msg .= $fatal_msg;
-    
+
     // If success, use status messages if any
     $result = empty($msg);
     if ($result && !empty($messages['status'])) {
@@ -713,7 +714,7 @@ function ultimate_cron_get_schedule($hooks, $schedule_unsafe = FALSE) {
     if (!$schedule_unsafe && $hook['unsafe']) {
       continue;
     }
-    
+
     // Store last run in hook for sorting purposes
     $last_run = isset($hook['log']['start']) ? $hook['log']['start'] : 0;
     $hook['last_run'] = $last_run;
@@ -735,7 +736,7 @@ function ultimate_cron_get_schedule($hooks, $schedule_unsafe = FALSE) {
 /**
  * Populate hook array with settings and log data
  *
- * @param type $hook 
+ * @param type $hook
  */
 function ultimate_cron_load_hook_data(&$hook) {
   // Get settings
@@ -767,7 +768,7 @@ function ultimate_cron_hook_should_run($hook) {
  *
  * @param type $a
  * @param type $b
- * @return type 
+ * @return type
  */
 function _ultimate_cron_sort_schedule($a, $b) {
   return $a['last_run'] == $b['last_run'] ? 0 : ($a['last_run'] < $b['last_run'] ? -1 : 1);
@@ -788,7 +789,7 @@ function ultimate_cron_get_hooks() {
 
   // Which modules are not hook_cron() safe?
   $uncronable_modules = ultimate_cron_uncronable_modules();
-  
+
   // Generate list of hooks
   $modules = module_list();
   foreach ($modules as $module) {
