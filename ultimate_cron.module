@@ -917,6 +917,9 @@ function ultimate_cron_get_settings($function) {
 
   $conf = db_query("SELECT fid, configuration FROM {ultimate_cron_configuration} WHERE fid = :fid", array(':fid' => $fid))->fetchObject();
   $conf = $conf && $conf->configuration ? unserialize($conf->configuration) : array();
+  if (empty($conf['catch_up'])) {
+    unset($conf['catch_up']);
+  }
   return $conf;
 }
 

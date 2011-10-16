@@ -99,7 +99,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
     '#type' => 'fieldset',
     '#collapsible' => TRUE,
     '#collapsed' => FALSE,
-    '#tree' => FALSE,
+    '#tree' => TRUE,
   );
   $form['general']['enabled'] = array(
     '#title' => t('Enabled'),
@@ -146,7 +146,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
 }
 
 function ultimate_cron_function_settings_form_validate($form, &$form_state) {
-  $conf =& $form_state['values'];
+  $conf =& $form_state['values']['general'];
   $conf['rules'] = trim($conf['rules']);
   $conf['rules'] = $conf['rules'] ? explode(';', $conf['rules']) : array();
 
@@ -164,7 +164,8 @@ function ultimate_cron_function_settings_form_validate($form, &$form_state) {
 }
 
 function ultimate_cron_function_settings_form_submit($form, &$form_state) {
-  ultimate_cron_set_settings($form_state['values']['function'], $form_state['values']);
+  $conf =& $form_state['values']['general'];
+  ultimate_cron_set_settings($form_state['values']['function'], $conf);
   unset($form_state['storage']);
 }
 
