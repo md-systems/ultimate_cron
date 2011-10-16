@@ -827,7 +827,6 @@ function ultimate_cron_get_hooks() {
   }
   // Remove ourselves from the list
   unset($hooks['ultimate_cron_cron']);
-  unset($hooks['parallel_cron_cron']);
 
   // Allow other to manipulate the hook list
   drupal_alter('cron', $hooks);

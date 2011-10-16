@@ -405,6 +405,35 @@ function ultimate_cron_service_enable($function, $enabled) {
 }
 
 /**
+ * Import form.
+ */
+function ultimate_cron_import_form() {
+  $form = array();
+  $options = array();
+
+  if ($options) {
+    $form['import']['module'] = array(
+      '#type' => 'select',
+      '#options' => $options,
+      '#title' => t('Module'),
+      '#description' => t('Module to import configuration from'),
+    );
+    $form['import']['submit'] = array(
+      '#type' => 'submit',
+      '#submit' => array('ultimate_cron_import_form_submit'),
+      '#value' => t('Import'),
+    );
+  }
+  return $form;
+}
+
+/**
+ * Submit handler for import.
+ */
+function ultimate_cron_import_form_submit($form, &$form_state) {
+}
+
+/**
  * Helper function for links on cron list
  * @param $text
  *   Text for link
