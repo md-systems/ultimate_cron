@@ -222,6 +222,7 @@ function ultimate_cron_cron($return = FALSE) {
 
   // If this is run manually and a lock can be acquired, then run unsafe hooks.
   $schedule_unsafe = $return && lock_acquire('cron', 240.0);
+
   // Get schedule.
   $schedule = ultimate_cron_get_schedule($hooks, $schedule_unsafe);
 
@@ -246,7 +247,7 @@ function ultimate_cron_cron($return = FALSE) {
     // Launch jobs.
     reset($schedule);
     while ((list($function, $hook) = each($schedule)) && time() < $expire) {
-      if (!ultimate_cron_hook_should_run($hook)) {
+      if (empty($hook['force_run']) && !ultimate_cron_hook_should_run($hook)) {
         unset($schedule[$function]);
         continue;
       }
@@ -1132,9 +1133,9 @@ function ultimate_cron_module_name($module) {
 function _ultimate_cron_preload_cron_data() {
   $result = db_query("
 SELECT f.fid, f.function, c.configuration, p.handle, p.service_host, p.start
-FROM ultimate_cron_function f
-LEFT JOIN ultimate_cron_configuration c ON f.fid = c.fid
-LEFT JOIN background_process p ON p.handle = CONCAT('ultimate_cron:', f.fid)
+FROM {ultimate_cron_function} f
+LEFT JOIN {ultimate_cron_configuration} c ON f.fid = c.fid
+LEFT JOIN {background_process} p ON p.handle = CONCAT('ultimate_cron:', f.fid)
 ");
 
   $data = array();

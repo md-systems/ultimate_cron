@@ -99,22 +99,36 @@ function drush_ultimate_cron_cron_list($type = 'all') {
   $hooks = ultimate_cron_get_hooks();
   $data = _ultimate_cron_preload_cron_data();
   $jobs = array();
-  foreach ($hooks as &$hook) {
+  // Get hooks and their data
+  $hooks = ultimate_cron_get_hooks();
+  $data = _ultimate_cron_preload_cron_data();
+
+  $modules = array();
+  foreach ($hooks as $function => $hook) {
+    if (!$module || $module == $hook['module']) {
+      $modules[$hook['module']][$function] = $hook;
+    }
+  }
+
+  foreach ($hooks as $function => &$hook) {
     if ($module && !in_array($hook['module'], $module)) {
       continue;
     }
-    $hook['configuration'] = $data[$hook['function']]['configuration'];
-    $hook['background_process'] = $data[$hook['function']]['background_process'];
-    ultimate_cron_load_hook_data($hook);
+
+    $hook['settings'] = $data[$function]['settings'] + $hook['settings'];
+    $hook['settings'] += _ultimate_cron_default_settings();
+    $hook['background_process'] = $data[$function]['background_process'];
+    $hook['log'] = ultimate_cron_get_log($hook['fid']);
+
     switch ($type) {
       case 'enabled':
-        if (empty($hook['configuration']) || !empty($hook['configuration']['enabled'])) {
+        if (!empty($hook['settings']['enabled'])) {
           $jobs[] = $hook;
         }
         break;
 
       case 'disabled':
-        if (!empty($hook['configuration']) && empty($hook['configuration']['enabled'])) {
+        if (empty($hook['settings']['enabled'])) {
           $jobs[] = $hook;
         }
         break;
@@ -152,11 +166,11 @@ function drush_ultimate_cron_cron_list($type = 'all') {
       $hook['log']['start'] = $hook['background_process']->start;
       $hook['log']['end'] = microtime(TRUE);
     }
-    if (!empty($hook['configuration']) && empty($hook['configuration']['enabled'])) $legend .= 'D';
+    if (empty($hook['settings']['enabled'])) $legend .= 'D';
 
     $start = isset($hook['log']['start']) ? format_date((int)$hook['log']['start'], 'custom', 'Y-m-d H:i:s') : dt('N/A');
     $end = isset($hook['log']['end']) ? gmdate('H:i:s', (int)($hook['log']['end'] - $hook['log']['start'])) : dt('N/A');
-    $rules = empty($hook['configuration']['rules']) ? $hook['rules'] : $hook['configuration']['rules'];
+    $rules = $hook['settings']['rules'];
     $table[] = array($legend, $hook['module'], $hook['function'], implode("\n", $rules), $start, $end);
   }
   drush_print_table($table);
@@ -204,9 +218,9 @@ function drush_ultimate_cron_cron_enable($function) {
   if (!isset($hooks[$function])) {
     return drush_set_error(dt('"!function" not found', array('!function' => $function)));
   }
-  $conf = ultimate_cron_get_configuration($function);
+  $conf = ultimate_cron_get_settings($function);
   $conf['enabled'] = TRUE;
-  ultimate_cron_set_configuration($function, $conf);
+  ultimate_cron_set_settings($function, $conf);
   drush_print(dt('!function enabled', array('!function' => $function)));
 }
 
@@ -218,9 +232,9 @@ function drush_ultimate_cron_cron_disable($function) {
   if (!isset($hooks[$function])) {
     return drush_set_error(dt('"!function" not found', array('!function' => $function)));
   }
-  $conf = ultimate_cron_get_configuration($function);
+  $conf = ultimate_cron_get_settings($function);
   $conf['enabled'] = FALSE;
-  ultimate_cron_set_configuration($function, $conf);
+  ultimate_cron_set_settings($function, $conf);
   drush_print(dt('!function disabled', array('!function' => $function)));
 }
 
