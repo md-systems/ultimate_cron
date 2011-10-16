@@ -340,7 +340,7 @@ function ultimate_cron_cronapi($op, $job = NULL) {
         $item = $queue->claimItem();
         if (!$item) {
           if (is_numeric($polling_latency)) {
-            usleep($polling_latency);
+            usleep($polling_latency * 1000);
             continue;
           }
           else {

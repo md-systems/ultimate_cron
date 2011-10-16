@@ -27,31 +27,31 @@ function ultimate_cron_settings_form() {
     '#title' => t("Simultaneous connections"),
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_simultaneous_connections', ULTIMATE_CRON_SIMULTANEOUS_CONNECTIONS),
-    '#description' => t('Maximum number of simultaneous connections')
+    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'simultaneous_connections') . t('Maximum number of simultaneous connections'),
   );
   $form['general']['ultimate_cron_rule'] = array(
     '#title' => t("Default rule"),
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_rule', ULTIMATE_CRON_RULE),
-    '#description' => t('Enter the default fallback rule')
+    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'rules') . t('Enter the default fallback rule')
   );
   $form['general']['ultimate_cron_cleanup_log'] = array(
     '#title' => t("Clean up logs older than X seconds"),
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_cleanup_log', ULTIMATE_CRON_CLEANUP_LOG),
-    '#description' => t('Enter maximum age, in seconds, for log entries')
+    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'cleanup_log') . t('Enter maximum age, in seconds, for log entries')
   );
   $form['general']['ultimate_cron_poorman'] = array(
     '#title' => t("Poormans cron"),
     '#type' => 'checkbox',
     '#default_value' => variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN),
-    '#description' => t('Keep background process alive, checking for cron every minute.'),
+    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'poorman') . t('Keep background process alive, checking for cron every minute.'),
   );
   $form['general']['ultimate_cron_queue_polling_latency'] = array(
     '#title' => t("Queue polling latency"),
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_queue_polling_latency', ULTIMATE_CRON_QUEUE_POLLING_LATENCY),
-    '#description' => t('Queue polling latency in micro seconds. Leave blank to disable continuous processing of queues.'),
+    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'polling_latency') . t('Queue polling latency in miliseconds. Leave blank to disable continuous processing of queues.'),
   );
   
   $form = system_settings_form($form);
@@ -111,24 +111,24 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
     '#title' => t('Rules'),
     '#type' => 'textfield',
     '#default_value' => implode(';', $conf['rules']),
-    '#description' => t('Semi-colon separated list of rules for this job. (blank = ' . implode(';', $hook['settings']['rules']) . ')'),
+    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'rules') . t('Semi-colon separated list of rules for this job. (blank = ' . implode(';', $hook['settings']['rules']) . ')'),
   );
   $form['general']['catch_up'] = array(
     '#title' => t('Catch up'),
     '#type' => 'textfield',
     '#default_value' => $conf['catch_up'],
-    '#description' => t('Run this job if a run was missed. (blank = ' . variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) . ')'),
+    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'catch_up') . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) . ')'),
   );
 
   $options = variable_get('background_process_service_groups', array());
   foreach ($options as $key => &$value) {
     $value = (empty($value['description']) ? $key : $value['description']) . ' (' . join(',', $value['hosts']) . ')';
   }
-  $options += array(NULL => 'none');
+  $options += array(NULL => '<default>');
   $form['general']['service_group'] = array(
     '#type' => 'select',
     '#title' => t('Service group'),
-    '#description' => t('Service group to use for this job. See Background Process !url for managing service groups.', array('!url' => l(t('settings'), 'admin/config/background-process'))),
+    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'service_group') . t('Service group to use for this job. See Background Process !url for managing service groups.', array('!url' => l(t('settings'), 'admin/config/background-process'))),
     '#options' => $options,
     '#default_value' => isset($conf['service_group']) ? $conf['service_group'] : NULL,
   );
@@ -454,4 +454,3 @@ function _ultimate_cron_l($text, $path) {
     )
   );
 }
-

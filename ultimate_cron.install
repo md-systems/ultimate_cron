@@ -123,3 +123,14 @@ function ultimate_cron_update_7000() {
   db_drop_table('ultimate_cron_log_message');
 }
 
+/**
+ * Implements hook_update_N().
+ */
+function ultimate_cron_update_7001() {
+  // Convert polling latency from microseconds to miliseconds.
+  $polling_latency = variable_get('ultimate_cron_polling_latency', NULL);
+  if ($polling_latency) {
+    $polling_latency /= 1000;
+    variable_set('ultimate_cron_polling_latency', $polling_latency);
+  }
+}

@@ -1,0 +1,14 @@
+Every minute, a cron job is checked whether it should run or not.
+
+<pre>*/10 * * * *</pre>
+
+is equivilant of
+
+<pre>0,10,20,30,40,50 * * * *</pre>
+
+and runs every hour at the minutes 0,10,20,30,40,50.
+
+If for some reason (connection congestion, server crash, etc.) that Ultimate Cron cannot launch the job, e.g. 10:30, then normally, the job won't attempted to be launched again until 10:40.
+
+The <em>catch up</em> compensates for this, allowing the job to be launched anyway until a certain time. The <em>Catch up</em> value is in seconds, so if it is set to 300, the job will launch at 10:31-35 if it did not launch at 10:30
+
