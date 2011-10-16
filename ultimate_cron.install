@@ -113,6 +113,9 @@ function ultimate_cron_enable() {
   ultimate_cron_reclaim();
 }
 
+/**
+ * Move messages to log table.
+ */
 function ultimate_cron_update_7000() {
   db_add_field('ultimate_cron_log', 'msg', array(
     'description' => 'Message',
@@ -124,7 +127,7 @@ function ultimate_cron_update_7000() {
 }
 
 /**
- * Implements hook_update_N().
+ * Convert polling latenct from microseconds to miliseconds.
  */
 function ultimate_cron_update_7001() {
   // Convert polling latency from microseconds to miliseconds.

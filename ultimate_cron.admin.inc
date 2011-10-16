@@ -12,6 +12,9 @@ function ultimate_cron_run_cron() {
   drupal_goto('admin/reports/status');
 }
 
+/**
+ * Settings form.
+ */
 function ultimate_cron_settings_form() {
   $form = array();
 
@@ -75,6 +78,9 @@ function ultimate_cron_settings_form() {
   return $form;
 }
 
+/**
+ * Submit handler for reclaiming lowest module weight.
+ */
 function ultimate_cron_reclaim_submit($form, &$form_state) {
   ultimate_cron_reclaim();
   drupal_set_message(t('Module position reclaimed.'));
@@ -151,6 +157,9 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
   return $form;
 }
 
+/**
+ * Validate handler for function settings.
+ */
 function ultimate_cron_function_settings_form_validate($form, &$form_state) {
   $conf =& $form_state['values']['general'];
   $conf['rules'] = trim($conf['rules']);
@@ -169,12 +178,18 @@ function ultimate_cron_function_settings_form_validate($form, &$form_state) {
   }
 }
 
+/**
+ * Submit handler for function settings.
+ */
 function ultimate_cron_function_settings_form_submit($form, &$form_state) {
   $conf =& $form_state['values']['general'];
   ultimate_cron_set_settings($form_state['values']['function'], $conf);
   unset($form_state['storage']);
 }
 
+/**
+ * Page overviewing cron jobs.
+ */
 function ultimate_cron_view_page($module = NULL) {
   drupal_add_css(drupal_get_path('module', 'ultimate_cron') . '/css/ultimate_cron.admin.css');
 
@@ -315,6 +330,9 @@ function ultimate_cron_view_page($module = NULL) {
   return $output;
 }
 
+/**
+ * Function log page.
+ */
 function ultimate_cron_function_log_page($function) {
   drupal_add_css(drupal_get_path('module', 'ultimate_cron') . '/css/ultimate_cron.admin.css');
 
@@ -380,6 +398,17 @@ function ultimate_cron_service_start($function) {
 
   if (!isset($hooks[$function])) {
     return drupal_not_found();
+  }
+
+  if ($modules = _ultimate_cron_incompatible_modules()) {
+    drupal_set_message(t('%function could not start (incompatible module installed)', array('%function' => $function)), 'error');
+    drupal_set_message(t('%modules is installed on the system, but is incompatible with Ultimate Cron.<br/>Please disable Parallel Cron.<br/>You might want to !url settings first.', array('%modules' => join(', ', $modules), '!url' => l(t('import'), 'admin/settings/cron/import'))), 'error');
+    drupal_goto();
+  }
+
+  if (!empty($hooks['unsafe'])) {
+    drupal_set_message(t('%function could not start (unsafe)', array('%function' => $function)), 'error');
+    drupal_goto();
   }
 
   // When run manually don't double check the rules

@@ -188,6 +188,11 @@ function ultimate_cron_permission() {
  *   return to caller if TRUE, otherwise exit().
  */
 function ultimate_cron_cron($return = FALSE) {
+  // Be other cron module friendly
+  if (_ultimate_cron_incompatible_modules()) {
+    return;
+  }
+
   $msc = variable_get('ultimate_cron_simultaneous_connections', ULTIMATE_CRON_SIMULTANEOUS_CONNECTIONS);
 
   // Get list of cron hooks.
@@ -360,7 +365,9 @@ function ultimate_cron_cronapi($op, $job = NULL) {
       return array(
         'ultimate_cron_cleanup_log' => 'admin/config/system/cron/settings',
         'dblog_cron' => 'admin/config/development/logging',
+        'filter_cron' => 'admin/settings/filters',
         'update_cron' => 'admin/reports/updates/settings',
+        'system_cron' => 'admin/settings',
       );
   }
 }
@@ -380,7 +387,7 @@ function ultimate_cron_requirements($phase) {
       if ($modules = _ultimate_cron_incompatible_modules()) {
         $response['severity'] = REQUIREMENT_ERROR;
         $response['value'] = t('Ultimate Cron is DISABLED!');
-        $response['description'] = t('%modules is installed on the system, but is incompatible with Ultimate Cron.<br/>Please disable Parallel Cron.<br/>You might want to !url settings first.', array('%modules' => join(', ', $modules), '!url' => l(t('import'), 'admin/settings/cron/import')));
+        $response['description'] = t('%modules is installed on the system, but is incompatible with Ultimate Cron.<br/>Please disable the modules %modules.<br/>You might want to !url settings first.', array('%modules' => join(', ', $modules), '!url' => l(t('import'), 'admin/settings/cron/import')));
       }
       elseif ($functions = ultimate_cron_unsafe_hooks()) {
         $response['severity'] = REQUIREMENT_WARNING;
@@ -598,7 +605,7 @@ function ultimate_cron_cron_pre_execute_update_cron($hook) {
  * @return type
  */
 function _ultimate_cron_poorman() {
-  if (!variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN)) {
+  if (!variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN) || _ultimate_cron_incompatible_modules()) {
     return;
   }
 
@@ -870,6 +877,7 @@ function ultimate_cron_get_hooks() {
       $hook['configure'] = $configure[$function];
     }
   }
+
   // Remove ourselves from the list
   unset($hooks['ultimate_cron_cron']);
 
