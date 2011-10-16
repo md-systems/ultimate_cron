@@ -248,13 +248,13 @@ function ultimate_cron_cron($return = FALSE) {
     // Launch jobs.
     reset($schedule);
     while ((list($function, $hook) = each($schedule)) && time() < $expire) {
-      if (empty($hook['force_run']) && !ultimate_cron_hook_should_run($hook)) {
-        unset($schedule[$function]);
+      // Congestion protection
+      if (empty($hook['override_congestion_protection']) && $running_processes >= $msc) {
         continue;
       }
 
-      // Congestion protection
-      if (empty($hook['override_congestion_protection']) && $running_processes >= $msc) {
+      if (empty($hook['force_run']) && !ultimate_cron_hook_should_run($hook)) {
+        unset($schedule[$function]);
         continue;
       }
 
