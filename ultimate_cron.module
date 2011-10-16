@@ -523,7 +523,16 @@ function _ultimate_cron_poorman() {
  * Clean up log entries.
  */
 function ultimate_cron_cleanup_log() {
-  // return db_query_range("DELETE FROM {ultimate_cron_log} WHERE start < %d", time() - variable_get('ultimate_cron_cleanup_log', ULTIMATE_CRON_CLEANUP_LOG), 0, 1000);
+  do {
+    $result = db_query_range("SELECT lid FROM {ultimate_cron_log} WHERE start < :start", 0, 1000, array(':start' => time() - variable_get('ultimate_cron_cleanup_log', ULTIMATE_CRON_CLEANUP_LOG)));
+    $lids = array();
+    while ($row = $result->fetchObject()) {
+      $lids[] = $row->lid;
+    }
+    if (!empty($lids)) {
+      db_query("DELETE FROM {ultimate_cron_log} WHERE lid IN (:lids)", array(':lids' => $lids));
+    }
+  } while (!empty($lids));
 }
 
 /**
@@ -833,24 +842,6 @@ function ultimate_cron_get_hooks() {
 }
 
 /**
- * Get default rules for job.
- *
- * @param type $module
- * @param type $function
- * @return array
- */
-function ultimate_cron_get_default_rules($module, $function, $default_rule) {
-  $rules = module_invoke($module, 'cronapi', 'rule', $function);
-  if (empty($rules)) {
-    $rules = array($default_rule);
-  }
-  elseif (!is_array($rules)) {
-    $rules = array($rules);
-  }
-  return $rules;
-}
-
-/**
  * Get default settings for job.
  *
  * @param type $module
@@ -864,7 +855,7 @@ function ultimate_cron_get_default_settings($module, $function, $default_rule) {
   }
   $rule = module_invoke($module, 'cronapi', 'rule', $function);
   if (empty($conf['rules']) && !empty($rule)) {
-    $conf['rules'] = is_array($rules) ? $rule : array($rule);
+    $conf['rules'] = is_array($rule) ? $rule : array($rule);
   }
   $conf += _ultimate_cron_default_settings($default_rule);
   return $conf;
