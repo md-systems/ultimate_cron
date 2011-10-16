@@ -41,11 +41,11 @@ function ultimate_cron_settings_form() {
     '#default_value' => variable_get('ultimate_cron_cleanup_log', ULTIMATE_CRON_CLEANUP_LOG),
     '#description' => theme('advanced_help_topic', 'ultimate_cron', 'cleanup_log') . t('Enter maximum age, in seconds, for log entries')
   );
-  $form['general']['ultimate_cron_poorman'] = array(
-    '#title' => t("Poormans cron"),
-    '#type' => 'checkbox',
-    '#default_value' => variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN),
-    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'poorman') . t('Keep background process alive, checking for cron every minute.'),
+  $form['general']['ultimate_cron_catch_up'] = array(
+    '#title' => t('Default catch up'),
+    '#type' => 'textfield',
+    '#default_value' => variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP),
+    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'catch_up') . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) . ')'),
   );
   $form['general']['ultimate_cron_queue_polling_latency'] = array(
     '#title' => t("Queue polling latency"),
@@ -53,7 +53,13 @@ function ultimate_cron_settings_form() {
     '#default_value' => variable_get('ultimate_cron_queue_polling_latency', ULTIMATE_CRON_QUEUE_POLLING_LATENCY),
     '#description' => theme('advanced_help_topic', 'ultimate_cron', 'polling_latency') . t('Queue polling latency in miliseconds. Leave blank to disable continuous processing of queues.'),
   );
-  
+  $form['general']['ultimate_cron_poorman'] = array(
+    '#title' => t("Poormans cron"),
+    '#type' => 'checkbox',
+    '#default_value' => variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN),
+    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'poorman') . t('Keep background process alive, checking for cron every minute.'),
+  );
+
   $form = system_settings_form($form);
 
   // Add reclaim button and make sure all the buttons are show last.
