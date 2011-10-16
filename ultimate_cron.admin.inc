@@ -30,37 +30,61 @@ function ultimate_cron_settings_form() {
     '#title' => t("Simultaneous connections"),
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_simultaneous_connections', ULTIMATE_CRON_SIMULTANEOUS_CONNECTIONS),
-    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'simultaneous_connections') . t('Maximum number of simultaneous connections'),
+    '#description' => theme('advanced_help_topic', array(
+                              'module' => 'ultimate_cron', 
+                              'topic' => 'simultaneous_connections',
+                              'type' => 'icon')
+                      ) . t('Maximum number of simultaneous connections'),
   );
   $form['general']['ultimate_cron_rule'] = array(
     '#title' => t("Default rule"),
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_rule', ULTIMATE_CRON_RULE),
-    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'rules') . t('Enter the default fallback rule')
+    '#description' => theme('advanced_help_topic', array(
+                              'module' => 'ultimate_cron', 
+                              'topic' => 'rules',
+                              'type' => 'icon')
+                      ) . t('Enter the default fallback rule'),
   );
   $form['general']['ultimate_cron_cleanup_log'] = array(
     '#title' => t("Clean up logs older than X seconds"),
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_cleanup_log', ULTIMATE_CRON_CLEANUP_LOG),
-    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'cleanup_log') . t('Enter maximum age, in seconds, for log entries')
+    '#description' => theme('advanced_help_topic', array(
+                              'module' => 'ultimate_cron', 
+                              'topic' => 'cleanup_log',
+                              'type' => 'icon')
+                      ) . t('Enter maximum age, in seconds, for log entries'),
   );
   $form['general']['ultimate_cron_catch_up'] = array(
     '#title' => t('Default catch up'),
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP),
-    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'catch_up') . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) . ')'),
+    '#description' => theme('advanced_help_topic', array(
+                              'module' => 'ultimate_cron', 
+                              'topic' => 'catch_up',
+                              'type' => 'icon')
+                      ) . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) . ')'),
   );
   $form['general']['ultimate_cron_queue_polling_latency'] = array(
     '#title' => t("Queue polling latency"),
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_queue_polling_latency', ULTIMATE_CRON_QUEUE_POLLING_LATENCY),
-    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'polling_latency') . t('Queue polling latency in miliseconds. Leave blank to disable continuous processing of queues.'),
+    '#description' => theme('advanced_help_topic', array(
+                              'module' => 'ultimate_cron', 
+                              'topic' => 'polling_latency',
+                              'type' => 'icon')
+                      ) . t('Queue polling latency in miliseconds. Leave blank to disable continuous processing of queues.'),
   );
   $form['general']['ultimate_cron_poorman'] = array(
     '#title' => t("Poormans cron"),
     '#type' => 'checkbox',
     '#default_value' => variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN),
-    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'poorman') . t('Keep background process alive, checking for cron every minute.'),
+    '#description' => theme('advanced_help_topic', array(
+                              'module' => 'ultimate_cron', 
+                              'topic' => 'poorman',
+                              'type' => 'icon')
+                      ) . t('Keep background process alive, checking for cron every minute.'),
   );
 
   $form = system_settings_form($form);
@@ -123,13 +147,21 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
     '#title' => t('Rules'),
     '#type' => 'textfield',
     '#default_value' => implode(';', $conf['rules']),
-    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'rules') . t('Semi-colon separated list of rules for this job. (blank = ' . implode(';', $hook['settings']['rules']) . ')'),
+    '#description' => theme('advanced_help_topic', array(
+                              'module' => 'ultimate_cron', 
+                              'topic' => 'rules',
+                              'type' => 'icon')
+                      ) . t('Semi-colon separated list of rules for this job. (blank = ' . implode(';', $hook['settings']['rules']) . ')'),
   );
   $form['general']['catch_up'] = array(
     '#title' => t('Catch up'),
     '#type' => 'textfield',
     '#default_value' => $conf['catch_up'],
-    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'catch_up') . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) . ')'),
+    '#description' => theme('advanced_help_topic', array(
+                              'module' => 'ultimate_cron', 
+                              'topic' => 'catch_up',
+                              'type' => 'icon')
+                      ) . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) . ')'),
   );
 
   $options = variable_get('background_process_service_groups', array());
@@ -140,7 +172,11 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
   $form['general']['service_group'] = array(
     '#type' => 'select',
     '#title' => t('Service group'),
-    '#description' => theme('advanced_help_topic', 'ultimate_cron', 'service_group') . t('Service group to use for this job. See Background Process !url for managing service groups.', array('!url' => l(t('settings'), 'admin/config/background-process'))),
+    '#description' => theme('advanced_help_topic', array(
+                              'module' => 'ultimate_cron', 
+                              'topic' => 'service_group',
+                              'type' => 'icon')
+                      ) . t('Service group to use for this job. See Background Process !url for managing service groups.', array('!url' => l(t('settings'), 'admin/config/system/background-process'))),
     '#options' => $options,
     '#default_value' => isset($conf['service_group']) ? $conf['service_group'] : NULL,
   );
