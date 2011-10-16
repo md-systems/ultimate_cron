@@ -448,7 +448,7 @@ function _ultimate_cron_l($text, $path) {
     '<span>' . t($text) . '</span>',
     $path,
     array(
-      'query' => array('destination' => trim(request_uri(), '/')),
+      'query' => drupal_get_destination(),
       'html' => TRUE,
     )
   );
