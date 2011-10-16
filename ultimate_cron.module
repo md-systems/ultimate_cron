@@ -227,7 +227,6 @@ function ultimate_cron_cron($return = FALSE) {
   $schedule = ultimate_cron_get_schedule($hooks, $schedule_unsafe);
 
   drupal_set_message(t('%jobs jobs scheduled for launch', array('%jobs' => count($schedule))));
-  watchdog('ultimate_cron', '%jobs jobs scheduled for launch', array('%jobs' => count($schedule)), WATCHDOG_INFO);
 
   // Start the jobs. Keep launching jobs until X seconds into the request.
   set_time_limit(120);
@@ -303,7 +302,6 @@ function ultimate_cron_cron($return = FALSE) {
   variable_set('cron_last', time());
 
   drupal_set_message(t('%jobs jobs launched', array('%jobs' => $launched)));
-  watchdog('ultimate_cron', '%jobs jobs launched', array('%jobs' => $launched), WATCHDOG_INFO);
   if (count($schedule)) {
     drupal_set_message(t('%jobs jobs failed to launch within %seconds seconds', array(
       '%jobs' => count($schedule),
