@@ -234,7 +234,7 @@ function ultimate_cron_view_page($module = NULL) {
       }
       $link_configure = '';
       if (!empty($hook['configure'])) {
-        $link_configure = _ultimate_cron_l('Module settings', $hook['configure']);
+        $link_configure = _ultimate_cron_l('Settings', $hook['configure']);
       }
 
       $link_unlock = '';
@@ -242,7 +242,7 @@ function ultimate_cron_view_page($module = NULL) {
         $link_unlock = _ultimate_cron_l('Unlock', 'background-process/unlock/' . $process->handle);
       }
 
-      $link_settings = _ultimate_cron_l('Cron settings', 'admin/config/system/cron/settings/' . $function);
+      $link_settings = _ultimate_cron_l('Schedule', 'admin/config/system/cron/settings/' . $function);
       $link_execute = _ultimate_cron_l('Run', 'admin/ultimate-cron/service/start/' . $function);
       $link_log = _ultimate_cron_l('Log', 'admin/reports/cron/' . $function);
 
@@ -282,9 +282,9 @@ function ultimate_cron_view_page($module = NULL) {
         $data[6]['title'] = strip_tags(html_entity_decode($msg, ENT_QUOTES));
       }
       $data[7]['data'] = $link_settings;
-      $data[7]['title'] = t('Cron settings');
+      $data[7]['title'] = t('Schedule');
       $data[8]['data'] = $link_configure;
-      $data[8]['title'] = $link_configure ? t('Module settings') : '';
+      $data[8]['title'] = $link_configure ? t('Settings') : '';
       $data[9]['data'] = $link_log;
       $data[9]['title'] = t('Log');
       $data[10]['data'] = $hook['unsafe'] ? '' : ($process ? $link_unlock : $link_execute);
