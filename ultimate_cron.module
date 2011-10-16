@@ -167,34 +167,7 @@ function ultimate_cron_menu() {
 }
 
 /**
- * Implementation of hook_menu_alter().
- *
- * Steal the run-cron, so when you "run cron manually" from the status-reports
- * page the ultimate_cron cron handler is run.
- */
-function ultimate_cron_menu_alter(&$items) {
-  $items['admin/config/system/cron'] = array(
-    'title' => 'Cron',
-    'description' => 'View and manage cron table',
-    'page callback' => 'ultimate_cron_view_page',
-    'access arguments' => array('administer ultimate cron'),
-    'module' => 'ultimate_cron',
-    'file' => 'ultimate_cron.admin.inc',
-  );
-  $items['admin/config/system/cron/overview'] = array(
-    'title' => 'List',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => -10,
-  );
-  $steal = &$items['admin/reports/status/run-cron'];
-  $steal['page callback'] = 'ultimate_cron_run_cron';
-  $steal['page arguments'] = array();
-  $steal['module'] = 'ultimate_cron';
-  $steal['file'] = 'ultimate_cron.admin.inc';
-}
-
-/**
- * Implementation of hook_perm().
+ * Implementation of hook_permission().
  */
 function ultimate_cron_permission() {
   return array(
@@ -393,23 +366,6 @@ function ultimate_cron_cronapi($op, $job = NULL) {
 }
 
 /**
- * Implements hook_cron_alter().
- * Add better description to core modules.
- */
-function ultimate_cron_cron_alter(&$hooks) {
-  $update['dblog_cron'] = t('Remove expired log messages and flood control events');
-  $update['field_cron'] = t('Purges deleted Field API data');
-  $update['node_cron'] = t('Mark old nodes as read');
-  $update['search_cron'] = t('Update indexes');
-  $update['system_cron'] = t('Cleanup (batch, flood, temp-files, etc.)');
-  foreach ($update as $function => $description) {
-    if (isset($hooks[$function])) {
-      $hooks[$function]['description'] = $description;
-    }
-  }
-}
-
-/**
  * Implementation of hook_requirements().
  */
 function ultimate_cron_requirements($phase) {
@@ -429,7 +385,7 @@ function ultimate_cron_requirements($phase) {
       elseif ($functions = ultimate_cron_unsafe_hooks()) {
         $response['severity'] = REQUIREMENT_WARNING;
         $response['value'] = t('Running in degraded mode');
-        $response['description'] = t('Ultimate Cron is not the first module. Please change module weight to enable Ultimate Cron handling for all module.');
+        $response['description'] = t('Ultimate Cron is not the first module. Please reclaim position through !settings to enable Ultimate Cron handling for all functions.', array('!settings' => l(t('settings'), 'admin/config/system/cron/settings')));
         $response['description'] .= '<br/>';
         $response['description'] .= t('Functions not handled by Ultimate Cron due to module weight, when cron is invoked through system crontab:<br/>%functions', array('%functions' => join(', ', array_keys($functions))));
       }
@@ -489,6 +445,154 @@ function ultimate_cron_exit($destination = NULL) {
   }
 }
 
+
+/**
+ * Implements hook_background_process_shutdown().
+ *
+ * Shutdown handler for cronjobs.
+ */
+function ultimate_cron_background_process_shutdown($process, $shutdown_msg = NULL) {
+  $args = func_get_args();
+  $fid = str_replace('ultimate_cron:', '', $process->handle);
+  if (is_numeric($fid)) {
+    static $has_run = array();
+    if (!empty($has_run[$fid])) {
+      return;
+    }
+    $has_run[$fid] = TRUE;
+
+    // Record end time
+    $end = microtime(TRUE);
+
+    $fatal_msg = '';
+    if (count(func_get_args()) == 1) {
+      $error = error_get_last();
+      if ($error) {
+        if ($error['type'] & (E_ERROR | E_CORE_ERROR | E_RECOVERABLE_ERROR)) {
+          $fatal_msg =  $error['message'] . ' (line ' . $error['line'] . ' of ' . $error['file'] . ').' . "\n";
+        }
+        else {
+          $fatal_msg .= t('Died unexpectedly');
+        }
+      }
+    }
+    if (is_null($shutdown_msg)) {
+      $messages = drupal_get_messages();
+    }
+
+    $msg = ultimate_cron_record_log(NULL);
+    if ($shutdown_msg) {
+      $msg .= $msg ? "\n$shutdown_msg" : $shutdown_msg;
+    }
+
+    if (!empty($messages['error'])) {
+      $msg .= join("\n", $messages['error']) . "\n";
+    }
+    $msg .= $fatal_msg;
+
+    // If success, use status messages if any
+    $result = empty($msg);
+    if ($result && !empty($messages['status'])) {
+      $msg = join("\n", $messages['status']) . "\n";
+    }
+
+    // log results here ...
+    $object = (object)array(
+      'fid' => $fid,
+      'start' => $process->start,
+      'end' => $end,
+      'status' => $result,
+      'msg' => $msg,
+    );
+    drupal_write_record('ultimate_cron_log', $object);
+  }
+}
+
+
+// ---------- FIXUPS FOR CORE  ----------
+
+/**
+ * Implementation of hook_menu_alter().
+ *
+ * Steal the run-cron, so when you "run cron manually" from the status-reports
+ * page the ultimate_cron cron handler is run.
+ */
+function ultimate_cron_menu_alter(&$items) {
+  if (_ultimate_cron_incompatible_modules()) {
+    return;
+  }
+
+  $items['admin/config/system/cron'] = array(
+    'title' => 'Cron',
+    'description' => 'View and manage cron table',
+    'page callback' => 'ultimate_cron_view_page',
+    'access arguments' => array('administer ultimate cron'),
+    'module' => 'ultimate_cron',
+    'file' => 'ultimate_cron.admin.inc',
+  );
+  $items['admin/config/system/cron/overview'] = array(
+    'title' => 'List',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'weight' => -10,
+  );
+  $steal = &$items['admin/reports/status/run-cron'];
+  $steal['page callback'] = 'ultimate_cron_run_cron';
+  $steal['page arguments'] = array();
+  $steal['module'] = 'ultimate_cron';
+  $steal['file'] = 'ultimate_cron.admin.inc';
+}
+
+/**
+ * Implements hook_cron_alter().
+ * Add better description to core modules.
+ */
+function ultimate_cron_cron_alter(&$hooks) {
+  $update['dblog_cron']['description'] = t('Remove expired log messages and flood control events');
+  $update['field_cron']['description'] = t('Purges deleted Field API data');
+  $update['filter_cron']['description'] = t('Expire outdated filter cache entries');
+  $update['node_cron']['description'] = t('Mark old nodes as read');
+  $update['search_cron']['description'] = t('Update indexes');
+  $update['system_cron']['description'] = t('Cleanup (batch, flood, temp-files, etc.)');
+  $update['aggregator_cron']['description'] = t('Refresh feeds');
+  $update['openid_cron']['description'] = t('Remove expired nonces from the database');
+  $update['ping_cron']['description'] = t('Notify remote sites');
+  $update['poll_cron']['description'] = t('Close expired polls');
+  $update['statistics_cron']['description'] = t('Reset counts and clean up');
+  $update['trigger_cron']['description'] = t('Run actions for cron triggers');
+  $update['update_cron']['description'] = t('Check system for updates');
+  $update['update_cron']['settings'] = array(
+    'enabled' => TRUE,
+    'rules' => array('0 0 * * *'),
+    'catch_up' => variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP)
+  );
+
+  foreach ($update as $function => $data) {
+    if (isset($hooks[$function])) {
+      foreach ($data as $key => $value) {
+        $hooks[$function][$key] = $value;
+      }
+    }
+  }
+}
+
+/**
+ * Remove interval settings on update settings page. Cron will handle the interval now.
+ */
+function ultimate_cron_form_update_settings_alter(&$form) {
+  unset($form['update_check_frequency']);
+}
+
+/**
+ * Soft set the interval to 1 second for system update check.
+ */
+function ultimate_cron_cron_pre_execute_update_cron($hook) {
+  error_log('updating...');
+  global $conf;
+  $conf['update_check_frequency'] = 1 / (60 * 60 * 24);
+}
+
+// ---------- HELPER FUNCTIONS ----------
+
 /**
  * The actual poorman function
  * @return type
@@ -514,8 +618,6 @@ function _ultimate_cron_poorman() {
     sleep($wait);
   }
 }
-
-// ---------- HELPER FUNCTIONS ----------
 
 /**
  * Clean up log entries.
@@ -639,68 +741,6 @@ function _ultimate_cron_run_hook($function, $hook) {
   module_invoke_all('cron_post_execute_' . $function, $hook);
 
   return TRUE;
-}
-
-/**
- * Implements hook_background_process_shutdown().
- *
- * Shutdown handler for cronjobs.
- */
-function ultimate_cron_background_process_shutdown($process, $shutdown_msg = NULL) {
-  $args = func_get_args();
-  $fid = str_replace('ultimate_cron:', '', $process->handle);
-  if (is_numeric($fid)) {
-    static $has_run = array();
-    if (!empty($has_run[$fid])) {
-      return;
-    }
-    $has_run[$fid] = TRUE;
-
-    // Record end time
-    $end = microtime(TRUE);
-
-    $fatal_msg = '';
-    if (count(func_get_args()) == 1) {
-      $error = error_get_last();
-      if ($error) {
-        if ($error['type'] & (E_ERROR | E_CORE_ERROR | E_RECOVERABLE_ERROR)) {
-          $fatal_msg =  $error['message'] . ' (line ' . $error['line'] . ' of ' . $error['file'] . ').' . "\n";
-        }
-        else {
-          $fatal_msg .= t('Died unexpectedly');
-        }
-      }
-    }
-    if (is_null($shutdown_msg)) {
-      $messages = drupal_get_messages();
-    }
-
-    $msg = ultimate_cron_record_log(NULL);
-    if ($shutdown_msg) {
-      $msg .= $msg ? "\n$shutdown_msg" : $shutdown_msg;
-    }
-
-    if (!empty($messages['error'])) {
-      $msg .= join("\n", $messages['error']) . "\n";
-    }
-    $msg .= $fatal_msg;
-
-    // If success, use status messages if any
-    $result = empty($msg);
-    if ($result && !empty($messages['status'])) {
-      $msg = join("\n", $messages['status']) . "\n";
-    }
-
-    // log results here ...
-    $object = (object)array(
-      'fid' => $fid,
-      'start' => $process->start,
-      'end' => $end,
-      'status' => $result,
-      'msg' => $msg,
-    );
-    drupal_write_record('ultimate_cron_log', $object);
-  }
 }
 
 /**
@@ -872,7 +912,9 @@ function ultimate_cron_uncronable_modules() {
     if ($module === 'ultimate_cron') {
       break;
     }
-    $modules[$module] = $module;
+    if (module_hook($module, 'cron')) {
+      $modules[$module] = $module;
+    }
   }
   return $modules;
 }
