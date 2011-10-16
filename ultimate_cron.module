@@ -365,9 +365,6 @@ function ultimate_cron_cronapi($op, $job = NULL) {
       return array(
         'ultimate_cron_cleanup_log' => 'admin/config/system/cron/settings',
         'dblog_cron' => 'admin/config/development/logging',
-        'filter_cron' => 'admin/settings/filters',
-        'update_cron' => 'admin/reports/updates/settings',
-        'system_cron' => 'admin/settings',
       );
   }
 }
@@ -566,6 +563,7 @@ function ultimate_cron_cron_alter(&$hooks) {
   $update['poll_cron']['description'] = t('Close expired polls');
   $update['statistics_cron']['description'] = t('Reset counts and clean up');
   $update['trigger_cron']['description'] = t('Run actions for cron triggers');
+  $update['tracker_cron']['description'] = t('Update tracker index');
   $update['update_cron']['description'] = t('Check system for updates');
   $update['update_cron']['settings'] = array(
     'enabled' => TRUE,
