@@ -1,6 +1,2 @@
-Place in modules directory
-
-Call ultimate_cron.php from crond instead of cron.php.
-
-
+Set your crontab to wget cron.php once per minute (* * * * *). If this is not possible, activate the Poormans cron function in the Ultimate Cron settings.
 

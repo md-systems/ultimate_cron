@@ -71,18 +71,16 @@ function ultimate_cron_reclaim_submit($form, &$form_state) {
   drupal_set_message(t('Module position reclaimed.'));
 }
 
+/**
+ * Function settings form.
+ */
 function ultimate_cron_function_settings_form($form, &$form_state, $function) {
-  // Load configuration
+  // Load settings
   $hooks = ultimate_cron_get_hooks();
   $hook = $hooks[$function];
   $fid = $hook['fid'];
-  $conf = ultimate_cron_get_configuration($function);
-  $conf += array(
-    'enabled' => TRUE,
-    'rules' => array(),
-    'catch_up' => '',
-  );
-  $form_state['storage']['configuration'] = $conf;
+  $conf = ultimate_cron_get_settings($function);
+  $conf += _ultimate_cron_default_settings();
 
   // Setup form
   drupal_set_title($function);
@@ -110,7 +108,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
     '#title' => t('Rules'),
     '#type' => 'textfield',
     '#default_value' => implode(';', $conf['rules']),
-    '#description' => t('Semi-colon separated list of rules for this job. (blank = ' . implode(';', $hook['rules']) . ')'),
+    '#description' => t('Semi-colon separated list of rules for this job. (blank = ' . implode(';', $hook['settings']['rules']) . ')'),
   );
   $form['general']['catch_up'] = array(
     '#title' => t('Catch up'),
@@ -137,7 +135,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
   );
   $form['buttons']['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Save configuration'),
+    '#value' => t('Save settings'),
   );
   $form['#redirect'] = 'admin/config/system/cron';
 
@@ -163,22 +161,30 @@ function ultimate_cron_function_settings_form_validate($form, &$form_state) {
 }
 
 function ultimate_cron_function_settings_form_submit($form, &$form_state) {
-  ultimate_cron_set_configuration($form_state['values']['function'], $form_state['values']);
+  ultimate_cron_set_settings($form_state['values']['function'], $form_state['values']);
   unset($form_state['storage']);
 }
 
 function ultimate_cron_view_page($module = NULL) {
   drupal_add_css(drupal_get_path('module', 'ultimate_cron') . '/css/ultimate_cron.admin.css');
 
+  $requirements = ultimate_cron_requirements('runtime');
+  if ($requirements['ultimate_cron']['severity'] != REQUIREMENT_OK) {
+    drupal_set_message($requirements['ultimate_cron']['value'], 'error');
+    drupal_set_message($requirements['ultimate_cron']['description'], 'error');
+  }
+
+  // Get hooks and their data
   $hooks = ultimate_cron_get_hooks();
   $data = _ultimate_cron_preload_cron_data();
-  
+
   $modules = array();
   foreach ($hooks as $function => $hook) {
     if (!$module || $module == $hook['module']) {
-      $hook['configuration'] = $data[$function]['configuration'];
+      $hook['settings'] = $data[$function]['settings'] + $hook['settings'];
+      $hook['settings'] += _ultimate_cron_default_settings();
       $hook['background_process'] = $data[$function]['background_process'];
-      ultimate_cron_load_hook_data($hook);
+      $hook['log'] = ultimate_cron_get_log($hook['fid']);
       $modules[$hook['module']][$function] = $hook;
     }
   }
@@ -191,17 +197,11 @@ function ultimate_cron_view_page($module = NULL) {
   $overview['running'] = 0;
   $overview['errors'] = 0;
 
-  $unsafe = array();
   foreach ($modules as $module => $hooks) {
     foreach ($hooks as $function => $hook) {
-      // Collect unsafe functions for message to user
-      if ($hook['unsafe']) {
-        $unsafe[] = $function;
-      }
-      
-      // Setup configration
-      $conf = $hook['configuration'];
-      $rules = empty($conf['rules']) ? $hook['rules'] : $conf['rules'];
+      // Setup settings
+      $conf = $hook['settings'];
+      $rules = $hook['settings']['rules'];
 
       // Setup process
       $process = $hook['background_process'];
@@ -295,10 +295,6 @@ function ultimate_cron_view_page($module = NULL) {
     'attributes' => array('id' => 'ultimate-cron-view')
   ));
 
-  if (!empty($unsafe)) {
-    $msg = t('Functions not handled by Ultimate Cron due to module weight, when cron is invoked through system crontab:<br/>%functions', array('%functions' => join(', ', $unsafe)));
-    drupal_set_message($msg, 'warning');
-  }
   if ($overview['running']) {
     drupal_set_message(t('@jobs jobs are currently running', array('@jobs' => $overview['running'])));
   }
@@ -377,6 +373,7 @@ function ultimate_cron_service_start($function) {
   // When run manually don't double check the rules
   $hooks[$function]['skip_catch_up'] = TRUE;
 
+  ultimate_cron_load_hook_data($hooks[$function]);
   $handle = ultimate_cron_run_hook($function, $hooks[$function]);
 
   if ($handle === FALSE) {
@@ -398,9 +395,9 @@ function ultimate_cron_service_start($function) {
  * @param type $enabled 
  */
 function ultimate_cron_service_enable($function, $enabled) {
-  $conf = ultimate_cron_get_configuration($function);
+  $conf = ultimate_cron_get_settings($function);
   $conf['enabled'] = $enabled;
-  ultimate_cron_set_configuration($function, $conf);
+  ultimate_cron_set_settings($function, $conf);
   drupal_goto();
 }
 
@@ -416,7 +413,7 @@ function ultimate_cron_import_form() {
       '#type' => 'select',
       '#options' => $options,
       '#title' => t('Module'),
-      '#description' => t('Module to import configuration from'),
+      '#description' => t('Module to import settings from'),
     );
     $form['import']['submit'] = array(
       '#type' => 'submit',
@@ -451,3 +448,4 @@ function _ultimate_cron_l($text, $path) {
     )
   );
 }
+

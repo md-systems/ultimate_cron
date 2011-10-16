@@ -5,7 +5,7 @@
  * @todo Add filter on overview page.
  * @todo Add log view (with graph).
  * @todo Make proper markup for overview page.
- * @todo Re-add skip job if time windows exceeded.
+ * @fixme settings is called configuration in DB ... urk!
  *
  * hook_cron_alter(&$hooks)
  * hook_cron_schedule_alter(&$hooks)
@@ -224,6 +224,7 @@ function ultimate_cron_cron($return = FALSE) {
   $schedule_unsafe = $return && lock_acquire('cron', 240.0);
   // Get schedule.
   $schedule = ultimate_cron_get_schedule($hooks, $schedule_unsafe);
+
   drupal_set_message(t('%jobs jobs scheduled for launch', array('%jobs' => count($schedule))));
   watchdog('ultimate_cron', '%jobs jobs scheduled for launch', array('%jobs' => count($schedule)), WATCHDOG_INFO);
 
@@ -419,7 +420,13 @@ function ultimate_cron_requirements($phase) {
     case 'runtime':
       $response['title'] = 'Ultimate Cron';
       $response['value'] = 'OK';
-      if ($functions = ultimate_cron_unsafe_hooks()) {
+      $response['severity'] = REQUIREMENT_OK;
+      if ($modules = _ultimate_cron_incompatible_modules()) {
+        $response['severity'] = REQUIREMENT_ERROR;
+        $response['value'] = t('Ultimate Cron is DISABLED!');
+        $response['description'] = t('%modules is installed on the system, but is incompatible with Ultimate Cron.<br/>Please disable Parallel Cron.<br/>You might want to !url settings first.', array('%modules' => join(', ', $modules), '!url' => l(t('import'), 'admin/settings/cron/import')));
+      }
+      elseif ($functions = ultimate_cron_unsafe_hooks()) {
         $response['severity'] = REQUIREMENT_WARNING;
         $response['value'] = t('Running in degraded mode');
         $response['description'] = t('Ultimate Cron is not the first module. Please change module weight to enable Ultimate Cron handling for all module.');
@@ -518,7 +525,7 @@ function ultimate_cron_cleanup_log() {
 }
 
 /**
- * Access handler for function configuration.
+ * Access handler for function settings.
  *
  * @param $function
  *   Function name.
@@ -548,9 +555,6 @@ function ultimate_cron_function_settings_form_access($function) {
  *   Connections file handle on success.
  */
 function ultimate_cron_run_hook($function, $hook) {
-  // Load configuration if not present
-  ultimate_cron_load_hook_data($hook);
-
   // Run the job in background
   $result = NULL;
   $handle = "ultimate_cron:" . $hook['fid'];
@@ -560,8 +564,8 @@ function ultimate_cron_run_hook($function, $hook) {
   $process->uid = 0;
   
   // Determine service group
-  if (!empty($hook['configuration']['service_group'])) {
-    $process->service_group = $hook['configuration']['service_group'];
+  if (!empty($hook['settings']['service_group'])) {
+    $process->service_group = $hook['settings']['service_group'];
   }
   $hook['timestamp'] = time();
   $result = $process->start('_ultimate_cron_run_hook', array($function, $hook));
@@ -591,7 +595,7 @@ function _ultimate_cron_run_hook($function, $hook) {
   $record = TRUE;
   ultimate_cron_record_log(NULL, TRUE);
 
-  // Load configuration if not present
+  // Load log if not present
   if (!isset($hook['log'])) {
     $hook['log'] = ultimate_cron_get_log($hook['fid']);
   }
@@ -728,20 +732,16 @@ function ultimate_cron_get_schedule($hooks, $schedule_unsafe = FALSE) {
 }
 
 /**
- * Populate hook array with configuration and log data
+ * Populate hook array with settings and log data
  *
  * @param type $hook 
  */
 function ultimate_cron_load_hook_data(&$hook) {
-  // Get configuration
-  if (!isset($hook['configuration'])) {
-    $hook['configuration'] = ultimate_cron_get_configuration($hook['function']);
-  }
+  // Get settings
+  $hook['settings'] = ultimate_cron_get_settings($hook['function']) + $hook['settings'];
 
   // Get log, used for checking last start time
-  if (!isset($hook['log'])) {
-    $hook['log'] = ultimate_cron_get_log($hook['fid']);
-  }
+  $hook['log'] = ultimate_cron_get_log($hook['fid']);
 }
 
 /**
@@ -752,20 +752,13 @@ function ultimate_cron_load_hook_data(&$hook) {
  */
 function ultimate_cron_hook_should_run($hook) {
   // Is it enabled?
-  if (!empty($hook['configuration']) && empty($hook['configuration']['enabled'])) {
+  if (empty($hook['settings']['enabled'])) {
     return FALSE;
   }
 
-  // Use default values if necessary
-  $rules = empty($hook['configuration']['rules']) ? $hook['rules'] : $hook['configuration']['rules'];
-  if (isset($hook['configuration']['catch_up']) && is_numeric($hook['configuration']['catch_up'])) {
-    $catch_up = $hook['configuration']['catch_up'];
-  } else {
-    $catch_up = variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP);
-  }
   $last_run = isset($hook['log']['start']) ? $hook['log']['start'] : 0;
 
-  return ultimate_cron_should_run($rules, $last_run, time(), $catch_up);
+  return ultimate_cron_should_run($hook['settings']['rules'], $last_run, time(), $hook['settings']['catch_up']);
 }
 
 /**
@@ -807,7 +800,7 @@ function ultimate_cron_get_hooks() {
         $hooks[$function]['description'] = $description;
         $hooks[$function]['module'] = $module;
         $hooks[$function]['configure'] = isset($info['configure']) ? $info['configure'] : '';
-        $hooks[$function]['rules'] = ultimate_cron_get_default_rules($module, $function, ultimate_cron_easy_hooks_rule($hook));
+        $hooks[$function]['settings'] = ultimate_cron_get_default_settings($module, $function, ultimate_cron_easy_hooks_rule($hook));
       }
     }
     if ($cronapi = module_invoke($module, 'cronapi', 'list')) {
@@ -815,7 +808,7 @@ function ultimate_cron_get_hooks() {
         $hooks[$function]['unsafe'] = isset($hooks[$function]['unsafe']) ? $hooks[$function]['unsafe'] : FALSE;
         $hooks[$function]['description'] = $description;
         $hooks[$function]['module'] = $module;
-        $hooks[$function]['rules'] = ultimate_cron_get_default_rules($module, $function, ultimate_cron_easy_hooks_rule('cron'));
+        $hooks[$function]['settings'] = ultimate_cron_get_default_settings($module, $function, ultimate_cron_easy_hooks_rule('cron'));
       }
     }
   }
@@ -856,6 +849,26 @@ function ultimate_cron_get_default_rules($module, $function, $default_rule) {
 }
 
 /**
+ * Get default settings for job.
+ *
+ * @param type $module
+ * @param type $function
+ * @return array
+ */
+function ultimate_cron_get_default_settings($module, $function, $default_rule) {
+  $conf = module_invoke($module, 'cronapi', 'settings', $function);
+  if (!is_array($conf)) {
+    $conf = array();
+  }
+  $rule = module_invoke($module, 'cronapi', 'rule', $function);
+  if (empty($conf['rules']) && !empty($rule)) {
+    $conf['rules'] = is_array($rules) ? $rule : array($rule);
+  }
+  $conf += _ultimate_cron_default_settings($default_rule);
+  return $conf;
+}
+
+/**
  * Find modules that precedes Ultimate Cron and therefore cannot be handled
  * by Ultimate Cron.
  *
@@ -886,14 +899,15 @@ function ultimate_cron_unsafe_hooks() {
   }
   return $hooks;
 }
+
 /**
- * Get configuration for a function.
+ * Get settings for a function.
  *
  * @param $function
  * @return array
- *   Configuration for function
+ *   Settings for function
  */
-function ultimate_cron_get_configuration($function) {
+function ultimate_cron_get_settings($function) {
   $fid = ultimate_cron_get_function_id($function);
   if (!$fid) {
     return NULL;
@@ -905,16 +919,16 @@ function ultimate_cron_get_configuration($function) {
 }
 
 /**
- * Set configuration for a function.
+ * Set settings for a function.
  *
  * @param $function
- *   Function to set configuration for.
+ *   Function to set settings for.
  * @param $conf
- *   Configuration data
+ *   Settings data
  * @return boolean
  *   TRUE on success, FALSE on failure.
  */
-function ultimate_cron_set_configuration($function, $conf) {
+function ultimate_cron_set_settings($function, $conf) {
   $fid = ultimate_cron_get_function_id($function);
   if (!$fid) {
     return NULL;
@@ -1060,11 +1074,8 @@ function ultimate_cron_easy_hooks_rule($hook = NULL) {
  * @return integer
  *   Function ID.
  */
-function ultimate_cron_get_function_id($function, $fid = NULL) {
+function ultimate_cron_get_function_id($function) {
   static $ids = array();
-  if (isset($fid)) {
-    $ids[$function] = $fid;
-  }
   if (isset($ids[$function])) {
     return $ids[$function];
   }
@@ -1113,7 +1124,7 @@ function ultimate_cron_module_name($module) {
 }
 
 /**
- * Load all cronjob configurations and processes.
+ * Load all cronjob settings and processes.
  *
  * @return array
  *   Array of cronjobs and their data.
@@ -1129,7 +1140,7 @@ LEFT JOIN background_process p ON p.handle = CONCAT('ultimate_cron:', f.fid)
   $data = array();
   while ($row = $result->fetchObject()) {
     $data[$row->function] = array(
-      'configuration' => $row->configuration ? unserialize($row->configuration) : array(),
+      'settings' => $row->configuration ? unserialize($row->configuration) : array(),
       'background_process' => empty($row->handle) ? NULL : (object)array(
         'handle' => $row->handle,
         'service_host' => $row->service_host,
@@ -1158,3 +1169,13 @@ function _ultimate_cron_incompatible_modules() {
   return $modules;
 }
 
+/**
+ * Smelly code; $default_rule determines if we should populate ...
+ */
+function _ultimate_cron_default_settings($default_rule = NULL) {
+  return array(
+    'enabled' => TRUE,
+    'rules' => $default_rule ? array($default_rule) : array(),
+    'catch_up' => $default_rule ? variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) : '',
+  );
+}
