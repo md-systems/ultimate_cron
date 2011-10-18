@@ -565,11 +565,6 @@ function ultimate_cron_cron_alter(&$hooks) {
   $update['trigger_cron']['description'] = t('Run actions for cron triggers');
   $update['tracker_cron']['description'] = t('Update tracker index');
   $update['update_cron']['description'] = t('Check system for updates');
-  $update['update_cron']['settings'] = array(
-    'enabled' => TRUE,
-    'rules' => array('0 0 * * *'),
-    'catch_up' => variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP)
-  );
 
   foreach ($update as $function => $data) {
     if (isset($hooks[$function])) {
@@ -578,22 +573,6 @@ function ultimate_cron_cron_alter(&$hooks) {
       }
     }
   }
-}
-
-/**
- * Remove interval settings on update settings page. Cron will handle the interval now.
- */
-function ultimate_cron_form_update_settings_alter(&$form) {
-  unset($form['update_check_frequency']);
-}
-
-/**
- * Soft set the interval to 1 second for system update check.
- */
-function ultimate_cron_cron_pre_execute_update_cron($hook) {
-  error_log('updating...');
-  global $conf;
-  $conf['update_check_frequency'] = 1 / (60 * 60 * 24);
 }
 
 // ---------- HELPER FUNCTIONS ----------
@@ -732,8 +711,9 @@ function _ultimate_cron_run_hook($function, $hook) {
   module_invoke_all('cron_pre_execute', $function, $hook);
   module_invoke_all('cron_pre_execute_' . $function, $hook);
 
-  if (function_exists($function)) {
-    $function();
+  $callback = $hook['callback'];
+  if (is_callable($callback)) {
+    call_user_func($callback);
   }
   else {
     module_invoke($hook['module'], 'cronapi', 'execute', $function);
@@ -869,7 +849,7 @@ function ultimate_cron_get_hooks() {
 
   $configure = module_invoke_all('cronapi', 'configure');
   foreach ($hooks as $function => &$hook) {
-    $hook['function'] = $function;
+    $hook['callback'] = $hook['function'] = $function;
     $hook['fid'] = ultimate_cron_get_function_id($function);
     if (isset($configure[$function])) {
       $hook['configure'] = $configure[$function];
