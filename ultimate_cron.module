@@ -361,11 +361,6 @@ function ultimate_cron_cronapi($op, $job = NULL) {
         background_process_keepalive();
       }
       return;
-    case 'configure':
-      return array(
-        'ultimate_cron_cleanup_log' => 'admin/config/system/cron/settings',
-        'dblog_cron' => 'admin/config/development/logging',
-      );
   }
 }
 
@@ -565,6 +560,8 @@ function ultimate_cron_cron_alter(&$hooks) {
   $update['trigger_cron']['description'] = t('Run actions for cron triggers');
   $update['tracker_cron']['description'] = t('Update tracker index');
   $update['update_cron']['description'] = t('Check system for updates');
+  $update['ultimate_cron_cleanup_log']['configure'] = 'admin/config/system/cron/settings';
+  $update['dblog_cron']['configure'] = 'admin/config/development/logging';
 
   foreach ($update as $function => $data) {
     if (isset($hooks[$function])) {
@@ -843,17 +840,14 @@ function ultimate_cron_get_hooks() {
         $hooks[$function]['description'] = $description;
         $hooks[$function]['module'] = $module;
         $hooks[$function]['settings'] = ultimate_cron_get_default_settings($module, $function, ultimate_cron_easy_hooks_rule('cron'));
+        $hooks[$function]['configure'] = module_invoke($module, 'cronapi', 'configure', $function);
       }
     }
   }
 
-  $configure = module_invoke_all('cronapi', 'configure');
   foreach ($hooks as $function => &$hook) {
     $hook['callback'] = $hook['function'] = $function;
     $hook['fid'] = ultimate_cron_get_function_id($function);
-    if (isset($configure[$function])) {
-      $hook['configure'] = $configure[$function];
-    }
   }
 
   // Remove ourselves from the list
