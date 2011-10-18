@@ -1,0 +1,58 @@
+<p>The hook_cronapi($op, $function = NULL) allows you to define new cronjobs</p>
+
+<h3>Example</h3>
+<pre>
+// Define custom cron functions
+function mymodule_cronapi($op, $function = NULL) {
+  switch($op) {
+    case 'list':
+      return array(
+        'mymodule_cronjob_1' => 'Cron-1 Handler',
+        'mymodule_cronjob_2' => 'Cron-2 Handler',
+        'mymodule_cronjob_3' => 'Cron-3 Handler',
+      );
+
+    case 'rule':
+      switch($function) {
+        case 'mymodule_cronjob_1': return '*/13 * * * *';
+        case 'mymodule_cronjob_2': return '0 0 1 * *';
+      }
+      break;
+
+    case 'execute':
+      switch($function) {
+        case 'mymodule_cronjob_2':
+          mymodule_somefunction();
+          break;
+      }
+      break;
+
+    case 'settings':
+      switch ($function) {
+        // 'mymodule_cronjob_3' disabled by default
+        case 'mymodule_cronjob_3': return array('enabled' => FALSE);
+      }
+
+    case 'configure':
+      switch ($function) {
+        case 'mymodule_cronjob_3': return 'admin/configure-modules-settings/xxx';
+      }
+  }
+}
+
+// Custom cron-function
+function mymodule_cronjob_1() {
+  // Do some stuff ...
+}
+
+// Custom cron-function
+function mymodule_somefunction() {
+  // Do some stuff ...
+}
+
+// Custom cron-function
+function mymodule_cronjob_3() {
+  // Do some stuff ...
+}
+</pre>
+

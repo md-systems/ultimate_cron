@@ -1,5 +1,6 @@
-<p>The hook_cron_alter() allows you to change the cron hooks defined by hook_cron() and hook_cronapi().</p>
+<p>The hook_cron_alter(&$hooks) allows you to change the cron hooks defined by hook_cron() and hook_cronapi().</p>
 
+<h3>Example</h3>
 <p>Change default rules for the Node modules cron hook:</p>
 <pre>
 function hook_cron_alter(&$hooks) {
@@ -31,6 +32,7 @@ function hook_cron_alter(&$hooks) {
 )
 </pre>
 
+<h3>Description of data structure</h3>
 <table border="1">
   <tr><th>Name</th><th>Description</th></tr>
   <tr><td>unsafe</td><td>If true, then the cron hook is considered unsafe, meaning that Ultimate Cron will not execute it. This value is set by Ultimate Cron when determining which hooks are unsafe. A hook is considered unsafe, if the function resides in a module with a weight lower than Ultimate Cron.</td></tr>
