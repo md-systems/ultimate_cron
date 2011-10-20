@@ -713,7 +713,7 @@ function _ultimate_cron_run_hook($function, $hook) {
     call_user_func($callback);
   }
   else {
-    module_invoke($hook['module'], 'cronapi', 'execute', $function);
+    module_invoke($hook['module'], 'cronapi', 'execute', $function, $hook);
   }
 
   ultimate_cron_background_process_shutdown($process, NULL);
