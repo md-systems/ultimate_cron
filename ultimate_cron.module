@@ -188,6 +188,10 @@ function ultimate_cron_permission() {
  *   return to caller if TRUE, otherwise exit().
  */
 function ultimate_cron_cron($return = FALSE) {
+  if (variable_get('install_task') != 'done') {
+    return;
+  }
+
   // Be other cron module friendly
   if (_ultimate_cron_incompatible_modules()) {
     return;
@@ -442,26 +446,32 @@ function ultimate_cron_exit($destination = NULL) {
     $time = floor($time / 60) * 60;
     // Don't attempt, if already run within last minute
     if ($last < $time) {
-      $handle = 'ultimate_cron_poorman';
-      if ($process = background_process_get_process($handle)) {
-        if ($process->start + 120 < time()) {
-          // Must have timed out or something ... remove it!
-          if (background_process_remove_process($handle, $process->start)) {
-            $process = NULL;
-          }
-        }
-      }
-      if (!$process) {
-        $process = new BackgroundProcess($handle);
-        // Because anyone can launch poormans cron, run it as anonymous
-        $process->uid = 0;
-        $process->service_host = 'ultimate_cron_poorman';
-        $result = $process->start('_ultimate_cron_poorman');
-      }
+      ultimate_cron_launch_poorman();
     }
   }
 }
 
+/**
+ * Launch the poormans cron background process.
+ */
+function ultimate_cron_launch_poorman() {
+  $handle = 'ultimate_cron_poorman';
+  if ($process = background_process_get_process($handle)) {
+    if ($process->start + 120 < time()) {
+      // Must have timed out or something ... remove it!
+      if (background_process_remove_process($handle, $process->start)) {
+        $process = NULL;
+      }
+    }
+  }
+  if (!$process) {
+    $process = new BackgroundProcess($handle);
+    // Because anyone can launch poormans cron, run it as anonymous
+    $process->uid = 0;
+    $process->service_host = 'ultimate_cron_poorman';
+    $result = $process->start('_ultimate_cron_poorman');
+  }
+}
 
 /**
  * Implements hook_background_process_shutdown().
