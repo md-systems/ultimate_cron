@@ -117,7 +117,6 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
   // Load settings
   $hooks = ultimate_cron_get_hooks();
   $hook = $hooks[$function];
-  $fid = $hook['fid'];
   $conf = ultimate_cron_get_settings($function);
   $conf += _ultimate_cron_default_settings();
 
@@ -243,9 +242,8 @@ function ultimate_cron_view_page($module = NULL) {
   foreach ($hooks as $function => $hook) {
     if (!$module || $module == $hook['module']) {
       $hook['settings'] = $data[$function]['settings'] + $hook['settings'];
-      $hook['settings'] += _ultimate_cron_default_settings();
       $hook['background_process'] = $data[$function]['background_process'];
-      $hook['log'] = ultimate_cron_get_log($hook['fid']);
+      $hook['log'] = ultimate_cron_get_log($function);
       $modules[$hook['module']][$function] = $hook;
     }
   }
@@ -382,14 +380,13 @@ function ultimate_cron_function_log_page($function) {
 
   drupal_set_title(check_plain($function));
 
-  $fid = ultimate_cron_get_function_id($function);
   $query = db_select('ultimate_cron_log', 'l');
-  $query = $query->condition('l.fid', $fid)
+  $query = $query->condition('l.function', $function)
              ->extend('PagerDefault')
                ->limit(10)
              ->extend('TableSort')
                ->orderByHeader($header)
-             ->fields('l', array('lid', 'fid', 'start', 'end', 'status', 'msg'))
+             ->fields('l', array('lid', 'function', 'start', 'end', 'status', 'msg'))
              ->orderBy('l.start', 'DESC');
   $logs = $query->execute()->fetchAll();
 

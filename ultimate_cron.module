@@ -5,7 +5,6 @@
  * @todo Add filter on overview page.
  * @todo Add log view (with graph).
  * @todo Make proper markup for overview page.
- * @fixme settings is called configuration in DB ... urk!
  *
  * hook_cron_alter(&$hooks)
  * hook_cron_schedule_alter(&$hooks)
@@ -243,7 +242,7 @@ function ultimate_cron_cron($return = FALSE) {
 
       // Handle errors.
       if ($result) {
-        $handle = 'ultimate_cron:' . $hook['fid'];
+        $handle = 'ultimate_cron:' . $function;
         $running[$handle] = $result;
         unset($schedule[$function]);
         $launched++;
@@ -316,7 +315,7 @@ function ultimate_cron_cron($return = FALSE) {
 /**
  * Implements hook_cronapi().
  */
-function ultimate_cron_cronapi($op, $job = NULL) {
+function ultimate_cron_cronapi($op, $job = NULL, $hook = NULL) {
   // Grab the defined cron queues.
   static $queues = NULL;
   if (!isset($queues)) {
@@ -368,7 +367,11 @@ function ultimate_cron_cronapi($op, $job = NULL) {
       }
       drupal_set_message(t('Processed @items items', array('@items' => $items)));
       if (is_numeric($polling_latency)) {
-        background_process_keepalive();
+        $settings = ultimate_cron_get_settings($job);
+        $hook['settings'] = $settings + $hook['settings'];
+        if (ultimate_cron_hook_should_run($hook)) {
+          background_process_keepalive();
+        }
       }
       return;
   }
@@ -480,13 +483,13 @@ function ultimate_cron_launch_poorman() {
  */
 function ultimate_cron_background_process_shutdown($process, $shutdown_msg = NULL) {
   $args = func_get_args();
-  $fid = str_replace('ultimate_cron:', '', $process->handle);
-  if (is_numeric($fid)) {
+  $function = str_replace('ultimate_cron:', '', $process->handle);
+  if (!empty($function)) {
     static $has_run = array();
-    if (!empty($has_run[$fid])) {
+    if (!empty($has_run[$function])) {
       return;
     }
-    $has_run[$fid] = TRUE;
+    $has_run[$function] = TRUE;
 
     // Record end time
     $end = microtime(TRUE);
@@ -525,7 +528,7 @@ function ultimate_cron_background_process_shutdown($process, $shutdown_msg = NUL
 
     // log results here ...
     $object = (object)array(
-      'fid' => $fid,
+      'function' => $function,
       'start' => $process->start,
       'end' => $end,
       'status' => $result,
@@ -677,7 +680,7 @@ function ultimate_cron_function_settings_form_access($function) {
 function ultimate_cron_run_hook($function, $hook) {
   // Run the job in background
   $result = NULL;
-  $handle = "ultimate_cron:" . $hook['fid'];
+  $handle = "ultimate_cron:" . $function;
   $process = new BackgroundProcess($handle);
 
   // Always run cron job as anonymous user
@@ -717,7 +720,7 @@ function _ultimate_cron_run_hook($function, $hook) {
 
   // Load log if not present
   if (!isset($hook['log'])) {
-    $hook['log'] = ultimate_cron_get_log($hook['fid']);
+    $hook['log'] = ultimate_cron_get_log($function);
   }
 
   $time = time();
@@ -800,7 +803,7 @@ function ultimate_cron_load_hook_data(&$hook) {
   $hook['settings'] = ultimate_cron_get_settings($hook['function']) + $hook['settings'];
 
   // Get log, used for checking last start time
-  $hook['log'] = ultimate_cron_get_log($hook['fid']);
+  $hook['log'] = ultimate_cron_get_log($hook['function']);
 }
 
 /**
@@ -875,7 +878,7 @@ function ultimate_cron_get_hooks() {
 
   foreach ($hooks as $function => &$hook) {
     $hook['callback'] = $hook['function'] = $function;
-    $hook['fid'] = ultimate_cron_get_function_id($function);
+    $hook['background_process'] = array();
   }
 
   // Remove ourselves from the list
@@ -944,46 +947,57 @@ function ultimate_cron_unsafe_hooks() {
 /**
  * Get settings for a function.
  *
- * @param $function
+ * @param $function_name
  * @return array
  *   Settings for function
  */
-function ultimate_cron_get_settings($function) {
-  $fid = ultimate_cron_get_function_id($function);
-  if (!$fid) {
-    return NULL;
+function ultimate_cron_get_settings($function_name) {
+  if (module_exists('ctools')) {
+    ctools_include('export');
+    $function = ctools_export_crud_load('ultimate_cron', $function_name);
   }
-
-  $conf = db_query("SELECT fid, configuration FROM {ultimate_cron_configuration} WHERE fid = :fid", array(':fid' => $fid))->fetchObject();
-  $conf = $conf && $conf->configuration ? unserialize($conf->configuration) : array();
-  if (empty($conf['catch_up'])) {
-    unset($conf['catch_up']);
+  else {
+    $function = db_query("SELECT settings FROM {ultimate_cron} WHERE `function` = :function", array(':function' => $function_name))->fetchObject();
+    if ($function and !empty($function->settings)) {
+      $function->settings = unserialize($function->settings);
+    }
   }
-  return $conf;
+  if (!isset($function->settings)) {
+    $function->settings = array();
+  }
+  $settings = (array)$function->settings;
+  if (empty($settings['catch_up'])) {
+    unset($settings['catch_up']);
+  }
+  return $settings;
 }
 
 /**
  * Set settings for a function.
  *
- * @param $function
+ * @param $function_name
  *   Function to set settings for.
- * @param $conf
+ * @param $settings
  *   Settings data
  * @return boolean
  *   TRUE on success, FALSE on failure.
  */
-function ultimate_cron_set_settings($function, $conf) {
-  $fid = ultimate_cron_get_function_id($function);
-  if (!$fid) {
-    return NULL;
+function ultimate_cron_set_settings($function_name, $settings) {
+  if (module_exists('ctools')) {
+    ctools_include('export');
+    $function = ctools_export_crud_new('ultimate_cron');
+    $function->function = $function_name;
+    $function->settings = $settings;
+    ctools_export_crud_save('ultimate_cron', $function);
   }
-
-  return db_merge('ultimate_cron_configuration')
-    ->key(array('fid' => $fid))
-    ->fields(array(
-      'configuration' => serialize($conf),
-    ))
-    ->execute();
+  else {
+    return db_merge('ultimate_cron')
+      ->key(array('function' => $function_name))
+      ->fields(array(
+        'settings' => serialize($settings),
+      ))
+      ->execute();
+  }
 }
 
 /**
@@ -994,12 +1008,12 @@ function ultimate_cron_set_settings($function, $conf) {
  * @return object
  *   Log line.
  */
-function ultimate_cron_get_log($fid) {
+function ultimate_cron_get_log($function) {
   $log = db_query_range("
     SELECT l.* FROM {ultimate_cron_log} l
-    WHERE l.fid = :fid
+    WHERE l.function = :function
     ORDER BY l.start DESC",
-    0, 1, array(':fid' => $fid))
+    0, 1, array(':function' => $function))
       ->fetchAssoc();
   return $log;
 }
@@ -1110,37 +1124,6 @@ function ultimate_cron_easy_hooks_rule($hook = NULL) {
 }
 
 /**
- * Get function ID based on function name. Will create the function in the
- * ultimate_cron_function table, if it doesn't exist.
- *
- * @param $function
- *   Function name
- * @return integer
- *   Function ID.
- */
-function ultimate_cron_get_function_id($function) {
-  static $ids = array();
-  if (isset($ids[$function])) {
-    return $ids[$function];
-  }
-  $fid = db_query("SELECT fid FROM {ultimate_cron_function} WHERE `function` = :function ", array(':function' => $function))->fetchField();
-  if (!$fid) {
-    try {
-      $fid = db_insert('ultimate_cron_function')
-        ->fields(array(
-          'function' => $function
-        ))
-        ->execute();
-    }
-    catch (Exception $e) {
-      $fid = db_query("SELECT fid FROM {ultimate_cron_function} WHERE `function` = :function ", array(':function' => $function))->fetchField();
-    }
-  }
-  $ids[$function] = $fid;
-  return $fid;
-}
-
-/**
  * Reclaims position as the first module in the module list.
  */
 function ultimate_cron_reclaim() {
@@ -1174,22 +1157,36 @@ function ultimate_cron_module_name($module) {
  *   Array of cronjobs and their data.
  */
 function _ultimate_cron_preload_cron_data() {
-  $result = db_query("
-SELECT f.fid, f.function, c.configuration, p.handle, p.service_host, p.start
-FROM {ultimate_cron_function} f
-LEFT JOIN {ultimate_cron_configuration} c ON f.fid = c.fid
-LEFT JOIN {background_process} p ON p.handle = CONCAT('ultimate_cron:', f.fid)
-");
-
+  $hooks = ultimate_cron_get_hooks();
+  if (module_exists('ctools')) {
+    ctools_include('export');
+    $functions = ctools_export_crud_load_all('ultimate_cron');
+  }
+  else {
+    $functions = db_select('ultimate_cron', 'u')
+                   ->fields('u', array('function', 'settings'))
+                   ->execute()
+                   ->fetchAllAssoc('function', PDO::FETCH_ASSOC);
+    foreach ($functions as &$function) {
+      $function = (object)$function;
+      if (!empty($function->settings)) {
+        $function->settings = unserialize($function->settings);
+      }
+    }
+  }
+  $processes = db_select('background_process', 'b')
+                 ->fields('b', array('handle', 'service_host', 'start'))
+                 ->condition('handle', 'ultimate_cron:%', 'LIKE')
+                 ->execute()
+                 ->fetchAllAssoc('handle', PDO::FETCH_ASSOC);
   $data = array();
-  while ($row = $result->fetchObject()) {
-    $data[$row->function] = array(
-      'settings' => $row->configuration ? unserialize($row->configuration) : array(),
-      'background_process' => empty($row->handle) ? NULL : (object)array(
-        'handle' => $row->handle,
-        'service_host' => $row->service_host,
-        'start' => $row->start,
-      ),
+  foreach ($hooks as $function_name => $hook) {
+    $settings = empty($functions[$function_name]->settings) ? array() : $functions[$function_name]->settings;
+    $settings += $hook['settings'];
+    $handle = 'ultimate_cron:' . $function_name;
+    $data[$function_name] = array(
+      'settings' => $settings,
+      'background_process' => empty($processes[$handle]) ? NULL : (object)$processes[$handle],
     );
   }
   return $data;

@@ -96,12 +96,10 @@ function ultimate_cron_drush_help($section) {
 function drush_ultimate_cron_cron_list($type = 'all') {
   $module = drush_get_option('module');
   $module = $module ? explode(",", $module) : array();
-  $hooks = ultimate_cron_get_hooks();
-  $data = _ultimate_cron_preload_cron_data();
-  $jobs = array();
   // Get hooks and their data
   $hooks = ultimate_cron_get_hooks();
   $data = _ultimate_cron_preload_cron_data();
+  $jobs = array();
 
   $modules = array();
   foreach ($hooks as $function => $hook) {
@@ -116,9 +114,8 @@ function drush_ultimate_cron_cron_list($type = 'all') {
     }
 
     $hook['settings'] = $data[$function]['settings'] + $hook['settings'];
-    $hook['settings'] += _ultimate_cron_default_settings();
     $hook['background_process'] = $data[$function]['background_process'];
-    $hook['log'] = ultimate_cron_get_log($hook['fid']);
+    $hook['log'] = ultimate_cron_get_log($function);
 
     switch ($type) {
       case 'enabled':
@@ -247,7 +244,7 @@ function drush_ultimate_cron_cron_unlock($function) {
     return drush_set_error(dt('"!function" not found', array('!function' => $function)));
   }
 
-  $handle = 'ultimate_cron:' . $hooks[$function]['fid'];
+  $handle = 'ultimate_cron:' . $function;
   if ($process = background_process_get_process($handle)) {
     // Unlock the process
     if (background_process_remove_process($process->handle, $process->start)) {

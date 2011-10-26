@@ -11,14 +11,28 @@
 function ultimate_cron_schema() {
   $schema = array();
 
-  $schema['ultimate_cron_function'] = array(
+  $schema['ultimate_cron'] = array(
     'description' => 'Cron job function list',
+    'export' => array(
+      'key' => 'function',
+      'key name' => 'Function name',
+      'primary key' => 'fid',
+      'identifier' => 'function',
+      'default hook' => 'default_ultimate_cron_function',
+      'api' => array(
+        'owner' => 'ultimate_cron',
+        'api' => 'default_ultimate_cron_functions',
+        'minimum_version' => 1,
+        'current_version' => 1,
+      ),
+    ),
     'fields' => array(
       'fid' => array(
         'description' => 'Function ID',
         'type' => 'serial',
         'size' => 'normal',
         'not null' => TRUE,
+        'no export' => TRUE,
       ),
       'function' => array(
         'description' => 'Function name',
@@ -26,27 +40,15 @@ function ultimate_cron_schema() {
         'length' => 127,
         'not null' => TRUE,
       ),
-    ),
-    'primary key' => array('fid'),
-    'unique key' => array('function'),
-  );
-
-  $schema['ultimate_cron_configuration'] = array(
-    'description' => 'Cron job configuration',
-    'fields' => array(
-      'fid' => array(
-        'description' => 'Function ID',
-        'type' => 'int',
-        'size' => 'normal',
-        'not null' => TRUE,
-      ),
-      'configuration' => array(
-        'description' => 'Configuration',
+      'settings' => array(
+        'description' => 'Settings',
         'type' => 'text',
+        'serialize' => TRUE,
         'not null' => FALSE,
       ),
     ),
     'primary key' => array('fid'),
+    'unique key' => array('function'),
   );
 
   $schema['ultimate_cron_log'] = array(
@@ -58,10 +60,10 @@ function ultimate_cron_schema() {
         'size' => 'normal',
         'not null' => TRUE,
       ),
-      'fid' => array(
-        'description' => 'Function ID',
-        'type' => 'int',
-        'size' => 'normal',
+      'function' => array(
+        'description' => 'Function name',
+        'type' => 'varchar',
+        'length' => 127,
         'not null' => TRUE,
       ),
       'start' => array(
@@ -93,8 +95,8 @@ function ultimate_cron_schema() {
     ),
     'primary key' => array('lid'),
     'indexes' => array(
-       'idx_last' => array('fid', 'start'),
-       'idx_count' => array('fid', 'end'),
+       'idx_last' => array('function', 'start'),
+       'idx_count' => array('function', 'end'),
     ),
   );
 
@@ -136,4 +138,38 @@ function ultimate_cron_update_7001() {
     $polling_latency /= 1000;
     variable_set('ultimate_cron_queue_polling_latency', $polling_latency);
   }
+}
+
+/**
+ * Merge ultimate_cron_function and ultimate_cron_configuration into ultimate_cron
+ */
+function ultimate_cron_update_7002() {
+  $schema = ultimate_cron_schema();
+  db_create_table('ultimate_cron', $schema['ultimate_cron']);
+  db_query("INSERT INTO {ultimate_cron} SELECT f.fid, f.function, c.configuration AS settings FROM ultimate_cron_function f LEFT JOIN ultimate_cron_configuration c ON f.fid = c.fid");
+  db_drop_table('ultimate_cron_function');
+  db_drop_table('ultimate_cron_configuration');
+}
+
+/**
+ * Switch from fid to function name in ultimate_cron_log, background_process, and progress
+ */
+function ultimate_cron_update_7003() {
+  db_add_field('ultimate_cron_log', 'function', array(
+        'description' => 'Function name',
+        'type' => 'varchar',
+        'length' => 127,
+        'not null' => TRUE,
+        'initial' => 'function',
+      ));
+  $fids = db_select('ultimate_cron_log', 'u')->fields('u', array('fid'))->distinct()->execute();
+  while ($fid = $fids->fetchObject()) {
+    $function = db_select('ultimate_cron', 'u')->fields('u', array('function'))->condition('fid', $fid->fid, '=')->execute()->fetchObject();
+    db_update('ultimate_cron_log')->fields(array('function' => $function->function))->condition('fid', $fid->fid, '=')->execute();
+  }
+  db_drop_field('ultimate_cron_log', 'fid');
+  db_drop_index('ultimate_cron_log', 'idx_last');
+  db_drop_index('ultimate_cron_log', 'idx_count');
+  db_add_index('ultimate_cron_log', 'idx_last', array('function', 'start'));
+  db_add_index('ultimate_cron_log', 'idx_count', array('function', 'end'));
 }
