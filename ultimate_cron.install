@@ -152,7 +152,7 @@ function ultimate_cron_update_7002() {
 }
 
 /**
- * Switch from fid to function name in ultimate_cron_log, background_process, and progress
+ * Switch from fid to function name in ultimate_cron_log
  */
 function ultimate_cron_update_7003() {
   db_add_field('ultimate_cron_log', 'function', array(
