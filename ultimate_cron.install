@@ -146,7 +146,7 @@ function ultimate_cron_update_7001() {
 function ultimate_cron_update_7002() {
   $schema = ultimate_cron_schema();
   db_create_table('ultimate_cron', $schema['ultimate_cron']);
-  db_query("INSERT INTO {ultimate_cron} SELECT f.fid, f.function, c.configuration AS settings FROM ultimate_cron_function f LEFT JOIN ultimate_cron_configuration c ON f.fid = c.fid");
+  db_query("INSERT INTO {ultimate_cron} SELECT f.fid, f.function, c.configuration AS settings FROM ultimate_cron_function f LEFT JOIN {ultimate_cron_configuration} c ON f.fid = c.fid");
   db_drop_table('ultimate_cron_function');
   db_drop_table('ultimate_cron_configuration');
 }
