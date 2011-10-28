@@ -114,8 +114,13 @@ function ultimate_cron_reclaim_submit($form, &$form_state) {
  * Function settings form.
  */
 function ultimate_cron_function_settings_form($form, &$form_state, $function) {
-  // Load settings
   $hooks = ultimate_cron_get_hooks();
+  if (!isset($hooks[(string)$function])) {
+    drupal_not_found();
+    exit;
+  }
+
+  // Load settings
   $hook = $hooks[$function];
   $conf = ultimate_cron_get_settings($function);
   $conf += _ultimate_cron_default_settings();
@@ -368,6 +373,12 @@ function ultimate_cron_view_page($module = NULL) {
  * Function log page.
  */
 function ultimate_cron_function_log_page($function) {
+  $hooks = ultimate_cron_get_hooks();
+  if (!isset($hooks[(string)$function])) {
+    drupal_not_found();
+    exit;
+  }
+
   drupal_add_css(drupal_get_path('module', 'ultimate_cron') . '/css/ultimate_cron.admin.css');
 
   $header = array(
@@ -428,9 +439,9 @@ function ultimate_cron_function_log_page($function) {
  */
 function ultimate_cron_service_start($function) {
   $hooks = ultimate_cron_get_hooks();
-
-  if (!isset($hooks[$function])) {
-    return drupal_not_found();
+  if (!isset($hooks[(string)$function])) {
+    drupal_not_found();
+    exit;
   }
 
   if ($modules = _ultimate_cron_incompatible_modules()) {

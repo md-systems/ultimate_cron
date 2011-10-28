@@ -114,8 +114,7 @@ function ultimate_cron_menu() {
     'title' => 'Settings',
     'page callback' => 'drupal_get_form',
     'page arguments' => array('ultimate_cron_function_settings_form', 5),
-    'access callback' => 'ultimate_cron_function_settings_form_access',
-    'access arguments' => array(5),
+    'access arguments' => array('administer ultimate cron'),
     'weight' => 0,
     'file' => 'ultimate_cron.admin.inc',
   );
@@ -131,8 +130,7 @@ function ultimate_cron_menu() {
     'description' => 'View log for specific function.',
     'page callback' => 'ultimate_cron_function_log_page',
     'page arguments' => array(3),
-    'access callback' => 'ultimate_cron_function_settings_form_access',
-    'access arguments' => array(3),
+    'access arguments' => array('administer ultimate cron'),
     'file' => 'ultimate_cron.admin.inc',
   );
   $items['admin/ultimate-cron/service/start/%'] = array(
@@ -645,27 +643,6 @@ function ultimate_cron_cleanup_log() {
       db_query("DELETE FROM {ultimate_cron_log} WHERE lid IN (:lids)", array(':lids' => $lids));
     }
   } while (!empty($lids));
-}
-
-/**
- * Access handler for function settings.
- *
- * @param $function
- *   Function name.
- * @return boolean
- *   Access granted/denied.
- */
-function ultimate_cron_function_settings_form_access($function) {
-  if (!$function || !is_string($function)) {
-    return FALSE;
-  }
-
-  $hooks = ultimate_cron_get_hooks();
-  if (!isset($hooks[$function])) {
-    return FALSE;
-  }
-
-  return user_access('administer ultimate cron');
 }
 
 /**
