@@ -116,6 +116,36 @@ function ultimate_cron_enable() {
 }
 
 /**
+ * Implements hook_requirements().
+ */
+function ultimate_cron_requirements($phase) {
+  $response = array();
+  switch ($phase) {
+    case 'install':
+      return $response;
+    case 'runtime':
+      $response['title'] = 'Ultimate Cron';
+      $response['value'] = 'OK';
+      $response['severity'] = REQUIREMENT_OK;
+      if ($modules = _ultimate_cron_incompatible_modules()) {
+        $response['severity'] = REQUIREMENT_ERROR;
+        $response['value'] = t('Ultimate Cron is DISABLED!');
+        $response['description'] = t('%modules is installed on the system, but is incompatible with Ultimate Cron.<br/>Please disable the modules %modules.<br/>You might want to !url settings first.', array('%modules' => join(', ', $modules), '!url' => l(t('import'), 'admin/settings/cron/import')));
+      }
+      elseif ($functions = ultimate_cron_unsafe_hooks()) {
+        $response['severity'] = REQUIREMENT_WARNING;
+        $response['value'] = t('Running in degraded mode');
+        $response['description'] = t('Ultimate Cron is not the first module. Please reclaim position through !settings to enable Ultimate Cron handling for all functions.', array('!settings' => l(t('settings'), 'admin/config/system/cron/settings')));
+        $response['description'] .= '<br/>';
+        $response['description'] .= t('Functions not handled by Ultimate Cron due to module weight, when cron is invoked through system crontab:<br/>%functions', array('%functions' => join(', ', array_keys($functions))));
+      }
+      $result = array();
+      $result['ultimate_cron'] = $response;
+      return $result;
+  }
+}
+
+/**
  * Move messages to log table.
  */
 function ultimate_cron_update_7000() {
