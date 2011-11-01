@@ -6,7 +6,7 @@
  */
 
 /**
- * Implementation of hook_drush_command().
+ * Implements hook_drush_command().
  */
 function ultimate_cron_drush_command() {
   $items = array();
@@ -73,7 +73,7 @@ function ultimate_cron_drush_command() {
 }
 
 /**
- * Implementation of hook_drush_help().
+ * Implements hook_drush_help().
  */
 function ultimate_cron_drush_help($section) {
   switch ($section) {

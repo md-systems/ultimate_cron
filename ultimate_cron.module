@@ -82,22 +82,22 @@ define('ULTIMATE_CRON_LAUNCH_WINDOW', 55);
 // ---------- HOOKS ----------
 
 /**
- * Implementation of hook_help().
+ * Implements hook_help().
  */
 function ultimate_cron_help($path, $arg) {
   switch ($path) {
     case 'admin/help#ultimate_cron':
       // Return a line-break version of the module README
-      return '<pre>'. file_get_contents( dirname(__FILE__) .'/README.txt') .'</pre>';
+      return '<pre>' . file_get_contents(dirname(__FILE__) . '/README.txt') . '</pre>';
     case 'admin/build/cron':
-      return '<p>'. t('Here you can see the crontab settings for each job available') .'</p>';
+      return '<p>' . t('Here you can see the crontab settings for each job available') . '</p>';
     case 'admin/build/cron/settings':
-      return '<p>'. t('Here you can change the crontab settings for each job available') .'</p>';
+      return '<p>' . t('Here you can change the crontab settings for each job available') . '</p>';
   }
 }
 
 /**
- * Implementation of hook_menu().
+ * Implements hook_menu().
  */
 function ultimate_cron_menu() {
   $items = array();
@@ -164,7 +164,7 @@ function ultimate_cron_menu() {
 }
 
 /**
- * Implementation of hook_permission().
+ * Implements hook_permission().
  */
 function ultimate_cron_permission() {
   return array(
@@ -176,7 +176,7 @@ function ultimate_cron_permission() {
 }
 
 /**
- * Implementation of hook_cron().
+ * Implements hook_cron().
  *
  * The cron handler takes over the normal Drupal cron handler
  * and runs the normal hook_cron() plus the hook_cronapi().
@@ -284,8 +284,6 @@ function ultimate_cron_cron($return = FALSE) {
   db_merge('variable')->key(array('name' => $name))->fields(array('value' => serialize($value)))->execute();
   $conf[$name] = $value;
 
-  
-
   drupal_set_message(t('%jobs jobs launched', array('%jobs' => $launched)));
   if (count($schedule)) {
     drupal_set_message(t('%jobs jobs failed to launch within %seconds seconds', array(
@@ -376,7 +374,7 @@ function ultimate_cron_cronapi($op, $job = NULL, $hook = NULL) {
 }
 
 /**
- * Implementation of hook_requirements().
+ * Implements hook_requirements().
  */
 function ultimate_cron_requirements($phase) {
   $response = array();
@@ -413,7 +411,7 @@ function ultimate_cron_theme_registry_alter(&$theme_registry) {
 }
 
 /**
- * Implementation of hook_watchdog().
+ * Implements hook_watchdog().
  */
 function ultimate_cron_watchdog($log = array()) {
   $record = &drupal_static('ultimate_cron_record', FALSE);
@@ -540,7 +538,7 @@ function ultimate_cron_background_process_shutdown($process, $shutdown_msg = NUL
 // ---------- FIXUPS FOR CORE  ----------
 
 /**
- * Implementation of hook_menu_alter().
+ * Implements hook_menu_alter().
  *
  * Steal the run-cron, so when you "run cron manually" from the status-reports
  * page the ultimate_cron cron handler is run.
@@ -830,7 +828,7 @@ function ultimate_cron_get_hooks() {
   // Generate list of hooks
   $modules = module_list();
   foreach ($modules as $module) {
-    $file = drupal_get_path('module', $module) .'/'. $module .'.info';
+    $file = drupal_get_path('module', $module) . '/' . $module . '.info';
     $info = drupal_parse_info_file($file);
     foreach (ultimate_cron_easy_hooks() as $hook => $description) {
       if (module_hook($module, $hook)) {
@@ -1122,7 +1120,7 @@ function ultimate_cron_reclaim() {
  *   Name of module
  */
 function ultimate_cron_module_name($module) {
-  $file = drupal_get_path('module', $module) .'/'. $module .'.info';
+  $file = drupal_get_path('module', $module) . '/' . $module . '.info';
   $info = drupal_parse_info_file($file);
   return $info['name'] ? $info['name'] : $module;
 }
@@ -1141,9 +1139,9 @@ function _ultimate_cron_preload_cron_data() {
   }
   else {
     $functions = db_select('ultimate_cron', 'u')
-                   ->fields('u', array('function', 'settings'))
-                   ->execute()
-                   ->fetchAllAssoc('function', PDO::FETCH_ASSOC);
+      ->fields('u', array('function', 'settings'))
+      ->execute()
+      ->fetchAllAssoc('function', PDO::FETCH_ASSOC);
     foreach ($functions as &$function) {
       $function = (object)$function;
       if (!empty($function->settings)) {
@@ -1152,10 +1150,10 @@ function _ultimate_cron_preload_cron_data() {
     }
   }
   $processes = db_select('background_process', 'b')
-                 ->fields('b', array('handle', 'service_host', 'start'))
-                 ->condition('handle', 'ultimate_cron:%', 'LIKE')
-                 ->execute()
-                 ->fetchAllAssoc('handle', PDO::FETCH_ASSOC);
+    ->fields('b', array('handle', 'service_host', 'start'))
+    ->condition('handle', 'ultimate_cron:%', 'LIKE')
+    ->execute()
+    ->fetchAllAssoc('handle', PDO::FETCH_ASSOC);
   $data = array();
   foreach ($hooks as $function_name => $hook) {
     $settings = empty($functions[$function_name]->settings) ? array() : $functions[$function_name]->settings;

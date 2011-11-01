@@ -6,7 +6,7 @@
  */
 
 /**
- * Implementation of hook_schema().
+ * Implements hook_schema().
  */
 function ultimate_cron_schema() {
   $schema = array();
@@ -104,12 +104,12 @@ function ultimate_cron_schema() {
 }
 
 /**
- * Implementation of hook_enable().
+ * Implements hook_enable().
  */
 function ultimate_cron_enable() {
   // Disable built-in poor mans cron
   variable_set('cron_safe_threshold', 0);
-  
+
   // Max modules weight
   module_load_include('module', 'ultimate_cron');
   ultimate_cron_reclaim();

@@ -31,7 +31,7 @@ function ultimate_cron_settings_form() {
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_simultaneous_connections', ULTIMATE_CRON_SIMULTANEOUS_CONNECTIONS),
     '#description' => theme('advanced_help_topic', array(
-                              'module' => 'ultimate_cron', 
+                              'module' => 'ultimate_cron',
                               'topic' => 'simultaneous_connections',
                               'type' => 'icon')
                       ) . t('Maximum number of simultaneous connections'),
@@ -41,7 +41,7 @@ function ultimate_cron_settings_form() {
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_rule', ULTIMATE_CRON_RULE),
     '#description' => theme('advanced_help_topic', array(
-                              'module' => 'ultimate_cron', 
+                              'module' => 'ultimate_cron',
                               'topic' => 'rules',
                               'type' => 'icon')
                       ) . t('Enter the default fallback rule'),
@@ -51,7 +51,7 @@ function ultimate_cron_settings_form() {
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_cleanup_log', ULTIMATE_CRON_CLEANUP_LOG),
     '#description' => theme('advanced_help_topic', array(
-                              'module' => 'ultimate_cron', 
+                              'module' => 'ultimate_cron',
                               'topic' => 'cleanup_log',
                               'type' => 'icon')
                       ) . t('Enter maximum age, in seconds, for log entries'),
@@ -61,7 +61,7 @@ function ultimate_cron_settings_form() {
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP),
     '#description' => theme('advanced_help_topic', array(
-                              'module' => 'ultimate_cron', 
+                              'module' => 'ultimate_cron',
                               'topic' => 'catch_up',
                               'type' => 'icon')
                       ) . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) . ')'),
@@ -71,7 +71,7 @@ function ultimate_cron_settings_form() {
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_queue_polling_latency', ULTIMATE_CRON_QUEUE_POLLING_LATENCY),
     '#description' => theme('advanced_help_topic', array(
-                              'module' => 'ultimate_cron', 
+                              'module' => 'ultimate_cron',
                               'topic' => 'polling_latency',
                               'type' => 'icon')
                       ) . t('Queue polling latency in miliseconds. Leave blank to disable continuous processing of queues.'),
@@ -81,7 +81,7 @@ function ultimate_cron_settings_form() {
     '#type' => 'checkbox',
     '#default_value' => variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN),
     '#description' => theme('advanced_help_topic', array(
-                              'module' => 'ultimate_cron', 
+                              'module' => 'ultimate_cron',
                               'topic' => 'poorman',
                               'type' => 'icon')
                       ) . t('Keep background process alive, checking for cron every minute.'),
@@ -152,7 +152,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
     '#type' => 'textfield',
     '#default_value' => implode(';', $conf['rules']),
     '#description' => theme('advanced_help_topic', array(
-                              'module' => 'ultimate_cron', 
+                              'module' => 'ultimate_cron',
                               'topic' => 'rules',
                               'type' => 'icon')
                       ) . t('Semi-colon separated list of rules for this job. (blank = ' . implode(';', $hook['settings']['rules']) . ')'),
@@ -162,7 +162,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
     '#type' => 'textfield',
     '#default_value' => $conf['catch_up'],
     '#description' => theme('advanced_help_topic', array(
-                              'module' => 'ultimate_cron', 
+                              'module' => 'ultimate_cron',
                               'topic' => 'catch_up',
                               'type' => 'icon')
                       ) . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) . ')'),
@@ -177,7 +177,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
     '#type' => 'select',
     '#title' => t('Service group'),
     '#description' => theme('advanced_help_topic', array(
-                              'module' => 'ultimate_cron', 
+                              'module' => 'ultimate_cron',
                               'topic' => 'service_group',
                               'type' => 'icon')
                       ) . t('Service group to use for this job. See Background Process !url for managing service groups.', array('!url' => l(t('settings'), 'admin/config/system/background-process'))),
@@ -354,8 +354,8 @@ function ultimate_cron_view_page($module = NULL) {
     }
   }
   $output .= theme('table', array(
-    'header' => $headers, 
-    'rows' => $rows, 
+    'header' => $headers,
+    'rows' => $rows,
     'attributes' => array('id' => 'ultimate-cron-view')
   ));
 
@@ -393,12 +393,12 @@ function ultimate_cron_function_log_page($function) {
 
   $query = db_select('ultimate_cron_log', 'l');
   $query = $query->condition('l.function', $function)
-             ->extend('PagerDefault')
-               ->limit(10)
-             ->extend('TableSort')
-               ->orderByHeader($header)
-             ->fields('l', array('lid', 'function', 'start', 'end', 'status', 'msg'))
-             ->orderBy('l.start', 'DESC');
+    ->extend('PagerDefault')
+    ->limit(10)
+    ->extend('TableSort')
+    ->orderByHeader($header)
+    ->fields('l', array('lid', 'function', 'start', 'end', 'status', 'msg'))
+    ->orderBy('l.start', 'DESC');
   $logs = $query->execute()->fetchAll();
 
   $output = '';
@@ -421,8 +421,8 @@ function ultimate_cron_function_log_page($function) {
   }
 
   $output .= theme('table', array(
-    'header' => $header, 
-    'rows' => $rows, 
+    'header' => $header,
+    'rows' => $rows,
     'attributes' => array('id' => 'ultimate-cron-view')
   ));
   $output .= theme('pager');
