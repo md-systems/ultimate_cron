@@ -285,7 +285,12 @@ function ultimate_cron_view_page($module = NULL) {
       $msg = !empty($log['msg']) ? $log['msg'] : ($log['status'] ? t('No errors') : t('No information'));
       if ($process) {
         $overview['running']++;
-        $log['start'] = $process->start;
+        if ($process->status == BACKGROUND_PROCESS_STATUS_RUNNING) {
+          $log['start'] = $process->start;
+        }
+        else {
+          $log['start'] = NULL;
+        }
         $log['end'] = microtime(TRUE);
       }
 

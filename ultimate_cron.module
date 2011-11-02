@@ -1120,7 +1120,7 @@ function _ultimate_cron_preload_cron_data() {
     }
   }
   $processes = db_select('background_process', 'b')
-    ->fields('b', array('handle', 'service_host', 'start'))
+    ->fields('b', array('handle', 'service_host', 'start', 'status'))
     ->condition('handle', 'ultimate_cron:%', 'LIKE')
     ->execute()
     ->fetchAllAssoc('handle', PDO::FETCH_ASSOC);
