@@ -233,6 +233,7 @@ function ultimate_cron_function_settings_form_submit($form, &$form_state) {
 function ultimate_cron_view_page($module = NULL) {
   drupal_add_css(drupal_get_path('module', 'ultimate_cron') . '/css/ultimate_cron.admin.css');
 
+  module_load_install('ultimate_cron');
   $requirements = ultimate_cron_requirements('runtime');
   if ($requirements['ultimate_cron']['severity'] != REQUIREMENT_OK) {
     drupal_set_message($requirements['ultimate_cron']['value'], 'error');
