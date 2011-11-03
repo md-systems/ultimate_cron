@@ -401,12 +401,14 @@ function ultimate_cron_init() {
   }
   global $conf;
   $conf['cron_last'] = $value;
+
+  ultimate_cron_trigger_poorman();
 }
 
 /**
- * Implements hook_exit().
+ * Launch poorman cron if it's time to do so.
  */
-function ultimate_cron_exit($destination = NULL) {
+function ultimate_cron_trigger_poorman() {
   // Launch poormans cron if applicable
   if (variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN) && !_ultimate_cron_incompatible_modules()) {
     $last = variable_get('cron_last', 0);
