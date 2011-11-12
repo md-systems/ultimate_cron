@@ -244,7 +244,7 @@ function drush_ultimate_cron_cron_unlock($function) {
     return drush_set_error(dt('"!function" not found', array('!function' => $function)));
   }
 
-  $handle = 'ultimate_cron:' . $function;
+  $handle = 'uc:' . $function;
   if ($process = background_process_get_process($handle)) {
     // Unlock the process
     if (background_process_remove_process($process->handle, $process->start)) {

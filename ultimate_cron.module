@@ -218,7 +218,7 @@ function ultimate_cron_cron($return = FALSE) {
   while (!empty($schedule) && time() < $expire) {
     $running_processes = db_select('background_process', 'bp')
                           ->fields('bp', array('handle'))
-                          ->condition('bp.handle', 'ultimate_cron:%', 'LIKE')
+                          ->condition('bp.handle', 'uc:%', 'LIKE')
                           ->countQuery()
                           ->execute()
                           ->fetchField();
@@ -240,7 +240,7 @@ function ultimate_cron_cron($return = FALSE) {
 
       // Handle errors.
       if ($result) {
-        $handle = 'ultimate_cron:' . $function;
+        $handle = 'uc:' . $function;
         $running[$handle] = $result;
         unset($schedule[$function]);
         $launched++;
@@ -451,7 +451,7 @@ function ultimate_cron_launch_poorman() {
  */
 function ultimate_cron_background_process_shutdown($process, $shutdown_msg = NULL) {
   $args = func_get_args();
-  $function = str_replace('ultimate_cron:', '', $process->handle);
+  $function = str_replace('uc:', '', $process->handle);
   if (!empty($function)) {
     static $has_run = array();
     if (!empty($has_run[$function])) {
@@ -627,7 +627,7 @@ function ultimate_cron_cleanup_log() {
 function ultimate_cron_run_hook($function, $hook) {
   // Run the job in background
   $result = NULL;
-  $handle = "ultimate_cron:" . $function;
+  $handle = "uc:" . $function;
   $process = new BackgroundProcess($handle);
 
   // Always run cron job as anonymous user
@@ -1123,14 +1123,14 @@ function _ultimate_cron_preload_cron_data() {
   }
   $processes = db_select('background_process', 'b')
     ->fields('b', array('handle', 'service_host', 'start', 'status'))
-    ->condition('handle', 'ultimate_cron:%', 'LIKE')
+    ->condition('handle', 'uc:%', 'LIKE')
     ->execute()
     ->fetchAllAssoc('handle', PDO::FETCH_ASSOC);
   $data = array();
   foreach ($hooks as $function_name => $hook) {
     $settings = empty($functions[$function_name]->settings) ? array() : $functions[$function_name]->settings;
     $settings += $hook['settings'];
-    $handle = 'ultimate_cron:' . $function_name;
+    $handle = 'uc:' . $function_name;
     $data[$function_name] = array(
       'settings' => $settings,
       'background_process' => empty($processes[$handle]) ? NULL : (object)$processes[$handle],
