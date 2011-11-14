@@ -1,10 +1,13 @@
 <p>The hook_cron_alter(&$hooks) allows you to change the cron hooks defined by hook_cron() and hook_cronapi().</p>
 
 <h3>Example</h3>
-<p>Change default rules for the Node modules cron hook:</p>
+<p>Change default rules for the Node modules cron hook and hi-jack system cron:</p>
 <pre>
 function hook_cron_alter(&$hooks) {
   $hooks['node_cron']['settings']['rules'] = array('0 * * * *');
+  $hooks['system_cron']['module'] = 'mymodule';
+  $hooks['system_cron']['callback'] = 'mymodule_new_system_cron';
+  $hooks['system_cron']['file'] = drupal_get_path('module', 'mymodule') . '/mymodule.cron.inc';
 }
 </pre>
 
@@ -28,7 +31,6 @@ function hook_cron_alter(&$hooks) {
 
     [function] => node_cron
     [callback] => node_cron
-    [fid] => 6
 )
 </pre>
 
@@ -42,5 +44,5 @@ function hook_cron_alter(&$hooks) {
   <tr><td>settings</td><td>Array with settings data, contains enabled, rules and catch_up by default, provided by Ultimate Cron</td></tr>
   <tr><td>function</td><td>Name of function for the cron hook. Note: This is unsafe to change</td></tr>
   <tr><td>callback</td><td>Name of callback to use when executing cron. This is set to the cron hooks function by default</td></tr>
-  <tr><td>fid</td><td>Function ID in the Ultimate Cron ultimate_cron_function table. Note: This is unsafe to chage</td></tr>
+  <tr><td>file</td><td>Path to file (including filename) where callback is defined.</td></tr>
 </table>

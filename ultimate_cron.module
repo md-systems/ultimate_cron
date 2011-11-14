@@ -686,6 +686,10 @@ function _ultimate_cron_run_hook($function, $hook) {
   module_invoke_all('cron_pre_execute', $function, $hook);
   module_invoke_all('cron_pre_execute_' . $function, $hook);
 
+  if (!empty($hook['file'])) {
+    include_once $hook['file'];
+  }
+
   $callback = $hook['callback'];
   if (is_callable($callback)) {
     call_user_func($callback);
