@@ -194,6 +194,11 @@ function ultimate_cron_cron($return = FALSE) {
     return;
   }
 
+  // If run from core cron through CLI then don't do anything (drush core-cron)
+  if (!$return && drupal_is_cli()) {
+    return;
+  }
+
   $msc = variable_get('ultimate_cron_simultaneous_connections', ULTIMATE_CRON_SIMULTANEOUS_CONNECTIONS);
 
   // Get list of cron hooks.
