@@ -574,6 +574,31 @@ function ultimate_cron_cron_alter(&$hooks) {
 // ---------- HELPER FUNCTIONS ----------
 
 /**
+ * Set current hook being processed
+ *
+ * @param $hook
+ * @return
+ *   Current hook
+ */
+function ultimate_cron_set_current_hook($hook = NULL) {
+  static $current_hook;
+  if ($hook) {
+    $current_hook = $hook;
+  }
+  return $current_hook;
+}
+
+/**
+ * Get current hook being processed
+ *
+ * @return
+ *   Current hook
+ */
+function ultimate_cron_get_current_hook() {
+  return ultimate_cron_set_current_hook();
+}
+
+/**
  * The actual poorman function
  * @return type
  */
@@ -691,6 +716,7 @@ function _ultimate_cron_run_hook($function, $hook) {
   }
 
   $callback = $hook['callback'];
+  ultimate_cron_set_current_hook($hook);
   if (is_callable($callback)) {
     call_user_func($callback);
   }
