@@ -333,13 +333,13 @@ function ultimate_cron_cronapi($op, $job = NULL, $hook = NULL) {
       }
       return $jobs;
     case 'rule':
-      $queue_name = str_replace('cron_queue_', '', $job);
+      $queue_name = preg_replace('/^cron_queue_/', '', $job);
       if ($queue_name === $job) {
         return;
       }
       return '* * * * *';
     case 'execute':
-      $queue_name = str_replace('cron_queue_', '', $job);
+      $queue_name = preg_replace('/^cron_queue_/', '', $job);
       if ($queue_name === $job) {
         return;
       }
@@ -456,8 +456,8 @@ function ultimate_cron_launch_poorman() {
  */
 function ultimate_cron_background_process_shutdown($process, $shutdown_msg = NULL) {
   $args = func_get_args();
-  $function = str_replace('uc:', '', $process->handle);
-  if (!empty($function)) {
+  $function = preg_replace('/^uc:/', '', $process->handle);
+  if (!empty($function) && $function != $process->handle) {
     static $has_run = array();
     if (!empty($has_run[$function])) {
       return;
