@@ -329,17 +329,17 @@ function ultimate_cron_cronapi($op, $job = NULL, $hook = NULL) {
       $jobs['ultimate_cron_cleanup_log'] = t('Cleanup log entries');
 
       foreach ($queues as $queue_name => $info) {
-        $jobs['ultimate_cron_queue_' . $queue_name] = t('Queue: %name', array('%name' => $queue_name));
+        $jobs['cron_queue_' . $queue_name] = t('Queue: %name', array('%name' => $queue_name));
       }
       return $jobs;
     case 'rule':
-      $queue_name = str_replace('ultimate_cron_queue_', '', $job);
+      $queue_name = str_replace('cron_queue_', '', $job);
       if ($queue_name === $job) {
         return;
       }
       return '* * * * *';
     case 'execute':
-      $queue_name = str_replace('ultimate_cron_queue_', '', $job);
+      $queue_name = str_replace('cron_queue_', '', $job);
       if ($queue_name === $job) {
         return;
       }
