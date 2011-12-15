@@ -1166,9 +1166,14 @@ function _ultimate_cron_preload_cron_data() {
     $settings = empty($functions[$function_name]->settings) ? array() : $functions[$function_name]->settings;
     $settings += $hook['settings'];
     $handle = 'uc:' . $function_name;
+    if ($process = empty($processes[$handle]) ? NULL : (object)$processes[$handle]) {
+      if ($process->start > time()) {
+        $process->start /= 1000000;
+      }
+    }
     $data[$function_name] = array(
       'settings' => $settings,
-      'background_process' => empty($processes[$handle]) ? NULL : (object)$processes[$handle],
+      'background_process' => $process,
     );
   }
   return $data;
