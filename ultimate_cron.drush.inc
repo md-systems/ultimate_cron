@@ -30,6 +30,10 @@ function ultimate_cron_drush_command() {
     'arguments' => array(
       'function' => 'Function to run',
     ),
+    'options' => array(
+      'cli' => "Don't spawn a background process through http",
+      'check-rule' => "Check rule to determine if job should run",
+    ),
     'examples' => array(
       'drush cron-run node_cron',
     ),
@@ -177,13 +181,35 @@ function drush_ultimate_cron_cron_list($type = 'all') {
  * Run cron job(s)
  */
 function drush_ultimate_cron_cron_run($function = NULL) {
+  $cli = drush_get_option('cli');
+  $check_rule = drush_get_option('check-rule');
+
   if ($function == 'all') {
-    ultimate_cron_cron(TRUE);
-    $messages = drupal_get_messages();
-    foreach ($messages['status'] as $message) {
-      drush_print(strip_tags($message));
+    if ($cli) {
+      $hooks = ultimate_cron_get_hooks();
+      $schedule = ultimate_cron_get_schedule($hooks);
+      foreach ($schedule as $function => $hook) {
+        drush_print(dt('Launching: !function', array('!function' => $function)));
+        $cmd = $_SERVER['SCRIPT_FILENAME'] . " cron-run $function --cli " . ($check_rule ? '--check-rule' : '');
+        exec("$cmd > /dev/null &");
+      }
+
+      // Update drupals cron timestamp, but don't clear the cache for all variables!
+      $name = 'cron_last';
+      $value = time();
+      global $conf;
+      db_merge('variable')->key(array('name' => $name))->fields(array('value' => serialize($value)))->execute();
+      $conf[$name] = $value;
+      return;
     }
-    return;
+    else {
+      ultimate_cron_cron(TRUE);
+      $messages = drupal_get_messages();
+      foreach ($messages['status'] as $message) {
+        drush_print(strip_tags($message));
+      }
+      return;
+    }
   }
 
   $hooks = ultimate_cron_get_hooks();
@@ -191,16 +217,42 @@ function drush_ultimate_cron_cron_run($function = NULL) {
     return drush_set_error(dt('"!function" not found', array('!function' => $function)));
   }
 
+  $hook = &$hooks[$function];
+
   // When run manually don't double check the rules
-  $hooks[$function]['skip_catch_up'] = TRUE;
+  if (drush_get_option('check-rule')) {
+    $hook['log'] = ultimate_cron_get_log($function);
+    if (!ultimate_cron_hook_should_run($hook)) {
+      drush_print(dt("!function not sceduled to run at this time", array('!function' => $function)));
+      return;
+    }
+  }
+  else {
+    $hook['skip_catch_up'] = TRUE;
+  }
 
-  $handle = ultimate_cron_run_hook($function, $hooks[$function]);
 
-  if ($handle === FALSE) {
+  if ($cli) {
+    $start = microtime(TRUE);
+    $result = ultimate_cron_run_hook_cli($function, $hook);
+  }
+  else {
+    $result = ultimate_cron_run_hook($function, $hook);
+  }
+  
+
+  if ($result === FALSE) {
     return drush_set_error(dt('!function could not start (already running?)', array('!function' => $function)));
   }
-  elseif ($handle === NULL) {
+  elseif ($result === NULL) {
     return drush_set_error(dt('!function could not start (service unavailable)', array('!function' => $function)));
+  }
+  elseif ($cli) {
+    $log = ultimate_cron_get_log($function);
+    if ($log['start'] >= $start) {
+      drush_print($log['msg']);
+    }
+    drush_print(dt('!function finished', array('!function' => $function)));
   }
   else {
     drush_print(dt('!function started', array('!function' => $function)));

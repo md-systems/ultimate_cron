@@ -5,6 +5,7 @@
  * @todo Add filter on overview page.
  * @todo Add log view (with graph).
  * @todo Make proper markup for overview page.
+ * @todo Refactor drush stuff, too many intimate relations with Background Process
  *
  * hook_cron_alter(&$hooks)
  * hook_cron_schedule_alter(&$hooks)
@@ -496,7 +497,7 @@ function ultimate_cron_background_process_shutdown($process, $shutdown_msg = NUL
     // If success, use status messages if any
     $result = empty($msg);
     if ($result && !empty($messages['status'])) {
-      $msg = join("\n", $messages['status']) . "\n";
+      $msg = join("\n", $messages['status']);
     }
 
     // log results here ...
@@ -505,7 +506,7 @@ function ultimate_cron_background_process_shutdown($process, $shutdown_msg = NUL
       'start' => $process->start,
       'end' => $end,
       'status' => $result,
-      'msg' => $msg,
+      'msg' => trim($msg),
     );
     drupal_write_record('ultimate_cron_log', $object);
   }
@@ -671,6 +672,42 @@ function ultimate_cron_run_hook($function, $hook) {
   $result = $process->start('_ultimate_cron_run_hook', array($function, $hook));
 
   return $result ? $process->connection : $result;
+}
+
+function ultimate_cron_run_hook_cli($function, $hook) {
+  // Run the job in background
+  $result = NULL;
+  $handle = "uc:" . $function;
+  $process = new BackgroundProcess($handle);
+
+  // Always run cron job as anonymous user
+  $process->uid = 0;
+
+  $hook['timestamp'] = time();
+  if ($process->lock()) {
+    try {
+      $process->start = db_query("SELECT start FROM {background_process} WHERE handle = :handle", array(':handle' => $handle))->fetchField();
+      db_update('background_process')
+        ->fields(array(
+          'status' => BACKGROUND_PROCESS_STATUS_RUNNING,
+        ))
+        ->condition('handle', $handle)
+        ->execute();
+
+      $old_handle = background_process_current_handle();
+      background_process_current_handle($handle);
+      _ultimate_cron_run_hook($function, $hook);
+      module_invoke_all('background_process_shutdown', $process);
+      background_process_current_handle($old_handle);
+      background_process_remove_process($handle, $process->start);
+      return TRUE;
+    }
+    catch (Exception $e) {
+      module_invoke_all('background_process_shutdown', $process, (string)$e);
+      return NULL;
+    }
+  }
+  return FALSE;
 }
 
 /**
