@@ -249,7 +249,7 @@ function drush_ultimate_cron_cron_run($function = NULL) {
   }
   elseif ($cli) {
     $log = ultimate_cron_get_log($function);
-    if ($log['start'] >= $start) {
+    if ($log['start'] >= $start && !empty($log['msg'])) {
       drush_print($log['msg']);
     }
     drush_print(dt('!function finished', array('!function' => $function)));
