@@ -971,20 +971,20 @@ function ultimate_cron_unsafe_hooks() {
  *   Settings for function
  */
 function ultimate_cron_get_settings($function_name) {
+  $settings = array();
   if (module_exists('ctools')) {
     ctools_include('export');
     $function = ctools_export_crud_load('ultimate_cron', $function_name);
+    if ($function) {
+      $settings = (array) $function->settings;
+    }
   }
   else {
     $function = db_query("SELECT settings FROM {ultimate_cron} WHERE `function` = :function", array(':function' => $function_name))->fetchObject();
-    if ($function and !empty($function->settings)) {
-      $function->settings = unserialize($function->settings);
+    if (!empty($function) && !empty($function->settings)) {
+      $settings = (array) unserialize($function->settings);
     }
   }
-  if (!isset($function->settings)) {
-    $function->settings = array();
-  }
-  $settings = (array)$function->settings;
   if (empty($settings['catch_up'])) {
     unset($settings['catch_up']);
   }
