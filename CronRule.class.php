@@ -141,13 +141,14 @@ class CronRule {
           if (!checkdate($month, $day, $year)) continue;
 
           // Check days and weekdays using and/or logic
+          $date_array = getdate(mktime(0, 0, 0, $month, $day, $year));
           if ($check_both) {
-            if (!isset($intervals['weekdays'][jddayofweek(gregoriantojd($month, $day, $year), 0)])) continue;
+            if (!isset($intervals['weekdays'][$date_array['wday']])) continue;
           }
           else {
             if (
               !in_array($day, $intervals['days']) &&
-              !isset($intervals['weekdays'][jddayofweek(gregoriantojd($month, $day, $year), 0)])
+              !isset($intervals['weekdays'][$date_array['wday']])
             ) continue;
           }
 
