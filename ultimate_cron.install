@@ -132,13 +132,6 @@ function ultimate_cron_requirements($phase) {
         $response['value'] = t('Ultimate Cron is DISABLED!');
         $response['description'] = t('%modules is installed on the system, but is incompatible with Ultimate Cron.<br/>Please disable the modules %modules.<br/>You might want to !url settings first.', array('%modules' => join(', ', $modules), '!url' => l(t('import'), 'admin/settings/cron/import')));
       }
-      elseif ($functions = ultimate_cron_unsafe_hooks()) {
-        $response['severity'] = REQUIREMENT_WARNING;
-        $response['value'] = t('Running in degraded mode');
-        $response['description'] = t('Ultimate Cron is not the first module. Please reclaim position through !settings to enable Ultimate Cron handling for all functions.', array('!settings' => l(t('settings'), 'admin/config/system/cron/settings')));
-        $response['description'] .= '<br/>';
-        $response['description'] .= t('Functions not handled by Ultimate Cron due to module weight, when cron is invoked through system crontab:<br/>%functions', array('%functions' => join(', ', array_keys($functions))));
-      }
       $result = array();
       $result['ultimate_cron'] = $response;
       return $result;

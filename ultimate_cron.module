@@ -165,6 +165,22 @@ function ultimate_cron_menu() {
 }
 
 /**
+ * Implements hook_cron_queue_info().
+ * Used for code injection in order to hijack cron runs.
+ */
+function ultimate_cron_cron_queue_info() {
+  static $processed = FALSE;
+  if (!$processed) {
+    $processed = TRUE;
+    if (basename($_SERVER['PHP_SELF']) == 'cron.php') {
+      ultimate_cron_cron_run(FALSE);
+      exit;
+    }
+  }
+  return array();
+}
+
+/**
  * Implements hook_permission().
  */
 function ultimate_cron_permission() {
@@ -177,15 +193,13 @@ function ultimate_cron_permission() {
 }
 
 /**
- * Implements hook_cron().
- *
  * The cron handler takes over the normal Drupal cron handler
  * and runs the normal hook_cron() plus the hook_cronapi().
  *
  * @param boolean $return
  *   return to caller if TRUE, otherwise exit().
  */
-function ultimate_cron_cron($return = FALSE) {
+function ultimate_cron_cron_run($return = FALSE) {
   if (variable_get('install_task', FALSE) != 'done') {
     return;
   }
@@ -200,16 +214,19 @@ function ultimate_cron_cron($return = FALSE) {
     return;
   }
 
+  // Acquire lock
+  if (!lock_acquire('cron', 240.0)) {
+    drupal_set_message(t('Ultimate Cron launcher already running'), 'error');
+    return;
+  }
+
   $msc = variable_get('ultimate_cron_simultaneous_connections', ULTIMATE_CRON_SIMULTANEOUS_CONNECTIONS);
 
   // Get list of cron hooks.
   $hooks = ultimate_cron_get_hooks();
 
-  // If this is run manually and a lock can be acquired, then run unsafe hooks.
-  $schedule_unsafe = $return && lock_acquire('cron', 240.0);
-
   // Get schedule.
-  $schedule = ultimate_cron_get_schedule($hooks, $schedule_unsafe);
+  $schedule = ultimate_cron_get_schedule($hooks);
 
   drupal_set_message(t('%jobs jobs scheduled for launch', array('%jobs' => count($schedule))));
 
@@ -302,14 +319,14 @@ function ultimate_cron_cron($return = FALSE) {
     ), WATCHDOG_WARNING);
   }
 
+  // Release the lock
+  lock_release('cron');
+
   // And we're done ...
   if ($return) {
     return empty($schedule);
   }
   else {
-    // Release the lock
-    lock_release('cron');
-
     exit;
   }
 }
@@ -621,7 +638,7 @@ function _ultimate_cron_poorman() {
   $time = floor($time / 60) * 60;
 
   // Run the cron
-  ultimate_cron_cron(TRUE);
+  ultimate_cron_cron_run(TRUE);
 
   // Wait until end of "current" minute
   $wait = $time + 60 - time();
@@ -783,16 +800,11 @@ function _ultimate_cron_run_hook($function, $hook) {
  * @return array
  *   Functions to run now.
  */
-function ultimate_cron_get_schedule($hooks, $schedule_unsafe = FALSE) {
+function ultimate_cron_get_schedule($hooks) {
   // Create list of scheduled functions
   $schedule = array();
   foreach ($hooks as $function => &$hook) {
     ultimate_cron_load_hook_data($hook);
-
-    // Is it safe?
-    if (!$schedule_unsafe && $hook['unsafe']) {
-      continue;
-    }
 
     // Store last run in hook for sorting purposes
     $last_run = isset($hook['log']['start']) ? $hook['log']['start'] : 0;
@@ -877,7 +889,6 @@ function ultimate_cron_get_hooks() {
     foreach (ultimate_cron_easy_hooks() as $hook => $description) {
       if (module_hook($module, $hook)) {
         $function = $module . '_' . $hook;
-        $hooks[$function]['unsafe'] = (isset($uncronable_modules[$module]) && $hook === 'cron') ? TRUE : FALSE;
         $hooks[$function]['description'] = $description;
         $hooks[$function]['module'] = $module;
         $hooks[$function]['configure'] = isset($info['configure']) ? $info['configure'] : '';
@@ -886,7 +897,6 @@ function ultimate_cron_get_hooks() {
     }
     if ($cronapi = module_invoke($module, 'cronapi', 'list')) {
       foreach ($cronapi as $function => $description) {
-        $hooks[$function]['unsafe'] = isset($hooks[$function]['unsafe']) ? $hooks[$function]['unsafe'] : FALSE;
         $hooks[$function]['description'] = $description;
         $hooks[$function]['module'] = $module;
         $hooks[$function]['settings'] = ultimate_cron_get_default_settings($module, $function, ultimate_cron_easy_hooks_rule('cron'));
@@ -947,20 +957,6 @@ function ultimate_cron_uncronable_modules() {
     }
   }
   return $modules;
-}
-
-/**
- * Get hooks that are unsafe due to module weight.
- * @return type
- */
-function ultimate_cron_unsafe_hooks() {
-  $hooks = ultimate_cron_get_hooks();
-  foreach ($hooks as $function => $hook) {
-    if (empty($hook['unsafe'])) {
-      unset($hooks[$function]);
-    }
-  }
-  return $hooks;
 }
 
 /**
@@ -1140,21 +1136,6 @@ function ultimate_cron_easy_hooks_rule($hook = NULL) {
     'yearly'  => ULTIMATE_CRON_YEARLY_RULE,
   );
   return isset($rules[$hook]) ? $rules[$hook] : variable_get('ultimate_cron_rule', ULTIMATE_CRON_RULE);
-}
-
-/**
- * Reclaims position as the first module in the module list.
- */
-function ultimate_cron_reclaim() {
-  $weight = db_query("SELECT MIN(weight) FROM {system}")->fetchField();
-  $weight --;
-  db_update('system')
-    ->fields(array(
-      'weight' => $weight
-    ))
-    ->condition('name', 'ultimate_cron')
-    ->execute();
-  system_list_reset();
 }
 
 /**

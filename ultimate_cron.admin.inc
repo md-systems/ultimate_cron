@@ -8,7 +8,7 @@
  */
 function ultimate_cron_run_cron() {
   // Run the cron and return
-  ultimate_cron_cron(TRUE);
+  ultimate_cron_cron_run(TRUE);
   drupal_goto('admin/reports/status');
 }
 
@@ -88,26 +88,7 @@ function ultimate_cron_settings_form() {
   );
 
   $form = system_settings_form($form);
-
-  // Add reclaim button and make sure all the buttons are show last.
-  $form['buttons']['#weight'] = 1000;
-  $form['buttons']['reclaim'] = array(
-    '#value' => t("Reclaim position"),
-    '#description' => t('Changes weight of module to the lowest possible.'),
-    '#type' => 'submit',
-    '#submit' => array('ultimate_cron_reclaim_submit'),
-    '#disabled' => !ultimate_cron_uncronable_modules(),
-  );
-
   return $form;
-}
-
-/**
- * Submit handler for reclaiming lowest module weight.
- */
-function ultimate_cron_reclaim_submit($form, &$form_state) {
-  ultimate_cron_reclaim();
-  drupal_set_message(t('Module position reclaimed.'));
 }
 
 /**
@@ -353,8 +334,8 @@ function ultimate_cron_view_page($module = NULL) {
       $data[8]['title'] = $link_configure ? t('Settings') : '';
       $data[9]['data'] = $link_log;
       $data[9]['title'] = t('Log');
-      $data[10]['data'] = $hook['unsafe'] ? '' : ($process ? $link_unlock : $link_execute);
-      $data[10]['title'] = $hook['unsafe'] ? '' : ($process ? t('Unlock') : t('Run'));
+      $data[10]['data'] = ($process ? $link_unlock : $link_execute);
+      $data[10]['title'] = ($process ? t('Unlock') : t('Run'));
 
       $rows[] = $data;
     }
@@ -453,11 +434,6 @@ function ultimate_cron_service_start($function) {
   if ($modules = _ultimate_cron_incompatible_modules()) {
     drupal_set_message(t('%function could not start (incompatible module installed)', array('%function' => $function)), 'error');
     drupal_set_message(t('%modules is installed on the system, but is incompatible with Ultimate Cron.<br/>Please disable Parallel Cron.<br/>You might want to !url settings first.', array('%modules' => join(', ', $modules), '!url' => l(t('import'), 'admin/settings/cron/import'))), 'error');
-    drupal_goto();
-  }
-
-  if (!empty($hooks['unsafe'])) {
-    drupal_set_message(t('%function could not start (unsafe)', array('%function' => $function)), 'error');
     drupal_goto();
   }
 
