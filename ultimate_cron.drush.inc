@@ -194,7 +194,7 @@ function drush_ultimate_cron_cron_run($function = NULL) {
       foreach ($schedule as $function => $hook) {
         drush_print(dt('[!function]: Launching @ !ts', array('!ts' => date('Y-m-d H:i:s'), '!function' => $function)));
         $cmd = $_SERVER['SCRIPT_FILENAME'] . " cron-run $function --cli " . ($check_rule ? '--check-rule' : '');
-        exec("$cmd >> " . escapeshellarg($logfile) . " &");
+        exec("$cmd >> " . escapeshellarg($logfile) . " 2>&1 &");
       }
       drush_print(dt('[!ts] Launced !jobs jobs', array('!ts' => date('Y-m-d H:i:s'), '!jobs' => count($schedule))));
 
