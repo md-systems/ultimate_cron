@@ -76,6 +76,16 @@ function ultimate_cron_settings_form() {
                               'type' => 'icon')
                       ) . t('Queue polling latency in miliseconds. Leave blank to disable continuous processing of queues.'),
   );
+  $form['general']['queue_lease_time'] = array(
+    '#title' => t('Queue lease time'),
+    '#type' => 'textfield',
+    '#default_value' => variable_get('ultimate_cron_queue_lease_time', ULTIMATE_CRON_QUEUE_LEASE_TIME),
+    '#description' => theme('advanced_help_topic', array(
+                              'module' => 'ultimate_cron',
+                              'topic' => 'queue_lease_time',
+                              'type' => 'icon')
+                      ) . t('Time in seconds to keep lock on claimed item'),
+  );
   $form['general']['ultimate_cron_poorman'] = array(
     '#title' => t("Poormans cron"),
     '#type' => 'checkbox',
@@ -148,6 +158,18 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
                               'type' => 'icon')
                       ) . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) . ')'),
   );
+  if (strpos($function, 'ultimate_cron_queue_') === 0) {
+    $form['general']['queue_lease_time'] = array(
+      '#title' => t('Queue lease time'),
+      '#type' => 'textfield',
+      '#default_value' => $conf['queue_lease_time'],
+      '#description' => theme('advanced_help_topic', array(
+                                'module' => 'ultimate_cron',
+                                'topic' => 'queue_lease_time',
+                                'type' => 'icon')
+                        ) . t('Time in seconds to keep lock on claimed item. (blank = ' . variable_get('ultimate_cron_queue_lease_time', ULTIMATE_CRON_QUEUE_LEASE_TIME) . ')'),
+    );
+  }
 
   $options = variable_get('background_process_service_groups', array());
   foreach ($options as $key => &$value) {

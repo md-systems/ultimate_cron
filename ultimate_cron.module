@@ -61,6 +61,11 @@ define('ULTIMATE_CRON_MAX_EXECUTION_TIME', 86400);
 define('ULTIMATE_CRON_CATCH_UP', 300);
 
 /**
+ * Default lease time for Ultimate Cron queues.
+ */
+define('ULTIMATE_CRON_QUEUE_LEASE_TIME', 30);
+
+/**
  * Default clean up time for log entries (30 days).
  */
 define('ULTIMATE_CRON_CLEANUP_LOG', 86400 * 30);
@@ -370,7 +375,8 @@ function ultimate_cron_cronapi($op, $job = NULL, $hook = NULL) {
       $queue = DrupalQueue::get($queue_name);
       $items = 0;
       while (time() < $end) {
-        $item = $queue->claimItem();
+        $lease_time = isset($hook['settings']['queue_lease_time']) ? $hook['settings']['queue_lease_time'] : variable_get('ultimate_cron_queue_lease_time', ULTIMATE_CRON_QUEUE_LEASE_TIME);
+        $item = $queue->claimItem($lease_time);
         if (!$item) {
           if (is_numeric($polling_latency)) {
             usleep($polling_latency * 1000);
@@ -1223,5 +1229,6 @@ function _ultimate_cron_default_settings($default_rule = NULL) {
     'enabled' => TRUE,
     'rules' => $default_rule ? array($default_rule) : array(),
     'catch_up' => $default_rule ? variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) : '',
+    'queue_lease_time' => '',
   );
 }
