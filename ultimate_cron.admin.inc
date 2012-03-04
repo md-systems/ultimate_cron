@@ -76,7 +76,7 @@ function ultimate_cron_settings_form() {
                               'type' => 'icon')
                       ) . t('Queue polling latency in miliseconds. Leave blank to disable continuous processing of queues.'),
   );
-  $form['general']['queue_lease_time'] = array(
+  $form['general']['ultimate_cron_queue_lease_time'] = array(
     '#title' => t('Queue lease time'),
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_queue_lease_time', ULTIMATE_CRON_QUEUE_LEASE_TIME),
