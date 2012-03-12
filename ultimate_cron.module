@@ -697,6 +697,7 @@ function ultimate_cron_run_hook($function, $hook) {
     $process->service_group = $hook['settings']['service_group'];
   }
   $hook['timestamp'] = time();
+  unset($hook['log']['msg']);
   $result = $process->start('_ultimate_cron_run_hook', array($function, $hook));
 
   return $result ? $process->connection : $result;
