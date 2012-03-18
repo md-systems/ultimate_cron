@@ -1146,7 +1146,6 @@ function ultimate_cron_module_name($module) {
  *   Array of cronjobs and their data.
  */
 function _ultimate_cron_preload_cron_data() {
-  $hooks = ultimate_cron_get_hooks();
   if (module_exists('ctools')) {
     ctools_include('export');
     $functions = ctools_export_crud_load_all('ultimate_cron');
@@ -1163,6 +1162,7 @@ function _ultimate_cron_preload_cron_data() {
       }
     }
   }
+  $hooks = ultimate_cron_get_hooks();
   $processes = db_select('background_process', 'b')
     ->fields('b', array('handle', 'service_host', 'start', 'status'))
     ->condition('handle', 'uc:%', 'LIKE')

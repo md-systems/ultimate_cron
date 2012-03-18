@@ -244,8 +244,8 @@ function ultimate_cron_view_page($module = NULL) {
   }
 
   // Get hooks and their data
-  $hooks = ultimate_cron_get_hooks();
   $data = _ultimate_cron_preload_cron_data();
+  $hooks = ultimate_cron_get_hooks();
 
   $modules = array();
   foreach ($hooks as $function => $hook) {
