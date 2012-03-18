@@ -890,9 +890,6 @@ function ultimate_cron_get_hooks() {
   }
   $hooks = array();
 
-  // Which modules are not hook_cron() safe?
-  $uncronable_modules = ultimate_cron_uncronable_modules();
-
   // Generate list of hooks
   $modules = module_list();
   foreach ($modules as $module) {
@@ -949,26 +946,6 @@ function ultimate_cron_get_default_settings($module, $function, $default_rule) {
   }
   $conf += _ultimate_cron_default_settings($default_rule);
   return $conf;
-}
-
-/**
- * Find modules that precedes Ultimate Cron and therefore cannot be handled
- * by Ultimate Cron.
- *
- * @return array
- *   List of modules.
- */
-function ultimate_cron_uncronable_modules() {
-  $modules = array();
-  foreach (module_list() as $module) {
-    if ($module === 'ultimate_cron') {
-      break;
-    }
-    if (module_hook($module, 'cron')) {
-      $modules[$module] = $module;
-    }
-  }
-  return $modules;
 }
 
 /**
