@@ -132,11 +132,11 @@ class CronRule {
     // Find last date and time this rule was run
     for ($year = $start_year; $year > $end_year; $year--) {
       foreach ($intervals['months'] as $month) {
-        if ($month < 1 || $month > 12) return FALSE;
+        if ($month < 1 || $month > 12) continue;
         if ($year >= $start_year && $month > $start_month) continue;
 
         foreach ($days as $day) {
-          if ($day < 1 || $day > 31) return FALSE;
+          if ($day < 1 || $day > 31) continue;
           if ($year >= $start_year && $month >= $start_month && $day > $start_day) continue;
           if (!checkdate($month, $day, $year)) continue;
 
@@ -157,11 +157,11 @@ class CronRule {
             $start_minute = 59;
           }
           foreach ($intervals['hours'] as $hour) {
-            if ($hour < 0 || $hour > 23) return FALSE;
+            if ($hour < 0 || $hour > 23) continue;
             if ($hour > $start_hour) continue;
             if ($hour < $start_hour) $start_minute = 59;
             foreach ($intervals['minutes'] as $minute) {
-              if ($minute < 0 || $minute > 59) return FALSE;
+              if ($minute < 0 || $minute > 59) continue;
               if ($minute > $start_minute) continue;
               break 5;
             }
