@@ -1082,8 +1082,8 @@ function ultimate_cron_should_run($rules, $last_run, $now = NULL, $catch_up = 0)
   require_once(drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php');
   foreach ($rules as $rule) {
     $cron = new CronRule($rule);
-    $last_ran = $cron->getLastRan();
-    if ($last_run < $last_ran && ($last_ran > $now - $catch_up)) {
+    $last_ran = $cron->getLastRan($now);
+    if ($last_ran > $last_run && $last_ran >= $now - $catch_up) {
       return TRUE;
     }
   }
