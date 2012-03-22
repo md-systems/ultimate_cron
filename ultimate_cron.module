@@ -977,6 +977,22 @@ function ultimate_cron_get_settings($function_name) {
 }
 
 /**
+ * CRUD save. Also used for ctools integration.
+ * @param object $object
+ *   object to be saved ->function containing unique machine name.
+ * @return boolean
+ *   result of query.
+ */
+function ultimate_cron_crud_save($object) {
+  return db_merge('ultimate_cron')
+    ->key(array('function' => $object->function))
+    ->fields(array(
+      'settings' => serialize($object->settings),
+    ))
+    ->execute();
+}
+
+/**
  * Set settings for a function.
  *
  * @param $function_name
@@ -992,15 +1008,13 @@ function ultimate_cron_set_settings($function_name, $settings) {
     $function = ctools_export_crud_new('ultimate_cron');
     $function->function = $function_name;
     $function->settings = $settings;
-    ctools_export_crud_save('ultimate_cron', $function);
+    return ctools_export_crud_save('ultimate_cron', $function);
   }
   else {
-    return db_merge('ultimate_cron')
-      ->key(array('function' => $function_name))
-      ->fields(array(
-        'settings' => serialize($settings),
-      ))
-      ->execute();
+    $function = new stdClass();
+    $function->function = $function_name;
+    $function->settings = $settings;
+    return ultimate_cron_crud_save($function);
   }
 }
 

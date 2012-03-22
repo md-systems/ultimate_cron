@@ -19,6 +19,7 @@ function ultimate_cron_schema() {
       'primary key' => 'fid',
       'identifier' => 'function',
       'default hook' => 'default_ultimate_cron_function',
+      'save callback' => 'ultimate_cron_crud_save',
       'api' => array(
         'owner' => 'ultimate_cron',
         'api' => 'default_ultimate_cron_functions',
@@ -48,7 +49,9 @@ function ultimate_cron_schema() {
       ),
     ),
     'primary key' => array('fid'),
-    'unique key' => array('function'),
+    'unique keys' => array(
+      'uniq_function' => array('function')
+    ),
   );
 
   $schema['ultimate_cron_log'] = array(
@@ -208,3 +211,29 @@ function ultimate_cron_update_7003() {
   db_add_index('ultimate_cron_log', 'idx_last', array('function', 'start'));
   db_add_index('ultimate_cron_log', 'idx_count', array('function', 'end'));
 }
+
+/**
+ * Add missing index to database
+ */
+function ultimate_cron_update_7105() {
+  $items = db_select('ultimate_cron')
+             ->fields('ultimate_cron', array('fid', 'function'))
+             ->orderBy('fid', 'ASC')
+             ->execute()
+             ->fetchAllAssoc('fid', PDO::FETCH_ASSOC);
+  $fids = array();
+  $keep = array();
+  foreach ($items as $item) {
+    if (isset($keep[$item['function']])) {
+      $fids[] = $keep[$item['function']];
+    }
+    $keep[$item['function']] = $item['fid'];
+  }
+  if ($fids) {
+    db_delete('ultimate_cron')
+      ->condition('fid', $fids)
+      ->execute();
+  }
+  db_add_unique_key('ultimate_cron', 'uniq_function', array('function'));
+}
+
