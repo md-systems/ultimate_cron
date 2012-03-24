@@ -1067,7 +1067,7 @@ function ultimate_cron_record_log($msg = NULL, $reset = FALSE) {
  *   TRUE if valid, FALSE if not.
  */
 function ultimate_cron_validate_rule($rule) {
-  require_once(drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php');
+  require_once 'CronRule.class.php';
   $cron = new CronRule($rule);
   if (!$cron->isValid()) {
     return FALSE;
@@ -1093,7 +1093,7 @@ function ultimate_cron_validate_rule($rule) {
  */
 function ultimate_cron_should_run($rules, $last_run, $now = NULL, $catch_up = 0) {
   $now = is_null($now) ? time() : $now;
-  require_once(drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php');
+  require_once 'CronRule.class.php';
   foreach ($rules as $rule) {
     $cron = new CronRule($rule);
     $last_ran = $cron->getLastRan($now);

@@ -5,4 +5,6 @@ core = 7.x
 dependencies[] = background_process
 dependencies[] = progress
 
+files[] = tests/rules.test
+
 configure = admin/config/system/cron/settings
