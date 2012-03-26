@@ -70,6 +70,24 @@ class CronRule {
     }
     return $rule;
   }
+
+  function preProcessRule($parts) {
+    // Allow JAN-DEC
+    $months = array(1 => 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec');
+    $parts[3] = strtr(drupal_strtolower($parts[3]), array_flip($months));
+
+    // Allow SUN-SUN
+    $days = array('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat');
+    $parts[4] = strtr(drupal_strtolower($parts[4]), array_flip($days));
+    $parts[4] = str_replace('7', '0', $parts[4]);
+
+    return $parts;
+  }
+
+  function postProcessRule($parts) {
+    return $parts;
+  }
+
   /**
    * Generate regex rules
    *
@@ -78,10 +96,11 @@ class CronRule {
    * @return
    *   (array) date and time regular expression for mathing rule
    */
-  function getIntervals($rule) {
-    $parts = preg_split('/\s+/', $rule);
+  function getIntervals($rule = NULL) {
+    $parts = preg_split('/\s+/', isset($rule) ? $rule : $this->rule);
     if ($this->allow_shorthand) $parts += array('*', '*', '*', '*', '*'); // Allow short rules by appending wildcards?
     if (count($parts) != 5) return FALSE;
+    $parts = $this->preProcessRule($parts);
     $intervals = array();
     $intervals['minutes']  = $this->expandRange($parts[0], '0-59');
     if (empty($intervals['minutes'])) return FALSE;
@@ -94,8 +113,17 @@ class CronRule {
     $intervals['weekdays'] = $this->expandRange($parts[4], '0-6');
     if (empty($intervals['weekdays'])) return FALSE;
     $intervals['weekdays'] = array_flip($intervals['weekdays']);
+    $parts = $this->postProcessRule($parts);
 
     return $intervals;
+  }
+
+  function rebuildRule($intervals) {
+    return implode(',', $intervals['minutes']) . ' ' .
+           implode(',', $intervals['hours']) . ' ' .
+           implode(',', $intervals['days']) . ' ' .
+           implode(',', $intervals['months']) . ' ' .
+           implode(',', $intervals['weekdays']);
   }
 
   /**
@@ -112,7 +140,7 @@ class CronRule {
     $time = floor($time / 60) * 60;
 
     // Generate regular expressions from rule
-    $intervals = $this->getIntervals($this->rule);
+    $intervals = $this->getIntervals();
     if ($intervals === FALSE) return FALSE;
 
     // Get starting points

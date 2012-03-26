@@ -1,8 +1,7 @@
 <?php
-
 /**
  * @file
- *   Drush commands for Ultimate Cron!
+ * Drush commands for Ultimate Cron!
  */
 
 /**
