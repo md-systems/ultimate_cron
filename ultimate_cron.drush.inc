@@ -242,7 +242,7 @@ function drush_ultimate_cron_cron_run($function = NULL) {
   else {
     $result = ultimate_cron_run_hook($function, $hook);
   }
-  
+
 
   if ($result === FALSE) {
     return drush_set_error(dt('[!function]: could not start (already running?)', array('!function' => $function)));

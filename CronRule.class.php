@@ -13,6 +13,7 @@ class CronRule {
 
   public $rule = NULL;
   public $allow_shorthand = FALSE;
+  private static $counter = array(0, 0, 0, 0, 0);
 
   /**
    * Constructor
@@ -36,12 +37,16 @@ class CronRule {
    */
   function expandInterval($matches) {
     $result = array();
-    $matches[5] = isset($matches[5]) ? $matches[5] : 1;
-    $matches[7] = isset($matches[7]) ? $matches[7] : 0;
-    if ($matches[5] <= 0) return '';
-    $step = ($matches[5] > 0) ? $matches[5] : 1;
-    for ($i = $matches[1]; $i <= $matches[2]; $i+=$step) {
-      $result[] = ($i + $matches[7]) % ($matches[2] + 1);
+
+    $lower = $matches[1];
+    $upper = $matches[2];
+    $step = isset($matches[5]) ? $matches[5] : 1;
+    $offset = isset($matches[7]) ? $matches[7] : 0;
+
+    if ($step <= 0) return '';
+    $step = ($step > 0) ? $step : 1;
+    for ($i = $lower; $i <= $upper; $i+=$step) {
+      $result[] = ($i + $offset) % ($upper + 1);
     }
     return implode(',', $result);
   }
@@ -60,7 +65,7 @@ class CronRule {
    */
   function expandRange($rule, $max) {
     $rule = str_replace("*", $max, $rule);
-    $rule = preg_replace_callback('/(\d+)-(\d+)((\/(\d+))(\+(\d+))?)?/', array($this, 'expandInterval'), $rule);
+    $rule = preg_replace_callback('!(\d+)-(\d+)((/(\d+))?(\+(\d+))?)?!', array($this, 'expandInterval'), $rule);
     if (!preg_match('/([^0-9\,])/', $rule)) {
       $rule = explode(',', $rule);
       rsort($rule);
@@ -71,21 +76,40 @@ class CronRule {
     return $rule;
   }
 
-  function preProcessRule($parts) {
+  /**
+   * Pre process rule.
+   *
+   * @param array &$parts
+   */
+  function preProcessRule(&$parts) {
     // Allow JAN-DEC
     $months = array(1 => 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec');
-    $parts[3] = strtr(drupal_strtolower($parts[3]), array_flip($months));
+    $parts[3] = strtr(strtolower($parts[3]), array_flip($months));
 
     // Allow SUN-SUN
     $days = array('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat');
-    $parts[4] = strtr(drupal_strtolower($parts[4]), array_flip($days));
+    $parts[4] = strtr(strtolower($parts[4]), array_flip($days));
     $parts[4] = str_replace('7', '0', $parts[4]);
 
-    return $parts;
+    foreach ($parts as $i => &$part) {
+      $part = str_replace('%', $this->getCount($i), $part);
+    }
   }
 
-  function postProcessRule($parts) {
-    return $parts;
+  /**
+   * Post process rule
+   *
+   * @param array $intervals
+   */
+  function postProcessRule(&$intervals) {
+  }
+
+  function getCount($i) {
+    if (!isset($this->counter[$i])) {
+      $this->counter[$i] = self::$counter[$i];
+      self::$counter[$i]++;
+    }
+    return $this->counter[$i];
   }
 
   /**
@@ -100,7 +124,7 @@ class CronRule {
     $parts = preg_split('/\s+/', isset($rule) ? $rule : $this->rule);
     if ($this->allow_shorthand) $parts += array('*', '*', '*', '*', '*'); // Allow short rules by appending wildcards?
     if (count($parts) != 5) return FALSE;
-    $parts = $this->preProcessRule($parts);
+    $this->preProcessRule($parts);
     $intervals = array();
     $intervals['minutes']  = $this->expandRange($parts[0], '0-59');
     if (empty($intervals['minutes'])) return FALSE;
@@ -113,17 +137,27 @@ class CronRule {
     $intervals['weekdays'] = $this->expandRange($parts[4], '0-6');
     if (empty($intervals['weekdays'])) return FALSE;
     $intervals['weekdays'] = array_flip($intervals['weekdays']);
-    $parts = $this->postProcessRule($parts);
+    $this->postProcessRule($intervals);
 
     return $intervals;
   }
 
+  /**
+   * Convert intervals back into crontab rule format
+   */
   function rebuildRule($intervals) {
     return implode(',', $intervals['minutes']) . ' ' .
            implode(',', $intervals['hours']) . ' ' .
            implode(',', $intervals['days']) . ' ' .
            implode(',', $intervals['months']) . ' ' .
            implode(',', $intervals['weekdays']);
+  }
+
+  /**
+   * Parse rule. Run through parser expanding expression, and recombine into crontab syntax.
+   */
+  function parseRule() {
+    return $this->rebuildRule($this->getIntervals());
   }
 
   /**
