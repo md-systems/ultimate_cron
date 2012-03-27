@@ -13,12 +13,27 @@ class CronRule {
 
   public $rule = NULL;
   public $allow_shorthand = FALSE;
-  private static $counter = array(0, 0, 0, 0, 0);
+  private static $counter = array(
+    'minutes' => 0,
+    'hours' => 0,
+    'days' => 0,
+    'months' => 0,
+    'weekdays' => 0,
+  );
+  private static $ranges = array(
+    'minutes' => '0-59',
+    'hours' => '0-23',
+    'days' => '1-31',
+    'months' => '1-12',
+    'weekdays' => '0-6',
+  );
+
+  private $parsed_rule = array();
 
   /**
    * Constructor
    */
-  function __construct($rule) {
+  function __construct($rule = NULL) {
     $this->rule = $rule;
   }
 
@@ -63,8 +78,11 @@ class CronRule {
    * @return
    *   (array) array of valid values
    */
-  function expandRange($rule, $max) {
+  function expandRange($rule, $type) {
+    $max = self::$ranges[$type];
     $rule = str_replace("*", $max, $rule);
+    $rule = str_replace("%", $this->getCount($type), $rule);
+    $this->parsed_rule[$type] = $rule;
     $rule = preg_replace_callback('!(\d+)-(\d+)((/(\d+))?(\+(\d+))?)?!', array($this, 'expandInterval'), $rule);
     if (!preg_match('/([^0-9\,])/', $rule)) {
       $rule = explode(',', $rule);
@@ -90,10 +108,6 @@ class CronRule {
     $days = array('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat');
     $parts[4] = strtr(strtolower($parts[4]), array_flip($days));
     $parts[4] = str_replace('7', '0', $parts[4]);
-
-    foreach ($parts as $i => &$part) {
-      $part = str_replace('%', $this->getCount($i), $part);
-    }
   }
 
   /**
@@ -104,12 +118,12 @@ class CronRule {
   function postProcessRule(&$intervals) {
   }
 
-  function getCount($i) {
-    if (!isset($this->counter[$i])) {
-      $this->counter[$i] = self::$counter[$i];
-      self::$counter[$i]++;
+  function getCount($type) {
+    if (!isset($this->counter[$type])) {
+      $this->counter[$type] = self::$counter[$type];
+      self::$counter[$type]++;
     }
-    return $this->counter[$i];
+    return $this->counter[$type];
   }
 
   /**
@@ -126,15 +140,15 @@ class CronRule {
     if (count($parts) != 5) return FALSE;
     $this->preProcessRule($parts);
     $intervals = array();
-    $intervals['minutes']  = $this->expandRange($parts[0], '0-59');
+    $intervals['minutes']  = $this->expandRange($parts[0], 'minutes');
     if (empty($intervals['minutes'])) return FALSE;
-    $intervals['hours']    = $this->expandRange($parts[1], '0-23');
+    $intervals['hours']    = $this->expandRange($parts[1], 'hours');
     if (empty($intervals['hours'])) return FALSE;
-    $intervals['days']     = $this->expandRange($parts[2], '1-31');
+    $intervals['days']     = $this->expandRange($parts[2], 'days');
     if (empty($intervals['days'])) return FALSE;
-    $intervals['months']   = $this->expandRange($parts[3], '1-12');
+    $intervals['months']   = $this->expandRange($parts[3], 'months');
     if (empty($intervals['months'])) return FALSE;
-    $intervals['weekdays'] = $this->expandRange($parts[4], '0-6');
+    $intervals['weekdays'] = $this->expandRange($parts[4], 'weekdays');
     if (empty($intervals['weekdays'])) return FALSE;
     $intervals['weekdays'] = array_flip($intervals['weekdays']);
     $this->postProcessRule($intervals);
@@ -146,11 +160,11 @@ class CronRule {
    * Convert intervals back into crontab rule format
    */
   function rebuildRule($intervals) {
-    return implode(',', $intervals['minutes']) . ' ' .
-           implode(',', $intervals['hours']) . ' ' .
-           implode(',', $intervals['days']) . ' ' .
-           implode(',', $intervals['months']) . ' ' .
-           implode(',', $intervals['weekdays']);
+    $parts = array();
+    foreach ($intervals as $type => $interval) {
+      $parts[] = $this->parsed_rule[$type];
+    }
+    return implode(' ', $parts);
   }
 
   /**

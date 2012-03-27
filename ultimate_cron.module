@@ -1094,8 +1094,9 @@ function ultimate_cron_validate_rule($rule) {
 function ultimate_cron_should_run($rules, $last_run, $now = NULL, $catch_up = 0) {
   $now = is_null($now) ? time() : $now;
   require_once 'CronRule.class.php';
+  $cron = new CronRule();
   foreach ($rules as $rule) {
-    $cron = new CronRule($rule);
+    $cron->rule = $rule;
     $last_ran = $cron->getLastRan($now);
     if ($last_ran > $last_run && $last_ran >= $now - $catch_up) {
       return TRUE;
@@ -1203,7 +1204,7 @@ function _ultimate_cron_incompatible_modules() {
   if (isset($modules)) {
     return $modules;
   }
-  $modues = array();
+  $modules = array();
   $candidates = array('parallel_cron');
   foreach ($candidates as $module) {
     if (module_exists($module)) {

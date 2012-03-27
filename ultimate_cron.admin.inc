@@ -234,6 +234,7 @@ function ultimate_cron_function_settings_form_submit($form, &$form_state) {
  * Page overviewing cron jobs.
  */
 function ultimate_cron_view_page($module = NULL) {
+  require_once 'CronRule.class.php';
   drupal_add_css(drupal_get_path('module', 'ultimate_cron') . '/css/ultimate_cron.admin.css');
 
   module_load_install('ultimate_cron');
@@ -270,6 +271,12 @@ function ultimate_cron_view_page($module = NULL) {
       // Setup settings
       $conf = $hook['settings'];
       $rules = $hook['settings']['rules'];
+      $cron = new CronRule();
+      $parsed_rules = array();
+      foreach ($rules as $rule) {
+        $cron->rule = $rule;
+        $parsed_rules[] = $cron->parseRule();
+      }
 
       // Setup process
       $process = $hook['background_process'];
@@ -337,6 +344,7 @@ function ultimate_cron_view_page($module = NULL) {
       $data[2]['data'] = $hook['description'];
       $data[2]['title'] = $function;
       $data[3]['data'] = join("<br/>", $rules);
+      $data[3]['title'] = join("\n", $parsed_rules);
       $data[4]['data'] = $log['start'] ? format_date((int)$log['start'], 'custom', 'Y-m-d H:i:s') : t('Never');
       $data[5]['data'] = $log['end'] ? gmdate('H:i:s', (int)($log['end'] - $log['start'])) : ($process ? t('Starting') : t('N/A'));
       $data[5]['title'] = t('Finished @ !timestamp', array(
