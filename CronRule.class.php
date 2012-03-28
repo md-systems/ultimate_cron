@@ -10,11 +10,11 @@ class CronRule {
   public $rule = NULL;
   public $allow_shorthand = FALSE;
   private static $ranges = array(
-    'minutes' => '0-59',
-    'hours' => '0-23',
-    'days' => '1-31',
-    'months' => '1-12',
-    'weekdays' => '0-6',
+    'minutes' => array(0, 59),
+    'hours' => array(0, 23),
+    'days' => array(1, 31),
+    'months' => array(1, 12),
+    'weekdays' => array(0, 6),
   );
 
   private $parsed_rule = array();
@@ -69,9 +69,9 @@ class CronRule {
    *   (array) array of valid values
    */
   function expandRange($rule, $type) {
-    $max = self::$ranges[$type];
+    $max = implode('-', self::$ranges[$type]);
     $rule = str_replace("*", $max, $rule);
-    $rule = str_replace("@", $this->offset, $rule);
+    $rule = str_replace("@", $this->offset % (self::$ranges[$type][1] + 1), $rule);
     $this->parsed_rule[$type] = $rule;
     $rule = preg_replace_callback('!(\d+)-(\d+)((/(\d+))?(\+(\d+))?)?!', array($this, 'expandInterval'), $rule);
     if (!preg_match('/([^0-9\,])/', $rule)) {
