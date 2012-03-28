@@ -2,24 +2,13 @@
 /**
  * @file
  *
- * by Thomas Gielfeldt
- * <thomas@gielfeldt.com>
- *
  * This class parses cron rules and determines last execution time using least case integer comparison.
- *
  */
 
 class CronRule {
 
   public $rule = NULL;
   public $allow_shorthand = FALSE;
-  private static $counter = array(
-    'minutes' => 0,
-    'hours' => 0,
-    'days' => 0,
-    'months' => 0,
-    'weekdays' => 0,
-  );
   private static $ranges = array(
     'minutes' => '0-59',
     'hours' => '0-23',
@@ -29,6 +18,7 @@ class CronRule {
   );
 
   private $parsed_rule = array();
+  public $offset = 0;
 
   /**
    * Constructor
@@ -81,7 +71,7 @@ class CronRule {
   function expandRange($rule, $type) {
     $max = self::$ranges[$type];
     $rule = str_replace("*", $max, $rule);
-    $rule = str_replace("%", $this->getCount($type), $rule);
+    $rule = str_replace("%", $this->offset, $rule);
     $this->parsed_rule[$type] = $rule;
     $rule = preg_replace_callback('!(\d+)-(\d+)((/(\d+))?(\+(\d+))?)?!', array($this, 'expandInterval'), $rule);
     if (!preg_match('/([^0-9\,])/', $rule)) {
@@ -116,14 +106,6 @@ class CronRule {
    * @param array $intervals
    */
   function postProcessRule(&$intervals) {
-  }
-
-  function getCount($type) {
-    if (!isset($this->counter[$type])) {
-      $this->counter[$type] = self::$counter[$type];
-      self::$counter[$type]++;
-    }
-    return $this->counter[$type];
   }
 
   /**

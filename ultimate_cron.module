@@ -6,6 +6,7 @@
  * @todo Add log view (with graph).
  * @todo Make proper markup for overview page.
  * @todo Refactor drush stuff, too many intimate relations with Background Process
+ * @todo Refactor Cron % offset stuff. Too mixed up and ungrokable code-wise and 'delta' is not consistent.
  *
  * hook_cron_alter(&$hooks)
  * hook_cron_schedule_alter(&$hooks)
@@ -863,7 +864,7 @@ function ultimate_cron_hook_should_run($hook) {
 
   $last_run = isset($hook['log']['start']) ? $hook['log']['start'] : 0;
 
-  return ultimate_cron_should_run($hook['settings']['rules'], $last_run, time(), $hook['settings']['catch_up']);
+  return ultimate_cron_should_run($hook['settings']['rules'], $last_run, time(), $hook['settings']['catch_up'], $hook['delta']);
 }
 
 /**
@@ -889,6 +890,7 @@ function ultimate_cron_get_hooks() {
     return $hooks;
   }
   $hooks = array();
+  $delta = 0;
 
   // Generate list of hooks
   $modules = module_list();
@@ -917,6 +919,7 @@ function ultimate_cron_get_hooks() {
   foreach ($hooks as $function => &$hook) {
     $hook['callback'] = $hook['function'] = $function;
     $hook['background_process'] = array();
+    $hook['delta'] = $delta++;
   }
 
   // Remove ourselves from the list
@@ -1091,12 +1094,13 @@ function ultimate_cron_validate_rule($rule) {
  * @return boolean
  *   TRUE if rule is scheduled to run, FALSE if not.
  */
-function ultimate_cron_should_run($rules, $last_run, $now = NULL, $catch_up = 0) {
+function ultimate_cron_should_run($rules, $last_run, $now = NULL, $catch_up = 0, $offset = 0) {
   $now = is_null($now) ? time() : $now;
   require_once 'CronRule.class.php';
   $cron = new CronRule();
   foreach ($rules as $rule) {
     $cron->rule = $rule;
+    $cron->offset = $offset;
     $last_ran = $cron->getLastRan($now);
     if ($last_ran > $last_run && $last_ran >= $now - $catch_up) {
       return TRUE;

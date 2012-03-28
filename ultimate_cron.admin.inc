@@ -275,6 +275,7 @@ function ultimate_cron_view_page($module = NULL) {
       $parsed_rules = array();
       foreach ($rules as $rule) {
         $cron->rule = $rule;
+        $cron->offset = $hook['delta'];
         $parsed_rules[] = $cron->parseRule();
       }
 
