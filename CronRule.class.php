@@ -71,7 +71,7 @@ class CronRule {
   function expandRange($rule, $type) {
     $max = self::$ranges[$type];
     $rule = str_replace("*", $max, $rule);
-    $rule = str_replace("%", $this->offset, $rule);
+    $rule = str_replace("@", $this->offset, $rule);
     $this->parsed_rule[$type] = $rule;
     $rule = preg_replace_callback('!(\d+)-(\d+)((/(\d+))?(\+(\d+))?)?!', array($this, 'expandInterval'), $rule);
     if (!preg_match('/([^0-9\,])/', $rule)) {
