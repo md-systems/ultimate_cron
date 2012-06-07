@@ -88,6 +88,8 @@ define('ULTIMATE_CRON_LAUNCH_WINDOW', 55);
 
 // ---------- HOOKS ----------
 
+module_load_include('nagios.inc', 'ultimate_cron');
+
 /**
  * Implements hook_help().
  */
