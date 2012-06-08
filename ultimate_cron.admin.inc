@@ -297,6 +297,8 @@ function ultimate_cron_view_page($module = NULL) {
       $msg = !empty($log['msg']) ? $log['msg'] : ($log['status'] ? t('No errors') : t('No information'));
       if ($process) {
         $overview['running']++;
+        $log['previous_start'] = $log['start'];
+        $log['previous_end'] = $log['end'];
         $log['start'] = $process->start;
         if ($process->status == BACKGROUND_PROCESS_STATUS_RUNNING) {
           $log['end'] = microtime(TRUE);
@@ -348,9 +350,18 @@ function ultimate_cron_view_page($module = NULL) {
       $data[3]['title'] = join("\n", $parsed_rules);
       $data[4]['data'] = $log['start'] ? format_date((int)$log['start'], 'custom', 'Y-m-d H:i:s') : t('Never');
       $data[5]['data'] = $log['end'] ? gmdate('H:i:s', (int)($log['end'] - $log['start'])) : ($process ? t('Starting') : t('N/A'));
-      $data[5]['title'] = t('Finished @ !timestamp', array(
-        '!timestamp' => $log['end'] ? format_date((int)$log['end'], 'custom', 'Y-m-d H:i:s') : t('N/A')
+      $finish = !empty($log['previous_end']) ? $log['previous_end'] : $log['end'];
+      $data[5]['title'] = t('Previous run finished @ !timestamp', array(
+        '!timestamp' => $finish ? format_date((int)$finish, 'custom', 'Y-m-d H:i:s') : t('N/A')
       ));
+      if (!empty($log['previous_start'])) {
+        $data[4]['title'] = t('Previous run started @ !timestamp', array(
+          '!timestamp' => format_date((int)$log['previous_start'], 'custom', 'Y-m-d H:i:s'),
+        ));
+        $data[5]['title'] .= ' - ' . t('Run time: !duration', array(
+          '!duration' => gmdate('H:i:s', (int)($log['previous_end'] - $log['previous_start'])),
+        ));
+      }
       if ($process) {
         $data[6]['data'] = '<span>' . t('Running') . '</span>';
         $data[6]['title'] = t('Running on @host', array('@host' => $service_host));
