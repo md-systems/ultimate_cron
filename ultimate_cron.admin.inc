@@ -412,8 +412,8 @@ function ultimate_cron_function_log_page($function) {
   drupal_add_css(drupal_get_path('module', 'ultimate_cron') . '/css/ultimate_cron.admin.css');
 
   $header = array(
-    array('data' => t('Start'), 'field' => 'start', 'sort' => 'DESC'),
-    array('data' => t('End'),   'field' => 'end'),
+    array('data' => t('Start'), 'field' => 'start_stamp', 'sort' => 'DESC'),
+    array('data' => t('End'),   'field' => 'end_stamp'),
     t('Duration'),
     t('Status'),
     t('Message'),
@@ -422,18 +422,22 @@ function ultimate_cron_function_log_page($function) {
   drupal_set_title(check_plain($function));
 
   $query = db_select('ultimate_cron_log', 'l');
-  $query = $query->condition('l.function', $function)
+  $query = $query->condition('l.name', $function)
     ->extend('PagerDefault')
     ->limit(10)
     ->extend('TableSort')
     ->orderByHeader($header)
-    ->fields('l', array('lid', 'function', 'start', 'end', 'status', 'msg'))
-    ->orderBy('l.start', 'DESC');
+    ->fields('l', array('lid', 'name', 'start_stamp', 'end_stamp', 'exec_status', 'msg'))
+    ->orderBy('l.start_stamp', 'DESC');
   $logs = $query->execute()->fetchAll();
 
   $output = '';
   $rows = array();
   foreach ($logs as $log) {
+    $log->function = $log->name;
+    $log->status = $log->exec_status;
+    $log->start = $log->start_stamp;
+    $log->end = $log->end_stamp;
     $css_status = isset($log->status) ? ($log->status ? 'noerror' : 'error') : 'noinfo';
     $data = array(
       array('class' => array('ultimate-cron-admin-start')),

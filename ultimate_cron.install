@@ -14,10 +14,10 @@ function ultimate_cron_schema() {
   $schema['ultimate_cron'] = array(
     'description' => 'Cron job function list',
     'export' => array(
-      'key' => 'function',
+      'key' => 'name',
       'key name' => 'Function name',
       'primary key' => 'fid',
-      'identifier' => 'function',
+      'identifier' => 'name',
       'default hook' => 'default_ultimate_cron_function',
       'save callback' => 'ultimate_cron_crud_save',
       'api' => array(
@@ -35,7 +35,7 @@ function ultimate_cron_schema() {
         'not null' => TRUE,
         'no export' => TRUE,
       ),
-      'function' => array(
+      'name' => array(
         'description' => 'Function name',
         'type' => 'varchar',
         'length' => 127,
@@ -50,7 +50,7 @@ function ultimate_cron_schema() {
     ),
     'primary key' => array('fid'),
     'unique keys' => array(
-      'uniq_function' => array('function')
+      'uniq_name' => array('name')
     ),
   );
 
@@ -63,27 +63,27 @@ function ultimate_cron_schema() {
         'size' => 'normal',
         'not null' => TRUE,
       ),
-      'function' => array(
+      'name' => array(
         'description' => 'Function name',
         'type' => 'varchar',
         'length' => 127,
         'not null' => TRUE,
       ),
-      'start' => array(
+      'start_stamp' => array(
         'description' => 'Timstamp of execution start',
         'type' => 'float',
         'size' => 'big',
         'not null' => TRUE,
         'default' => 0,
       ),
-      'end' => array(
+      'end_stamp' => array(
         'description' => 'Timstamp of execution end',
         'type' => 'float',
         'size' => 'big',
         'not null' => TRUE,
         'default' => 0,
       ),
-      'status' => array(
+      'exec_status' => array(
         'description' => 'Status of the execution',
         'type' => 'int',
         'size' => 'normal',
@@ -98,8 +98,8 @@ function ultimate_cron_schema() {
     ),
     'primary key' => array('lid'),
     'indexes' => array(
-       'idx_last' => array('function', 'start'),
-       'idx_count' => array('function', 'end'),
+       'idx_last' => array('name', 'start_stamp'),
+       'idx_count' => array('name', 'end_stamp'),
     ),
   );
 
@@ -235,5 +235,47 @@ function ultimate_cron_update_7105() {
       ->execute();
   }
   db_add_unique_key('ultimate_cron', 'uniq_function', array('function'));
+}
+
+/**
+ * Change schema to SQL 99 compliance.
+ */
+function ultimate_cron_update_7106() {
+  db_drop_unique_key('ultimate_cron', 'idx_function');
+  db_change_field('ultimate_cron', 'function', 'name', array(
+    'description' => 'Function name',
+    'type' => 'varchar',
+    'length' => 127,
+    'not null' => TRUE,
+  ));
+  db_add_unique_key('ultimate_cron', 'idx_name', array('name'));
+  
+  db_change_field('ultimate_cron_log', 'function', 'name', array(
+    'description' => 'Function name',
+    'type' => 'varchar',
+    'length' => 127,
+    'not null' => TRUE,
+  ));
+  db_change_field('ultimate_cron_log', 'start', 'start_stamp', array(
+    'description' => 'Timstamp of execution start',
+    'type' => 'float',
+    'size' => 'big',
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+  db_change_field('ultimate_cron_log', 'end', 'end_stamp', array(
+    'description' => 'Timstamp of execution end',
+    'type' => 'float',
+    'size' => 'big',
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+  db_change_field('ultimate_cron_log', 'status', 'exec_status', array(
+    'description' => 'Status of the execution',
+    'type' => 'int',
+    'size' => 'normal',
+    'not null' => FALSE,
+    'default' => NULL,
+  ));
 }
 
