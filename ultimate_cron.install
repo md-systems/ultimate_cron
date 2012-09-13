@@ -238,7 +238,7 @@ function ultimate_cron_update_7105() {
 }
 
 /**
- * Change schema to SQL 99 compliance.
+ * Change schema to SQL 99 compliance
  */
 function ultimate_cron_update_7106() {
   db_drop_unique_key('ultimate_cron', 'idx_function');
