@@ -357,9 +357,9 @@ function ultimate_cron_view_page($module = NULL) {
         );
       }
       $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= WATCHDOG_INFO ? 'info' : ($log['severity'] >= WATCHDOG_WARNING ? 'warning' : 'error'));
+      $css_status = !empty($process) ? 'running' : $severity_type;
 
       $short_msg = $log['severity'];
-      $css_status = !empty($process) ? 'running' : $severity_type;
       $msg = !empty($log['msg']) ? $log['msg'] : t('No errors');
       $percentage = '';
       if ($process) {
@@ -497,15 +497,14 @@ function ultimate_cron_function_log_page($function) {
     ->limit(10)
     ->extend('TableSort')
     ->orderByHeader($header)
-    ->fields('l', array('lid', 'name', 'start_time', 'end_time', 'severity', 'msg'))
-    ->orderBy('l.start_time', 'DESC');
-  $logs = $query->execute()->fetchAll();
+    ->fields('l', array('lid', 'name', 'start_time', 'end_time', 'severity', 'msg'));
+  $logs = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
 
   $output = '';
   $rows = array();
   foreach ($logs as $log) {
-    $log->function = $log->name;
-    $css_status = isset($log->severity) ? ($log->severity ? 'noerror' : 'error') : 'noinfo';
+    $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= WATCHDOG_INFO ? 'info' : ($log['severity'] >= WATCHDOG_WARNING ? 'warning' : 'error'));
+    $css_status = !empty($process) ? 'running' : $severity_type;
     $data = array(
       array('class' => array('ultimate-cron-admin-start')),
       array('class' => array('ultimate-cron-admin-end')),
@@ -513,11 +512,11 @@ function ultimate_cron_function_log_page($function) {
       array('class' => array('ultimate-cron-admin-status ultimate-cron-admin-status-' . $css_status)),
       array('class' => array('ultimate-cron-admin-message')),
     );
-    $data[0]['data'] = format_date((int)$log->start_time, 'custom', 'Y-m-d H:i:s');
-    $data[1]['data'] = format_date((int)$log->end_time, 'custom', 'Y-m-d H:i:s');
-    $data[2]['data'] = gmdate('H:i:s', (int)($log->end - $log->start_time));
-    $data[3]['data'] = '<span>' . $log->severity . '</span>';
-    $data[4]['data'] = $log->msg;
+    $data[0]['data'] = format_date((int)$log['start_time'], 'custom', 'Y-m-d H:i:s');
+    $data[1]['data'] = format_date((int)$log['end_time'], 'custom', 'Y-m-d H:i:s');
+    $data[2]['data'] = gmdate('H:i:s', (int)($log['end_time'] - $log['start_time']));
+    $data[3]['data'] = '<span>' . $log['severity'] . '</span>';
+    $data[4]['data'] = $log['msg'];
     $rows[] = $data;
   }
 
