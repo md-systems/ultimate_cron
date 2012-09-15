@@ -990,9 +990,9 @@ function ultimate_cron_load_all() {
  * @return object
  *   Log line.
  */
-function ultimate_cron_get_last_log_entry($name) {
+function ultimate_cron_get_last_log_entry($name, $reset = FALSE) {
   static $logs = array();
-  if (isset($logs[$name])) {
+  if (!$reset && isset($logs[$name])) {
     return $logs[$name];
   }
 
