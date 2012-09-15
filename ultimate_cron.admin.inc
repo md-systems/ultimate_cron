@@ -115,27 +115,34 @@ function ultimate_cron_settings_form() {
 /**
  * Function settings form.
  */
-function ultimate_cron_function_settings_form($form, &$form_state, $function) {
+function ultimate_cron_function_settings_form($form, &$form_state, $name) {
   $hooks = ultimate_cron_get_hooks();
-  if (!isset($hooks[(string)$function])) {
+  if (!isset($hooks[(string)$name])) {
     drupal_not_found();
     exit;
   }
 
   // Load settings
-  $hook = $hooks[$function];
-  $conf = ultimate_cron_get_settings($function);
-  $conf += _ultimate_cron_default_settings();
+  $hook = $hooks[$name];
+  $settings = ultimate_cron_load($name);
+  $settings = $settings ? $settings->settings : array();
+  $settings += array(
+    'enabled' => TRUE,
+    'rules' => array(),
+    'catch up' => '',
+    'service group' => 'default',
+    'queue lease time' => '',
+  );
 
   // Setup form
-  drupal_set_title(check_plain($function));
+  drupal_set_title(check_plain($name));
   $form = array();
   $advanced_help_enabled = module_exists('advanced_help');
 
    // General settings -----------------------------------
-  $form['function'] = array(
+  $form['name'] = array(
     '#type' => 'value',
-    '#value' => $function,
+    '#value' => $name,
   );
   $form['general'] = array(
     '#title' => t('General'),
@@ -147,48 +154,48 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
   $form['general']['enabled'] = array(
     '#title' => t('Enabled'),
     '#type' => 'checkbox',
-    '#default_value' => $conf['enabled'],
+    '#default_value' => $settings['enabled'],
     '#description' => t('Enable this cron job.'),
   );
   $form['general']['rules'] = array(
     '#title' => t('Rules'),
     '#type' => 'textfield',
-    '#default_value' => implode(';', $conf['rules']),
+    '#default_value' => implode(';', $settings['rules']),
     '#description' => ($advanced_help_enabled ? theme('advanced_help_topic', array(
                               'module' => 'ultimate_cron',
                               'topic' => 'rules',
                               'type' => 'icon')
-                      ) : '') . t('Semi-colon separated list of rules for this job. (blank = ' . implode(';', $hook['settings']['rules']) . ')'),
+                      ) : '') . t('Semi-colon separated list of rules for this job. (blank = ' . implode(';', $hook['rules']) . ')'),
   );
-  $form['general']['catch_up'] = array(
+  $form['general']['catch up'] = array(
     '#title' => t('Catch up'),
     '#type' => 'textfield',
-    '#default_value' => $conf['catch_up'],
+    '#default_value' => $settings['catch up'],
     '#description' => ($advanced_help_enabled ? theme('advanced_help_topic', array(
                               'module' => 'ultimate_cron',
                               'topic' => 'catch_up',
                               'type' => 'icon')
-                      ) : '') . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) . ')'),
+                      ) : '') . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . $hook['catch up'] . ')'),
   );
-  if (strpos($function, 'ultimate_cron_queue_') === 0) {
-    $form['general']['queue_lease_time'] = array(
+  if (isset($hook['queue lease time'])) {
+    $form['general']['queue lease time'] = array(
       '#title' => t('Queue lease time'),
       '#type' => 'textfield',
-      '#default_value' => $conf['queue_lease_time'],
+      '#default_value' => $settings['queue lease time'],
       '#description' => ($advanced_help_enabled ? theme('advanced_help_topic', array(
                                 'module' => 'ultimate_cron',
-                                'topic' => 'queue_lease_time',
+                                'topic' => 'queue lease time',
                                 'type' => 'icon')
-                        ) : '') . t('Time in seconds to keep lock on claimed item. (blank = ' . variable_get('ultimate_cron_queue_lease_time', ULTIMATE_CRON_QUEUE_LEASE_TIME) . ')'),
+                        ) : '') . t('Time in seconds to keep lock on claimed item. (blank = ' . $hook['queue lease time'] . ')'),
     );
   }
 
-  $options = variable_get('background_process_service_groups', array());
+  $options = background_process_get_service_groups();
   foreach ($options as $key => &$value) {
     $value = (empty($value['description']) ? $key : $value['description']) . ' (' . join(',', $value['hosts']) . ')';
   }
-  $options += array(NULL => '<default>');
-  $form['general']['service_group'] = array(
+  #$options += array(NULL => '<default>');
+  $form['general']['service group'] = array(
     '#type' => 'select',
     '#title' => t('Service group'),
     '#description' => ($advanced_help_enabled ? theme('advanced_help_topic', array(
@@ -197,7 +204,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
                               'type' => 'icon')
                       ) : '') . t('Service group to use for this job. See Background Process !url for managing service groups.', array('!url' => l(t('settings'), 'admin/config/system/background-process'))),
     '#options' => $options,
-    '#default_value' => isset($conf['service_group']) ? $conf['service_group'] : NULL,
+    '#default_value' => $settings['service group'],
   );
 
   $form['buttons'] = array(
@@ -216,20 +223,17 @@ function ultimate_cron_function_settings_form($form, &$form_state, $function) {
  * Validate handler for function settings.
  */
 function ultimate_cron_function_settings_form_validate($form, &$form_state) {
-  $conf =& $form_state['values']['general'];
-  $conf['rules'] = trim($conf['rules']);
-  $conf['rules'] = $conf['rules'] ? explode(';', $conf['rules']) : array();
+  $settings =& $form_state['values']['general'];
+  $settings['rules'] = trim($settings['rules']);
+  $settings['rules'] = $settings['rules'] ? explode(';', $settings['rules']) : array();
 
-  if ($conf['rules']) {
-    foreach ($conf['rules'] as &$rule) {
+  if ($settings['rules']) {
+    foreach ($settings['rules'] as &$rule) {
       $rule = trim($rule);
       if (!ultimate_cron_validate_rule($rule)) {
         form_set_error('rules', t('Invalid rule.'));
       }
     }
-  }
-  else {
-    unset($conf['rules']);
   }
 }
 
@@ -237,8 +241,11 @@ function ultimate_cron_function_settings_form_validate($form, &$form_state) {
  * Submit handler for function settings.
  */
 function ultimate_cron_function_settings_form_submit($form, &$form_state) {
-  $conf =& $form_state['values']['general'];
-  ultimate_cron_set_settings($form_state['values']['function'], $conf);
+  $settings =& $form_state['values']['general'];
+  $obj = new stdClass();
+  $obj->name = $form_state['values']['name'];
+  $obj->settings = $settings;
+  ultimate_cron_save($obj);
   unset($form_state['storage']);
 }
 

@@ -246,50 +246,29 @@ function ultimate_cron_init() {
  *
  * Shutdown handler for cronjobs.
  */
-function ultimate_cron_background_process_shutdown($process, $shutdown_msg = NULL) {
+function ultimate_cron_background_process_shutdown($process, $msg = NULL) {
   $args = func_get_args();
   $name = preg_replace('/^uc:/', '', $process->getHandle());
   if (!empty($name) && $name != $process->getHandle()) {
-    static $has_run = array();
-    if (!empty($has_run[$name])) {
-      return;
-    }
-    $has_run[$name] = TRUE;
-
     // Record end time
     $end = microtime(TRUE);
 
-    $fatal_msg = '';
-    if (count(func_get_args()) == 1) {
+    if (!$msg) {
+      // Get watchdog messages
+      $log = ultimate_cron_record_log();
+      $msg = $log['msg'];
+
+      // Get drupal messages
+      $messages = drupal_get_messages();
+      $msg .= empty($messages['status']) ? '' : join("\n", $messages['status']) . "\n";
+      $msg .= empty($messages['warning']) ? '' : join("\n", $messages['warning']) . "\n";
+      $msg .= empty($messages['error']) ? '' : join("\n", $messages['error']) . "\n";
+
+      // Get error messages
       $error = error_get_last();
       if ($error) {
-        if ($error['type'] & (E_ERROR | E_CORE_ERROR | E_RECOVERABLE_ERROR)) {
-          $fatal_msg =  $error['message'] . ' (line ' . $error['line'] . ' of ' . $error['file'] . ').' . "\n";
-        }
-        else {
-          $fatal_msg .= t('Died unexpectedly');
-        }
+        $msg .= $error['message'] . ' (line ' . $error['line'] . ' of ' . $error['file'] . ').' . "\n";
       }
-    }
-    if (is_null($shutdown_msg)) {
-      $messages = drupal_get_messages();
-    }
-
-    $log = ultimate_cron_record_log();
-    $msg = $log['msg'];
-    if ($shutdown_msg) {
-      $msg .= $msg ? "\n$shutdown_msg" : $shutdown_msg;
-    }
-
-    if (!empty($messages['error'])) {
-      $msg .= join("\n", $messages['error']) . "\n";
-    }
-    $msg .= $fatal_msg;
-
-    // If success, use status messages if any
-    $result = empty($msg);
-    if ($result && !empty($messages['status'])) {
-      $msg = join("\n", $messages['status']);
     }
 
     // log results here ...
@@ -511,15 +490,18 @@ function ultimate_cron_queue_cron($hook, $queue_name) {
     $items++;
   }
   drupal_set_message(t('Processed @items items', array('@items' => $items)));
-/*
+
   if (is_numeric($polling_latency)) {
-    $settings = ultimate_cron_get_settings($job);
-    $hook['settings'] = $settings + $hook['settings'];
-    if (ultimate_cron_hook_should_run($hook)) {
-      background_process_keepalive();
+    // Reload settings
+    $keepalive = FALSE;
+    $hooks = ultimate_cron_get_hooks();
+    if (!empty($hooks[$hook['name']])) {
+      $hook = $hooks[$hook['name']];
+      $keepalive = ultimate_cron_hook_should_run($hook);
     }
+    $process = BackgroundProcess::currentProcess();
+    $process->keepAlive($keepalive);
   }
-*/
   return;
 }
 
@@ -715,7 +697,7 @@ function ultimate_cron_hook_should_run($hook) {
   $log = ultimate_cron_get_last_log_entry($hook['name']);
   $last_run = isset($log['start']) ? $log['start'] : 0;
 
-  return ultimate_cron_should_run($hook['rules'], $last_run, time(), $hook['catch_up'], $hook['original weight']);
+  return ultimate_cron_should_run($hook['rules'], $last_run, time(), $hook['catch up'], $hook['original weight']);
 }
 
 /**
@@ -770,7 +752,7 @@ function ultimate_cron_get_hooks() {
           $legacy_settings = $legacy_settings ? $legacy_settings : array();
           if (empty($legacy_settings['rules']) && $rules) $legacy_settings['rules'] = $rules;
 
-          $item = empty($settings[$name]) ? array() : $settings[$name];
+          $item = empty($settings[$name]) ? array() : $settings[$name]->settings;
           $item += $legacy_settings;
           $item += array(
             'description' => $desc,
@@ -778,7 +760,7 @@ function ultimate_cron_get_hooks() {
           );
         }
         else {
-          $item = empty($settings[$name]) ? $item : $settings[$name] + $item;
+          $item = empty($settings[$name]) ? $item : $settings[$name]->settings + $item;
         }
         $item += array(
           'description' => $name,
@@ -789,7 +771,7 @@ function ultimate_cron_get_hooks() {
           'weight' => 0,
           'arguments' => array(),
           'callback' => $name,
-          'catch_up' => variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP),
+          'catch up' => variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP),
           'background_process' => empty($processes['uc:' . $name]) ? NULL : BackgroundProcess::create($processes['uc:' . $name]),
           'enabled' => TRUE,
         );
@@ -946,9 +928,9 @@ function ultimate_cron_load_all() {
   if (module_exists('ctools')) {
     ctools_include('export');
     $settings = ctools_export_crud_load_all('ultimate_cron');
-    foreach ($settings as $info) {
-      $info->settings = !empty($info->settings) ? (array) unserialize($info->settings) : array();
-    }
+    #foreach ($settings as $info) {
+      #$info->settings = !empty($info->settings) ? (array) unserialize($info->settings) : array();
+    #}
   }
   else {
     $settings = db_select('ultimate_cron', 'u')
