@@ -13,7 +13,7 @@ function ultimate_cron_drush_command() {
   $items['cron-list'] = array(
     'description' => "List cron jobs.",
     'arguments' => array(
-      'type' => 'The type of jobs to list (all, running, enabled, disabled, unsafe)',
+      'type' => 'The type of jobs to list (all, running, enabled, disabled)',
     ),
     'options' => array(
       'module' => 'Only show jobs from comma separated list of modules',
@@ -102,52 +102,43 @@ function drush_ultimate_cron_cron_list($type = 'all') {
   $module = $module ? explode(",", $module) : array();
   // Get hooks and their data
   $hooks = ultimate_cron_get_hooks();
-  $data = _ultimate_cron_preload_cron_data();
   $jobs = array();
 
   $modules = array();
-  foreach ($hooks as $function => $hook) {
+  foreach ($hooks as $name => $hook) {
     if (!$module || $module == $hook['module']) {
-      $modules[$hook['module']][$function] = $hook;
+      $modules[$hook['module']][$name] = $hook;
     }
   }
 
-  foreach ($hooks as $function => &$hook) {
+  foreach ($hooks as $name => &$hook) {
     if ($module && !in_array($hook['module'], $module)) {
       continue;
     }
 
-    $hook['settings'] = $data[$function]['settings'] + $hook['settings'];
-    $hook['background_process'] = $data[$function]['background_process'];
-    $hook['log'] = ultimate_cron_get_log($function);
+    $hook['log'] = ultimate_cron_get_last_log_entry($name);
 
     switch ($type) {
       case 'enabled':
-        if (!empty($hook['settings']['enabled'])) {
+        if (!empty($hook['enabled'])) {
           $jobs[] = $hook;
         }
         break;
 
       case 'disabled':
-        if (empty($hook['settings']['enabled'])) {
+        if (empty($hook['enabled'])) {
           $jobs[] = $hook;
         }
         break;
 
       case 'running':
-        if (!empty($data[$hook['function']]['background_process'])) {
-          $jobs[] = $hook;
-        }
-        break;
-
-      case 'unsafe':
-        if (!empty($hook['unsafe'])) {
+        if ($hook['background_process']) {
           $jobs[] = $hook;
         }
         break;
 
       case 'failed':
-        if (isset($hook['log']['status']) && empty($hook['log']['status'])) {
+        if (isset($hook['log']['status']) && $hook['log']['status'] <= WATCHDOG_ERROR) {
           $jobs[] = $hook;
         }
         break;
@@ -159,20 +150,22 @@ function drush_ultimate_cron_cron_list($type = 'all') {
   }
 
   $table = array();
-  $table[] = array('', dt('Module'), dt('Function'), dt('Rules'), dt('Start'), dt('Duration'));
+  $table[] = array('', dt('Name'), dt('Module'), dt('Callback'), dt('Rules'), dt('Start'), dt('Duration'));
   foreach ($jobs as $hook) {
     $legend = '';
+    $progress = '';
     if (!empty($hook['background_process'])) {
       $legend .= 'R';
-      $hook['log']['start'] = $hook['background_process']->start;
-      $hook['log']['end'] = microtime(TRUE);
+      $hook['log']['start_time'] = $hook['background_process']->getStartTime();
+      $hook['log']['end_time'] = microtime(TRUE);
+      $progress = $hook['background_process']->getProgress();
+      $progress = $progress ? sprintf(" (%02d%%)", $progress * 100) : '';
     }
-    if (empty($hook['settings']['enabled'])) $legend .= 'D';
+    if (empty($hook['enabled'])) $legend .= 'D';
 
-    $start = isset($hook['log']['start']) ? format_date((int)$hook['log']['start'], 'custom', 'Y-m-d H:i:s') : dt('N/A');
-    $end = isset($hook['log']['end']) ? gmdate('H:i:s', (int)($hook['log']['end'] - $hook['log']['start'])) : dt('N/A');
-    $rules = $hook['settings']['rules'];
-    $table[] = array($legend, $hook['module'], $hook['function'], implode("\n", $rules), $start, $end);
+    $start = isset($hook['log']['start_time']) ? format_date((int)$hook['log']['start_time'], 'custom', 'Y-m-d H:i:s') : dt('N/A');
+    $end = isset($hook['log']['end_time']) ? gmdate('H:i:s', (int)($hook['log']['end_time'] - $hook['log']['start_time'])) : dt('N/A');
+    $table[] = array($legend, $hook['name'], $hook['module'], $hook['callback'], implode("\n", $hook['rules']), $start, $end . $progress);
   }
   drush_print_table($table);
 }
@@ -180,33 +173,51 @@ function drush_ultimate_cron_cron_list($type = 'all') {
 /**
  * Run cron job(s)
  */
-function drush_ultimate_cron_cron_run($function = NULL) {
+function drush_ultimate_cron_cron_run($name = NULL) {
   $cli = drush_get_option('cli');
   $check_rule = drush_get_option('check-rule');
   $logfile = drush_get_option('logfile');
   $logfile = is_string($logfile) ? $logfile : '/dev/null';
 
-  if ($function == 'all') {
+  // Get global options
+  $options = drush_get_context('cli');
+  $cmd_options = '';
+
+  // Determine new parameter string for sub-requests
+  $passthru = array('root', 'php', 'uri', 'simulate');
+  foreach ($options as $key => $option) {
+    if (in_array($key, $passthru)) {
+      $cmd_options .= ' --' . $key . '=' . escapeshellarg($option);
+    }
+  }
+
+  if ($name == 'all') {
     if ($cli) {
       $hooks = ultimate_cron_get_hooks();
       $schedule = ultimate_cron_get_schedule($hooks);
-      foreach ($schedule as $function => $hook) {
-        drush_print(dt('[!function]: Launching @ !ts', array('!ts' => date('Y-m-d H:i:s'), '!function' => $function)));
-        $cmd = $_SERVER['SCRIPT_FILENAME'] . " cron-run $function --cli " . ($check_rule ? '--check-rule' : '');
+      foreach ($schedule as $name => $hook) {
+        if (!empty($options['simulate'])) {
+          // Dry-run ...
+          drush_print(dt('[!name]: Simulated launch @ !ts', array('!ts' => date('Y-m-d H:i:s'), '!name' => $name)));
+          continue;
+        }
+
+        drush_print(dt('[!name]: Launching @ !ts', array('!ts' => date('Y-m-d H:i:s'), '!name' => $name)));
+        $cmd = $_SERVER['SCRIPT_FILENAME'] . " cron-run $name --cli " . ($check_rule ? '--check-rule' : '');
         exec("$cmd >> " . escapeshellarg($logfile) . " 2>&1 &");
       }
       drush_print(dt('[!ts] Launced !jobs jobs', array('!ts' => date('Y-m-d H:i:s'), '!jobs' => count($schedule))));
 
       // Update drupals cron timestamp, but don't clear the cache for all variables!
-      $name = 'cron_last';
-      $value = time();
-      global $conf;
-      db_merge('variable')->key(array('name' => $name))->fields(array('value' => serialize($value)))->execute();
-      $conf[$name] = $value;
+      if (empty($options['simulate'])) {
+        _ultimate_cron_variable_set('cron_last', time());
+      }
       return;
     }
     else {
-      ultimate_cron_cron_run(TRUE);
+      if (empty($options['simulate'])) {
+        ultimate_cron_cron_run(TRUE);
+      }
       $messages = drupal_get_messages();
       foreach ($messages['status'] as $message) {
         drush_print(strip_tags($message));
@@ -216,17 +227,16 @@ function drush_ultimate_cron_cron_run($function = NULL) {
   }
 
   $hooks = ultimate_cron_get_hooks();
-  if (!isset($hooks[$function])) {
-    return drush_set_error(dt('[!function]: not found', array('!function' => $function)));
+  if (!isset($hooks[$name])) {
+    return drush_set_error(dt('[!name]: not found', array('!name' => $name)));
   }
 
-  $hook = &$hooks[$function];
+  $hook = $hooks[$name];
 
   // When run manually don't double check the rules
   if (drush_get_option('check-rule')) {
-    $hook['log'] = ultimate_cron_get_log($function);
     if (!ultimate_cron_hook_should_run($hook)) {
-      drush_print(dt("[!function]: not sceduled to run at this time", array('!function' => $function)));
+      drush_print(dt("[!name]: not sceduled to run at this time", array('!name' => $name)));
       return;
     }
   }
@@ -237,81 +247,85 @@ function drush_ultimate_cron_cron_run($function = NULL) {
 
   if ($cli) {
     $start = microtime(TRUE);
-    $result = ultimate_cron_run_hook_cli($function, $hook);
+    $result = ultimate_cron_run_hook_cli($hook);
   }
   else {
-    $result = ultimate_cron_run_hook($function, $hook);
+    $result = ultimate_cron_run_hook($hook);
   }
 
 
   if ($result === FALSE) {
-    return drush_set_error(dt('[!function]: could not start (already running?)', array('!function' => $function)));
+    return drush_set_error(dt('[!name]: could not start (already running?)', array('!name' => $name)));
   }
 
   if ($cli) {
-    $log = ultimate_cron_get_log($function);
+    $log = ultimate_cron_get_log($name);
     if ($log['start'] >= $start && !empty($log['msg'])) {
-      drush_print("[$function]: " . $log['msg']);
+      drush_print("[$name]: " . $log['msg']);
     }
-    #drush_print(dt('!function finished', array('!function' => $function)));
-    return $result ? NULL : drush_set_error(dt('[!function]: could not start (service unavailable)', array('!function' => $function)));
+    #drush_print(dt('!name finished', array('!name' => $name)));
+    return $result ? NULL : drush_set_error(dt('[!name]: could not start (service unavailable)', array('!name' => $name)));
   }
 
   if ($result === NULL) {
-    return drush_set_error(dt('[!function]: could not start (service unavailable)', array('!function' => $function)));
+    return drush_set_error(dt('[!name]: could not start (service unavailable)', array('!name' => $name)));
   }
   else {
-    drush_print(dt('!function started', array('!function' => $function)));
+    drush_print(dt('!name started', array('!name' => $name)));
   }
 }
 
 /**
  * Enable a cron job
  */
-function drush_ultimate_cron_cron_enable($function) {
+function drush_ultimate_cron_cron_enable($name) {
   $hooks = ultimate_cron_get_hooks();
-  if (!isset($hooks[$function])) {
-    return drush_set_error(dt('"!function" not found', array('!function' => $function)));
+  if (!isset($hooks[$name])) {
+    return drush_set_error(dt('"!name" not found', array('!name' => $name)));
   }
-  $conf = ultimate_cron_get_settings($function);
-  $conf['enabled'] = TRUE;
-  ultimate_cron_set_settings($function, $conf);
-  drush_print(dt('!function enabled', array('!function' => $function)));
+  $settings = ultimate_cron_load($name);
+  $settings->settings = $settings->settings ? $settings->settings : array();
+  $settings->settings['enabled'] = TRUE;
+  ultimate_cron_save($settings);
+  drush_print(dt('!name enabled', array('!name' => $name)));
 }
 
 /**
  * Disable a cron job
  */
-function drush_ultimate_cron_cron_disable($function) {
+function drush_ultimate_cron_cron_disable($name) {
   $hooks = ultimate_cron_get_hooks();
-  if (!isset($hooks[$function])) {
-    return drush_set_error(dt('"!function" not found', array('!function' => $function)));
+  if (!isset($hooks[$name])) {
+    return drush_set_error(dt('"!name" not found', array('!name' => $name)));
   }
-  $conf = ultimate_cron_get_settings($function);
-  $conf['enabled'] = FALSE;
-  ultimate_cron_set_settings($function, $conf);
-  drush_print(dt('!function disabled', array('!function' => $function)));
+  $settings = ultimate_cron_load($name);
+  $settings->settings = $settings->settings ? $settings->settings : array();
+  $settings->settings['enabled'] = FALSE;
+  ultimate_cron_save($settings);
+  drush_print(dt('!name disabled', array('!name' => $name)));
 }
 
 /**
  * Unlock a cron job
  */
-function drush_ultimate_cron_cron_unlock($function) {
+function drush_ultimate_cron_cron_unlock($name) {
   $hooks = ultimate_cron_get_hooks();
-  if (!isset($hooks[$function])) {
-    return drush_set_error(dt('"!function" not found', array('!function' => $function)));
+  if (!isset($hooks[$name])) {
+    return drush_set_error(dt('"!name" not found', array('!name' => $name)));
+  }
+  $hook = $hooks[$name];
+
+  if (!$hook['background_process']) {
+    drush_print(dt('Cron job !name is not running', array('!name' => $name)));
+    return;
   }
 
-  $handle = 'uc:' . $function;
-  if ($process = background_process_get_process($handle)) {
-    // Unlock the process
-    if (background_process_remove_process($process->handle, $process->start)) {
-      drush_print(dt('Process for !function unlocked (process handle: !handle)', array('!handle' => $handle, '!function' => $function)));
-      module_invoke_all('background_process_shutdown', $process, FALSE, t('Manually unlocked'));
-    }
+  // Unlock the process
+  if ($hook['background_process']->unlock()) {
+    drush_print(dt('Cron job !name unlocked (process handle: !handle)', array('!handle' => $hook['background_process']->getHandle(), '!name' => $name)));
   }
   else {
-    drush_set_error(dt('Process for !function not found (process handle: !handle)', array('!handle' => $handle, '!function' => $function)));
+    drush_set_error(dt('Could not unlock cron job !name (process handle: !handle)', array('!handle' => $hook['background_process']->getHandle(), '!name' => $name)));
   }
 }
 

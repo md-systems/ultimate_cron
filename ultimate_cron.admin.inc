@@ -386,7 +386,7 @@ function ultimate_cron_view_page($module = NULL) {
 
       $link_unlock = '';
       if ($process) {
-        $link_unlock = _ultimate_cron_l('Unlock', 'background-process/unlock/' . $process->getHandle());
+        $link_unlock = _ultimate_cron_l('Unlock', 'background-process/unlock/' . $process->pid);
       }
 
       $link_settings = _ultimate_cron_l('Schedule', 'admin/config/system/cron/settings/' . $function);
