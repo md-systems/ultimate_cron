@@ -495,17 +495,18 @@ function ultimate_cron_queue_cron($hook, $queue_name) {
   }
   drupal_set_message(t('Processed @items items', array('@items' => $items)));
 
+
+  $keepalive = FALSE;
   if (is_numeric($polling_latency)) {
     // Reload settings
-    $keepalive = FALSE;
-    $hooks = ultimate_cron_get_hooks();
-    if (!empty($hooks[$hook['name']])) {
-      $hook = $hooks[$hook['name']];
+    $hook = ultimate_cron_get_hook($hook['name'], TRUE);
+    if (!$hook) {
       $keepalive = ultimate_cron_hook_should_run($hook);
     }
-    $process = BackgroundProcess::currentProcess();
-    $process->keepAlive($keepalive);
   }
+  $process = BackgroundProcess::currentProcess();
+  $process->setCallback($process->callback, array($hook, $queue_name));
+  $process->keepAlive($keepalive);
   return;
 }
 
@@ -714,15 +715,21 @@ function _ultimate_cron_sort_schedule($a, $b) {
   return $a['last_run'] == $b['last_run'] ? 0 : ($a['last_run'] < $b['last_run'] ? -1 : 1);
 }
 
+
+function ultimate_cron_get_hook($name, $reset = FALSE) {
+  $hooks = ultimate_cron_get_hooks($reset);
+  return $hooks[$name];
+}
+
 /**
  * Get cron hooks available.
  *
  * @return array
  *   List of modules.
  */
-function ultimate_cron_get_hooks() {
+function ultimate_cron_get_hooks($reset = FALSE) {
   static $hooks = NULL;
-  if (isset($hooks)) {
+  if (!$reset && isset($hooks)) {
     return $hooks;
   }
   $hooks = array();

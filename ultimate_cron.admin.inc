@@ -264,21 +264,21 @@ function ultimate_cron_function_settings_form($form, &$form_state, $name) {
 function ultimate_cron_function_settings_form_validate($form, &$form_state) {
   $settings =& $form_state['values']['general'];
   $settings['rules'] = trim($settings['rules']);
-  $settings['rules'] = $settings['rules'] ? explode(';', $settings['rules']) : array();
+
+  // Clean up blank values
+  foreach ($settings as $idx => $value) {
+    if ($value === '') {
+      unset($settings[$idx]);
+    }
+  }
 
   if ($settings['rules']) {
+    $settings['rules'] = $settings['rules'] ? explode(';', $settings['rules']) : array();
     foreach ($settings['rules'] as &$rule) {
       $rule = trim($rule);
       if (!ultimate_cron_validate_rule($rule)) {
         form_set_error('rules', t('Invalid rule.'));
       }
-    }
-  }
-
-  // Clean up blank values
-  foreach ($settings as $idx => $value) {
-    if (empty($value)) {
-      unset($settings[$idx]);
     }
   }
 }
@@ -393,7 +393,7 @@ function ultimate_cron_view_page($module = NULL) {
       $link_execute = _ultimate_cron_l('Run', 'admin/ultimate-cron/service/start/' . $function);
       $link_log = _ultimate_cron_l('Log', 'admin/reports/cron/' . $function);
 
-      $enable = !empty($conf) && empty($conf['enabled']);
+      $enable = empty($hook['enabled']);
       $link_toggle = _ultimate_cron_l($enable ? 'Enable' : 'Disable', 'admin/ultimate-cron/service/' . ($enable ? 'enable' : 'disable') . '/' . $function);
 
       $data = array(
