@@ -356,7 +356,7 @@ function ultimate_cron_view_page($module = NULL) {
           'end_time' => NULL,
         );
       }
-      $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= WATCHDOG_INFO ? 'info' : ($log['severity'] >= WATCHDOG_WARNING ? 'warning' : 'error'));
+      $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= WATCHDOG_NOTICE ? 'info' : ($log['severity'] >= WATCHDOG_WARNING ? 'warning' : 'error'));
       $css_status = !empty($process) ? 'running' : $severity_type;
 
       $short_msg = $log['severity'];
