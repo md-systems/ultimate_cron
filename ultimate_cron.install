@@ -19,7 +19,6 @@ function ultimate_cron_schema() {
       'primary key' => 'fid',
       'identifier' => 'name',
       'default hook' => 'default_ultimate_cron_function',
-      'save callback' => 'ultimate_cron_crud_save',
       'api' => array(
         'owner' => 'ultimate_cron',
         'api' => 'default_ultimate_cron_functions',
@@ -69,26 +68,26 @@ function ultimate_cron_schema() {
         'length' => 127,
         'not null' => TRUE,
       ),
-      'start_stamp' => array(
-        'description' => 'Timstamp of execution start',
+      'start_time' => array(
+        'description' => 'Timestamp of execution start',
         'type' => 'float',
         'size' => 'big',
         'not null' => TRUE,
         'default' => 0,
       ),
-      'end_stamp' => array(
-        'description' => 'Timstamp of execution end',
+      'end_time' => array(
+        'description' => 'Timestamp of execution end',
         'type' => 'float',
         'size' => 'big',
         'not null' => TRUE,
         'default' => 0,
       ),
-      'exec_status' => array(
-        'description' => 'Status of the execution',
+      'severity' => array(
+        'description' => 'Max severity level of the execution',
         'type' => 'int',
         'size' => 'normal',
         'not null' => FALSE,
-        'default' => NULL,
+        'default' => -1,
       ),
       'msg' => array(
         'description' => 'Message',
@@ -98,8 +97,8 @@ function ultimate_cron_schema() {
     ),
     'primary key' => array('lid'),
     'indexes' => array(
-       'idx_last' => array('name', 'start_stamp'),
-       'idx_count' => array('name', 'end_stamp'),
+       'idx_last' => array('name', 'start_time'),
+       'idx_count' => array('name', 'end_time'),
     ),
   );
 
@@ -142,140 +141,9 @@ function ultimate_cron_requirements($phase) {
       $response['title'] = 'Ultimate Cron';
       $response['value'] = 'OK';
       $response['severity'] = REQUIREMENT_OK;
-      if ($modules = _ultimate_cron_incompatible_modules()) {
-        $response['severity'] = REQUIREMENT_ERROR;
-        $response['value'] = t('Ultimate Cron is DISABLED!');
-        $response['description'] = t('%modules is installed on the system, but is incompatible with Ultimate Cron.<br/>Please disable the modules %modules.<br/>You might want to !url settings first.', array('%modules' => join(', ', $modules), '!url' => l(t('import'), 'admin/settings/cron/import')));
-      }
       $result = array();
       $result['ultimate_cron'] = $response;
       return $result;
   }
-}
-
-/**
- * Move messages to log table.
- */
-function ultimate_cron_update_7000() {
-  db_add_field('ultimate_cron_log', 'msg', array(
-    'description' => 'Message',
-    'type' => 'text',
-    'not null' => FALSE,
-  ));
-  db_query("UPDATE {ultimate_cron_log} l JOIN {ultimate_cron_log_message} m ON l.lid = m.lid SET l.msg = m.msg");
-  db_drop_table('ultimate_cron_log_message');
-}
-
-/**
- * Convert polling latenct from microseconds to miliseconds.
- */
-function ultimate_cron_update_7001() {
-  // Convert polling latency from microseconds to miliseconds.
-  $polling_latency = variable_get('ultimate_cron_queue_polling_latency', NULL);
-  if ($polling_latency) {
-    $polling_latency /= 1000;
-    variable_set('ultimate_cron_queue_polling_latency', $polling_latency);
-  }
-}
-
-/**
- * Merge ultimate_cron_function and ultimate_cron_configuration into ultimate_cron
- */
-function ultimate_cron_update_7002() {
-  $schema = ultimate_cron_schema();
-  db_create_table('ultimate_cron', $schema['ultimate_cron']);
-  db_query("INSERT INTO {ultimate_cron} SELECT f.fid, f.function, c.configuration AS settings FROM ultimate_cron_function f LEFT JOIN {ultimate_cron_configuration} c ON f.fid = c.fid");
-  db_drop_table('ultimate_cron_function');
-  db_drop_table('ultimate_cron_configuration');
-}
-
-/**
- * Switch from fid to function name in ultimate_cron_log
- */
-function ultimate_cron_update_7003() {
-  db_add_field('ultimate_cron_log', 'function', array(
-        'description' => 'Function name',
-        'type' => 'varchar',
-        'length' => 127,
-        'not null' => TRUE,
-        'initial' => 'function',
-      ));
-  $fids = db_select('ultimate_cron_log', 'u')->fields('u', array('fid'))->distinct()->execute();
-  while ($fid = $fids->fetchObject()) {
-    $function = db_select('ultimate_cron', 'u')->fields('u', array('function'))->condition('fid', $fid->fid, '=')->execute()->fetchObject();
-    db_update('ultimate_cron_log')->fields(array('function' => $function->function))->condition('fid', $fid->fid, '=')->execute();
-  }
-  db_drop_field('ultimate_cron_log', 'fid');
-  db_drop_index('ultimate_cron_log', 'idx_last');
-  db_drop_index('ultimate_cron_log', 'idx_count');
-  db_add_index('ultimate_cron_log', 'idx_last', array('function', 'start'));
-  db_add_index('ultimate_cron_log', 'idx_count', array('function', 'end'));
-}
-
-/**
- * Add missing index to database
- */
-function ultimate_cron_update_7105() {
-  $items = db_select('ultimate_cron')
-             ->fields('ultimate_cron', array('fid', 'function'))
-             ->orderBy('fid', 'ASC')
-             ->execute()
-             ->fetchAllAssoc('fid', PDO::FETCH_ASSOC);
-  $fids = array();
-  $keep = array();
-  foreach ($items as $item) {
-    if (isset($keep[$item['function']])) {
-      $fids[] = $keep[$item['function']];
-    }
-    $keep[$item['function']] = $item['fid'];
-  }
-  if ($fids) {
-    db_delete('ultimate_cron')
-      ->condition('fid', $fids)
-      ->execute();
-  }
-  db_add_unique_key('ultimate_cron', 'uniq_function', array('function'));
-}
-
-/**
- * Change schema to SQL 99 compliance
- */
-function ultimate_cron_update_7106() {
-  db_drop_unique_key('ultimate_cron', 'idx_function');
-  db_change_field('ultimate_cron', 'function', 'name', array(
-    'description' => 'Function name',
-    'type' => 'varchar',
-    'length' => 127,
-    'not null' => TRUE,
-  ));
-  db_add_unique_key('ultimate_cron', 'idx_name', array('name'));
-  
-  db_change_field('ultimate_cron_log', 'function', 'name', array(
-    'description' => 'Function name',
-    'type' => 'varchar',
-    'length' => 127,
-    'not null' => TRUE,
-  ));
-  db_change_field('ultimate_cron_log', 'start', 'start_stamp', array(
-    'description' => 'Timstamp of execution start',
-    'type' => 'float',
-    'size' => 'big',
-    'not null' => TRUE,
-    'default' => 0,
-  ));
-  db_change_field('ultimate_cron_log', 'end', 'end_stamp', array(
-    'description' => 'Timstamp of execution end',
-    'type' => 'float',
-    'size' => 'big',
-    'not null' => TRUE,
-    'default' => 0,
-  ));
-  db_change_field('ultimate_cron_log', 'status', 'exec_status', array(
-    'description' => 'Status of the execution',
-    'type' => 'int',
-    'size' => 'normal',
-    'not null' => FALSE,
-    'default' => NULL,
-  ));
 }
 

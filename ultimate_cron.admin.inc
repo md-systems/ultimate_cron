@@ -19,24 +19,14 @@ function ultimate_cron_settings_form() {
   $form = array();
   $advanced_help_enabled = module_exists('advanced_help');
    // General settings -----------------------------------
-  $form['general'] = array(
-    '#title' => t('General'),
+  $form['rules'] = array(
+    '#title' => t('Rules'),
     '#type' => 'fieldset',
     '#collapsible' => TRUE,
     '#collapsed' => FALSE,
     '#tree' => FALSE,
   );
-  $form['general']['ultimate_cron_simultaneous_connections'] = array(
-    '#title' => t("Simultaneous connections"),
-    '#type' => 'textfield',
-    '#default_value' => variable_get('ultimate_cron_simultaneous_connections', ULTIMATE_CRON_SIMULTANEOUS_CONNECTIONS),
-    '#description' => ($advanced_help_enabled ? theme('advanced_help_topic', array(
-                              'module' => 'ultimate_cron',
-                              'topic' => 'simultaneous_connections',
-                              'type' => 'icon')
-                      ) : '') . t('Maximum number of simultaneous connections'),
-  );
-  $form['general']['ultimate_cron_rule'] = array(
+  $form['rules']['ultimate_cron_rule'] = array(
     '#title' => t("Default rule"),
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_rule', ULTIMATE_CRON_RULE),
@@ -46,17 +36,7 @@ function ultimate_cron_settings_form() {
                               'type' => 'icon')
                       ) : '') . t('Enter the default fallback rule'),
   );
-  $form['general']['ultimate_cron_cleanup_log'] = array(
-    '#title' => t("Clean up logs older than X seconds"),
-    '#type' => 'textfield',
-    '#default_value' => variable_get('ultimate_cron_cleanup_log', ULTIMATE_CRON_CLEANUP_LOG),
-    '#description' => ($advanced_help_enabled ? theme('advanced_help_topic', array(
-                              'module' => 'ultimate_cron',
-                              'topic' => 'cleanup_log',
-                              'type' => 'icon')
-                      ) : '') . t('Enter maximum age, in seconds, for log entries'),
-  );
-  $form['general']['ultimate_cron_catch_up'] = array(
+  $form['rules']['ultimate_cron_catch_up'] = array(
     '#title' => t('Default catch up'),
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP),
@@ -66,7 +46,31 @@ function ultimate_cron_settings_form() {
                               'type' => 'icon')
                       ) : '') . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) . ')'),
   );
-  $form['general']['ultimate_cron_queue_polling_latency'] = array(
+  $form['cleanup'] = array(
+    '#title' => t('Clean up'),
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#tree' => FALSE,
+  );
+  $form['cleanup']['ultimate_cron_cleanup_log'] = array(
+    '#title' => t("Clean up logs older than X seconds"),
+    '#type' => 'textfield',
+    '#default_value' => variable_get('ultimate_cron_cleanup_log', ULTIMATE_CRON_CLEANUP_LOG),
+    '#description' => ($advanced_help_enabled ? theme('advanced_help_topic', array(
+                              'module' => 'ultimate_cron',
+                              'topic' => 'cleanup_log',
+                              'type' => 'icon')
+                      ) : '') . t('Enter maximum age, in seconds, for log entries'),
+  );
+  $form['queues'] = array(
+    '#title' => t('Queues'),
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#tree' => FALSE,
+  );
+  $form['queues']['ultimate_cron_queue_polling_latency'] = array(
     '#title' => t("Queue polling latency"),
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_queue_polling_latency', ULTIMATE_CRON_QUEUE_POLLING_LATENCY),
@@ -76,7 +80,7 @@ function ultimate_cron_settings_form() {
                               'type' => 'icon')
                       ) : '') . t('Queue polling latency in miliseconds. Leave blank to disable continuous processing of queues.'),
   );
-  $form['general']['ultimate_cron_queue_lease_time'] = array(
+  $form['queues']['ultimate_cron_queue_lease_time'] = array(
     '#title' => t('Queue lease time'),
     '#type' => 'textfield',
     '#default_value' => variable_get('ultimate_cron_queue_lease_time', ULTIMATE_CRON_QUEUE_LEASE_TIME),
@@ -86,7 +90,14 @@ function ultimate_cron_settings_form() {
                               'type' => 'icon')
                       ) : '') . t('Time in seconds to keep lock on claimed item'),
   );
-  $form['general']['ultimate_cron_poorman'] = array(
+  $form['poorman'] = array(
+    '#title' => t('Poormans cron'),
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#tree' => FALSE,
+  );
+  $form['poorman']['ultimate_cron_poorman'] = array(
     '#title' => t("Poormans cron"),
     '#type' => 'checkbox',
     '#default_value' => variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN),
@@ -246,16 +257,13 @@ function ultimate_cron_view_page($module = NULL) {
   }
 
   // Get hooks and their data
-  $data = _ultimate_cron_preload_cron_data();
   $hooks = ultimate_cron_get_hooks();
 
   $modules = array();
-  foreach ($hooks as $function => $hook) {
+  foreach ($hooks as $name => $hook) {
     if (!$module || $module == $hook['module']) {
-      $hook['settings'] = $data[$function]['settings'] + $hook['settings'];
-      $hook['background_process'] = $data[$function]['background_process'];
-      $hook['log'] = ultimate_cron_get_log($function);
-      $modules[$hook['module']][$function] = $hook;
+      $hook['log'] = ultimate_cron_get_last_log_entry($name);
+      $modules[$hook['module']][$name] = $hook;
     }
   }
 
@@ -265,53 +273,59 @@ function ultimate_cron_view_page($module = NULL) {
 
   $overview = array();
   $overview['running'] = 0;
-  $overview['errors'] = 0;
+  $overview['success'] = 0;
+  $overview['info'] = 0;
+  $overview['warning'] = 0;
+  $overview['error'] = 0;
 
   foreach ($modules as $module => $hooks) {
     foreach ($hooks as $function => $hook) {
       // Setup settings
-      $conf = $hook['settings'];
-      $rules = $hook['settings']['rules'];
+      $rules = $hook['rules'];
       $cron = new CronRule();
       $parsed_rules = array();
       foreach ($rules as $rule) {
         $cron->rule = $rule;
-        $cron->offset = $hook['delta'];
+        $cron->offset = $hook['original weight'];
         $parsed_rules[] = $cron->parseRule();
       }
 
       // Setup process
       $process = $hook['background_process'];
-      $service_host = empty($process->service_host) ? t('N/A') : $process->service_host;
+      $service_host = !$process || !$process->getServiceHost() ? t('N/A') : $process->getServiceHost();
 
       // Setup log
       $log = $hook['log'];
       if (!$log) {
         $log = array(
-          'status' => NULL,
-          'start' => NULL,
-          'end' => NULL,
+          'severity' => -1,
+          'start_time' => NULL,
+          'end_time' => NULL,
         );
       }
-      $short_msg = isset($log['status']) ? ($log['status'] ? t('No errors') : t('Errors')) : t('No information');
-      $css_status = !empty($process) ? 'running' : (isset($log['status']) ? ($log['status'] ? 'noerror' : 'error') : 'noinfo');
-      $msg = !empty($log['msg']) ? $log['msg'] : ($log['status'] ? t('No errors') : t('No information'));
+      $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= WATCHDOG_INFO ? 'info' : ($log['severity'] >= WATCHDOG_WARNING ? 'warning' : 'error'));
+
+      $short_msg = $log['severity'];
+      $css_status = !empty($process) ? 'running' : $severity_type;
+      $msg = !empty($log['msg']) ? $log['msg'] : t('No errors');
+      $percentage = '';
       if ($process) {
         $overview['running']++;
-        $log['previous_start'] = $log['start'];
-        $log['previous_end'] = $log['end'];
-        $log['start'] = $process->start;
-        if ($process->status == BACKGROUND_PROCESS_STATUS_RUNNING) {
-          $log['end'] = microtime(TRUE);
+        $log['previous_start_time'] = $log['start_time'];
+        $log['previous_end_time'] = $log['end_time'];
+        $log['start_time'] = $process->getStartTime();
+        if ($process->getStatus() == BACKGROUND_PROCESS_STATUS_RUNNING) {
+          $log['end_time'] = microtime(TRUE);
+          $progress = $process->getProgress();
+          $percentage = $progress ? sprintf(" (%02d%%)", $progress * 100) : '';
         }
         else {
-          $log['end'] = NULL;
+          $log['end_time'] = NULL;
         }
       }
 
-      if (isset($log['status']) && !$log['status']) {
-        $overview['errors']++;
-      }
+      $overview[$severity_type]++;
+
       $link_configure = '';
       if (!empty($hook['configure'])) {
         $link_configure = _ultimate_cron_l('Settings', $hook['configure']);
@@ -319,7 +333,7 @@ function ultimate_cron_view_page($module = NULL) {
 
       $link_unlock = '';
       if ($process) {
-        $link_unlock = _ultimate_cron_l('Unlock', 'background-process/unlock/' . $process->handle);
+        $link_unlock = _ultimate_cron_l('Unlock', 'background-process/unlock/' . $process->getHandle());
       }
 
       $link_settings = _ultimate_cron_l('Schedule', 'admin/config/system/cron/settings/' . $function);
@@ -349,18 +363,18 @@ function ultimate_cron_view_page($module = NULL) {
       $data[2]['title'] = $function;
       $data[3]['data'] = join("<br/>", $rules);
       $data[3]['title'] = join("\n", $parsed_rules);
-      $data[4]['data'] = $log['start'] ? format_date((int)$log['start'], 'custom', 'Y-m-d H:i:s') : t('Never');
-      $data[5]['data'] = $log['end'] ? gmdate('H:i:s', (int)($log['end'] - $log['start'])) : ($process ? t('Starting') : t('N/A'));
-      $finish = !empty($log['previous_end']) ? $log['previous_end'] : $log['end'];
+      $data[4]['data'] = $log['start_time'] ? format_date((int)$log['start_time'], 'custom', 'Y-m-d H:i:s') : t('Never');
+      $data[5]['data'] = $log['end_time'] ? gmdate('H:i:s', (int)($log['end_time'] - $log['start_time'])) . $percentage : ($process ? t('Starting') : t('N/A'));
+      $finish = !empty($log['previous_end_time']) ? $log['previous_end_time'] : $log['end_time'];
       $data[5]['title'] = t('Previous run finished @ !timestamp', array(
         '!timestamp' => $finish ? format_date((int)$finish, 'custom', 'Y-m-d H:i:s') : t('N/A')
       ));
-      if (!empty($log['previous_start'])) {
+      if (!empty($log['previous_start_time'])) {
         $data[4]['title'] = t('Previous run started @ !timestamp', array(
-          '!timestamp' => format_date((int)$log['previous_start'], 'custom', 'Y-m-d H:i:s'),
+          '!timestamp' => format_date((int)$log['previous_start_time'], 'custom', 'Y-m-d H:i:s'),
         ));
         $data[5]['title'] .= ' - ' . t('Run time: !duration', array(
-          '!duration' => gmdate('H:i:s', (int)($log['previous_end'] - $log['previous_start'])),
+          '!duration' => gmdate('H:i:s', (int)($log['previous_end_time'] - $log['previous_start_time'])),
         ));
       }
       if ($process) {
@@ -392,8 +406,11 @@ function ultimate_cron_view_page($module = NULL) {
   if ($overview['running']) {
     drupal_set_message(t('@jobs jobs are currently running', array('@jobs' => $overview['running'])));
   }
-  if ($overview['errors']) {
-    drupal_set_message(t('@jobs jobs failed their last run', array('@jobs' => $overview['errors'])), 'error');
+  if ($overview['warning']) {
+    drupal_set_message(t('@jobs jobs had errors warnings their last run', array('@jobs' => $overview['warning'])), 'warning');
+  }
+  if ($overview['error']) {
+    drupal_set_message(t('@jobs jobs had errors during their last run', array('@jobs' => $overview['error'])), 'error');
   }
 
   return $output;
@@ -412,8 +429,8 @@ function ultimate_cron_function_log_page($function) {
   drupal_add_css(drupal_get_path('module', 'ultimate_cron') . '/css/ultimate_cron.admin.css');
 
   $header = array(
-    array('data' => t('Start'), 'field' => 'start_stamp', 'sort' => 'DESC'),
-    array('data' => t('End'),   'field' => 'end_stamp'),
+    array('data' => t('Start'), 'field' => 'start_time', 'sort' => 'DESC'),
+    array('data' => t('End'),   'field' => 'end_time'),
     t('Duration'),
     t('Status'),
     t('Message'),
@@ -427,18 +444,15 @@ function ultimate_cron_function_log_page($function) {
     ->limit(10)
     ->extend('TableSort')
     ->orderByHeader($header)
-    ->fields('l', array('lid', 'name', 'start_stamp', 'end_stamp', 'exec_status', 'msg'))
-    ->orderBy('l.start_stamp', 'DESC');
+    ->fields('l', array('lid', 'name', 'start_time', 'end_time', 'severity', 'msg'))
+    ->orderBy('l.start_time', 'DESC');
   $logs = $query->execute()->fetchAll();
 
   $output = '';
   $rows = array();
   foreach ($logs as $log) {
     $log->function = $log->name;
-    $log->status = $log->exec_status;
-    $log->start = $log->start_stamp;
-    $log->end = $log->end_stamp;
-    $css_status = isset($log->status) ? ($log->status ? 'noerror' : 'error') : 'noinfo';
+    $css_status = isset($log->severity) ? ($log->severity ? 'noerror' : 'error') : 'noinfo';
     $data = array(
       array('class' => array('ultimate-cron-admin-start')),
       array('class' => array('ultimate-cron-admin-end')),
@@ -446,10 +460,10 @@ function ultimate_cron_function_log_page($function) {
       array('class' => array('ultimate-cron-admin-status ultimate-cron-admin-status-' . $css_status)),
       array('class' => array('ultimate-cron-admin-message')),
     );
-    $data[0]['data'] = format_date((int)$log->start, 'custom', 'Y-m-d H:i:s');
-    $data[1]['data'] = format_date((int)$log->end, 'custom', 'Y-m-d H:i:s');
-    $data[2]['data'] = gmdate('H:i:s', (int)($log->end - $log->start));
-    $data[3]['data'] = '<span>' . $log->status . '</span>';
+    $data[0]['data'] = format_date((int)$log->start_time, 'custom', 'Y-m-d H:i:s');
+    $data[1]['data'] = format_date((int)$log->end_time, 'custom', 'Y-m-d H:i:s');
+    $data[2]['data'] = gmdate('H:i:s', (int)($log->end - $log->start_time));
+    $data[3]['data'] = '<span>' . $log->severity . '</span>';
     $data[4]['data'] = $log->msg;
     $rows[] = $data;
   }
@@ -478,26 +492,15 @@ function ultimate_cron_service_start($function) {
     exit;
   }
 
-  if ($modules = _ultimate_cron_incompatible_modules()) {
-    drupal_set_message(t('%function could not start (incompatible module installed)', array('%function' => $function)), 'error');
-    drupal_set_message(t('%modules is installed on the system, but is incompatible with Ultimate Cron.<br/>Please disable Parallel Cron.<br/>You might want to !url settings first.', array('%modules' => join(', ', $modules), '!url' => l(t('import'), 'admin/settings/cron/import'))), 'error');
-    drupal_goto();
-  }
-
   // When run manually don't double check the rules
   $hooks[$function]['skip_catch_up'] = TRUE;
 
-  ultimate_cron_load_hook_data($hooks[$function]);
-  $handle = ultimate_cron_run_hook($function, $hooks[$function]);
-
-  if ($handle === FALSE) {
-    drupal_set_message(t('%function could not start (already running?)', array('%function' => $function)), 'error');
-  }
-  elseif ($handle === NULL) {
-    drupal_set_message(t('%function could not start (service unavailable)', array('%function' => $function)), 'error');
-  }
-  else {
+  try {
+    $process = ultimate_cron_run_hook($hooks[$function]);
     drupal_set_message(t('%function started', array('%function' => $function)));
+  }
+  catch (Exception $e) {
+    drupal_set_message(t('%function could not start (%error)', array('%function' => $function, '%error' => (string) $e)), 'error');
   }
 
   drupal_goto();

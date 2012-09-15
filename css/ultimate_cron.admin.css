@@ -25,16 +25,20 @@
   display: none;
 }
 
-.ultimate-cron-admin-status-noinfo {
-  background: url(../icons/information.png) center no-repeat;
+.ultimate-cron-admin-status-info {
+  background: url(../icons/message-16-info.png) center no-repeat;
 }
 
 .ultimate-cron-admin-status-error {
-  background: url(../icons/error.png) center no-repeat;
+  background: url(../icons/message-16-error.png) center no-repeat;
 }
 
-.ultimate-cron-admin-status-noerror {
-  background: url(../icons/tick.png) center no-repeat;
+.ultimate-cron-admin-status-success {
+  background: url(../icons/message-16-ok.png) center no-repeat;
+}
+
+.ultimate-cron-admin-status-warning {
+  background: url(../icons/message-16-warning.png) center no-repeat;
 }
 
 .ultimate-cron-admin-status-running {
