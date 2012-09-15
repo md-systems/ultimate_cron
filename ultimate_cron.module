@@ -253,6 +253,7 @@ function ultimate_cron_background_process_shutdown($process, $msg = NULL) {
     // Record end time
     $end = microtime(TRUE);
 
+    $log = array('severity' => WATCHDOG_WARNING);
     if (!$msg) {
       // Get watchdog messages
       $log = ultimate_cron_record_log();
@@ -307,7 +308,7 @@ function ultimate_cron_menu_alter(&$items) {
     'weight' => -10,
   );
   $steal = &$items['admin/reports/status/run-cron'];
-  $steal['page callback'] = 'ultimate_cron_run_cron';
+  $steal['page callback'] = 'ultimate_cron_service_start';
   $steal['page arguments'] = array();
   $steal['module'] = 'ultimate_cron';
   $steal['file'] = 'ultimate_cron.admin.inc';
@@ -396,6 +397,9 @@ function ultimate_cron_cron_run($return = FALSE) {
     // Launch jobs.
     reset($schedule);
     while ((list($name, $hook) = each($schedule)) && time() < $expire) {
+      if ($hook['background_process']) {
+        continue;
+      }
       $process = ultimate_cron_run_hook($hook);
       if (!$process) {
         continue;
@@ -827,6 +831,7 @@ function ultimate_cron_record_log($msg = NULL, $severity = -1) {
   $log = &drupal_static('ultimate_cron_record_log', array('msg' => '', 'severity' => -1));
   if ($msg) {
     $log['msg'] .= "$msg\n";
+    error_log($msg);
   }
   if ($severity > 0) {
     if ($log['severity'] < 0 || $severity <= $log['severity']) {

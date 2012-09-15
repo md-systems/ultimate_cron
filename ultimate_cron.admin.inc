@@ -4,15 +4,6 @@
  */
 
 /**
- * Menu callback: runs cron and returns to status-report page.
- */
-function ultimate_cron_run_cron() {
-  // Run the cron and return
-  ultimate_cron_cron_run(TRUE);
-  drupal_goto('admin/reports/status');
-}
-
-/**
  * Settings form.
  */
 function ultimate_cron_settings_form() {
@@ -150,7 +141,6 @@ function ultimate_cron_function_settings_form($form, &$form_state, $name) {
 
   // Load settings
   $hook = $hooks[$name];
-  #var_dump($hook);
   $settings = ultimate_cron_load($name);
   $settings = $settings ? $settings->settings : array();
   $settings += array(
@@ -537,7 +527,16 @@ function ultimate_cron_function_log_page($name) {
  * @return string
  *   Output to page
  */
-function ultimate_cron_service_start($name) {
+function ultimate_cron_service_start($name = NULL) {
+  if (!isset($name)) {
+    $dest = NULL;
+    if (empty($_GET['destination'])) {
+      $dest = empty($_SERVER['HTTP_REFERER']) ? 'admin/reports/status' : $_SERVER['HTTP_REFERER'];
+    }
+    ultimate_cron_cron_run(TRUE);
+    drupal_goto($dest);
+  }
+
   $hooks = ultimate_cron_get_hooks();
   if (!isset($hooks[(string)$name])) {
     drupal_not_found();
@@ -567,35 +566,6 @@ function ultimate_cron_service_enable($name, $enabled) {
   ultimate_cron_save($settings);
   drupal_set_message(t('!name !enabled', array('!name' => $name, '!enabled' => t($enabled ? 'enabled' : 'disabled'))));
   drupal_goto();
-}
-
-/**
- * Import form.
- */
-function ultimate_cron_import_form() {
-  $form = array();
-  $options = array();
-
-  if ($options) {
-    $form['import']['module'] = array(
-      '#type' => 'select',
-      '#options' => $options,
-      '#title' => t('Module'),
-      '#description' => t('Module to import settings from'),
-    );
-    $form['import']['submit'] = array(
-      '#type' => 'submit',
-      '#submit' => array('ultimate_cron_import_form_submit'),
-      '#value' => t('Import'),
-    );
-  }
-  return $form;
-}
-
-/**
- * Submit handler for import.
- */
-function ultimate_cron_import_form_submit($form, &$form_state) {
 }
 
 /**
