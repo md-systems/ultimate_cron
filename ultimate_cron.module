@@ -573,7 +573,7 @@ function ultimate_cron_cleanup_log() {
  * @return mixed
  *   Connections file handle on success.
  */
-function ultimate_cron_run_hook($hook) {
+function ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
   // Run the job in background
   $result = NULL;
   $handle = "uc:" . $hook['name'];
@@ -584,7 +584,7 @@ function ultimate_cron_run_hook($hook) {
     if (!empty($hook['settings']['service_group'])) {
       $process->setServiceGroup($hook['settings']['service_group']);
     }
-    $process->setCallback('_ultimate_cron_run_hook', array($hook));
+    $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
     $process->call();
     return $process;
   }
@@ -593,7 +593,7 @@ function ultimate_cron_run_hook($hook) {
   }
 }
 
-function ultimate_cron_run_hook_cli($hook) {
+function ultimate_cron_run_hook_cli($hook, $skip_catch_up = FALSE) {
   // Run the job in background
   $result = NULL;
   $handle = "uc:" . $hook['name'];
@@ -605,7 +605,7 @@ function ultimate_cron_run_hook_cli($hook) {
       $process->setServiceGroup($hook['settings']['service_group']);
     }
     $hook['timestamp'] = time();
-    $process->setCallback('_ultimate_cron_run_hook', array($hook));
+    $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
     $process->runNow();
     return $process;
   }
@@ -623,7 +623,7 @@ function ultimate_cron_run_hook_cli($hook) {
  * @return boolean
  *   TRUE on success, FALSE on failure.
  */
-function _ultimate_cron_run_hook($hook) {
+function _ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
   set_time_limit(variable_get('ultimate_cron_max_execution_time', ULTIMATE_CRON_MAX_EXECUTION_TIME));
   drupal_save_session(FALSE);
 
@@ -635,22 +635,20 @@ function _ultimate_cron_run_hook($hook) {
   $record = &drupal_static('ultimate_cron_record', FALSE);
   $record = TRUE;
 
-/*
   $time = time();
-  if (empty($hook['skip_catch_up']) && !ultimate_cron_hook_should_run($hook)) {
+  if (!$skip_catch_up && !ultimate_cron_hook_should_run($hook)) {
     // Hook started too late!
     watchdog('ultimate_cron', '%function skipped. Invoked at %invoke, but did not start until %start', array(
       '%function' => $name,
       '%invoke' => format_date($hook['timestamp'], 'custom', 'Y-m-d H:i:s'),
       '%start' => format_date($time, 'custom', 'Y-m-d H:i:s'),
     ), WATCHDOG_ERROR);
-    #ultimate_cron_background_process_shutdown($process, NULL);
     return FALSE;
   }
-*/
+
   // Let other modules do stuff before execution, if they need to.
   module_invoke_all('cron_pre_execute', $hook);
-  module_invoke_all('cron_pre_execute_' . $hook);
+  module_invoke_all('cron_pre_execute_' . $hook['name'], $hook);
 
   if (!empty($item['file'])) {
     require_once($item['file path'] . DIRECTORY_SEPARATOR . $item['file']);
@@ -661,12 +659,12 @@ function _ultimate_cron_run_hook($hook) {
     call_user_func_array($hook['callback'], $args);
   }
   else {
-    // WTF?
+    watchdog('ultimate_cron', '!callback is invalid!', array('!callback' => $hook['callback']), WATCHDOG_CRITICAL);
   }
 
-  // Let other modules do stuff before execution, if they need to.
+  // Let other modules do stuff after execution, if they need to.
   module_invoke_all('cron_post_execute', $hook);
-  module_invoke_all('cron_post_execute_' . $hook);
+  module_invoke_all('cron_post_execute_' . $hook['name'], $hook);
 
   return TRUE;
 }

@@ -332,7 +332,7 @@ function ultimate_cron_view_page($module = NULL) {
   $overview['error'] = 0;
 
   foreach ($modules as $module => $hooks) {
-    foreach ($hooks as $function => $hook) {
+    foreach ($hooks as $name => $hook) {
       // Setup settings
       $rules = $hook['rules'];
       $cron = new CronRule();
@@ -389,12 +389,12 @@ function ultimate_cron_view_page($module = NULL) {
         $link_unlock = _ultimate_cron_l('Unlock', 'background-process/unlock/' . $process->pid);
       }
 
-      $link_settings = _ultimate_cron_l('Schedule', 'admin/config/system/cron/settings/' . $function);
-      $link_execute = _ultimate_cron_l('Run', 'admin/ultimate-cron/service/start/' . $function);
-      $link_log = _ultimate_cron_l('Log', 'admin/reports/cron/' . $function);
+      $link_settings = _ultimate_cron_l('Schedule', 'admin/config/system/cron/settings/' . $name);
+      $link_execute = _ultimate_cron_l('Run', 'admin/ultimate-cron/service/start/' . $name);
+      $link_log = _ultimate_cron_l('Log', 'admin/reports/cron/' . $name);
 
       $enable = empty($hook['enabled']);
-      $link_toggle = _ultimate_cron_l($enable ? 'Enable' : 'Disable', 'admin/ultimate-cron/service/' . ($enable ? 'enable' : 'disable') . '/' . $function);
+      $link_toggle = _ultimate_cron_l($enable ? 'Enable' : 'Disable', 'admin/ultimate-cron/service/' . ($enable ? 'enable' : 'disable') . '/' . $name);
 
       $data = array(
         array('class' => $enable ? 'ultimate-cron-admin-enable' : 'ultimate-cron-admin-disable'),
@@ -413,7 +413,7 @@ function ultimate_cron_view_page($module = NULL) {
       $data[0]['title'] = $enable ? t('Enable') : t('Disable');
       $data[1]['data'] = ultimate_cron_module_name($module);
       $data[2]['data'] = $hook['description'];
-      $data[2]['title'] = $function;
+      $data[2]['title'] = $name;
       $data[3]['data'] = join("<br/>", $rules);
       $data[3]['title'] = join("\n", $parsed_rules);
       $data[4]['data'] = $log['start_time'] ? format_date((int)$log['start_time'], 'custom', 'Y-m-d H:i:s') : t('Never');
@@ -472,9 +472,9 @@ function ultimate_cron_view_page($module = NULL) {
 /**
  * Function log page.
  */
-function ultimate_cron_function_log_page($function) {
+function ultimate_cron_function_log_page($name) {
   $hooks = ultimate_cron_get_hooks();
-  if (!isset($hooks[(string)$function])) {
+  if (!isset($hooks[(string)$name])) {
     drupal_not_found();
     exit;
   }
@@ -489,10 +489,10 @@ function ultimate_cron_function_log_page($function) {
     t('Message'),
   );
 
-  drupal_set_title(check_plain($function));
+  drupal_set_title(check_plain($name));
 
   $query = db_select('ultimate_cron_log', 'l');
-  $query = $query->condition('l.name', $function)
+  $query = $query->condition('l.name', $name)
     ->extend('PagerDefault')
     ->limit(10)
     ->extend('TableSort')
@@ -533,26 +533,23 @@ function ultimate_cron_function_log_page($function) {
 /**
  * Run a single function.
  *
- * @param $function
+ * @param $name
  * @return string
  *   Output to page
  */
-function ultimate_cron_service_start($function) {
+function ultimate_cron_service_start($name) {
   $hooks = ultimate_cron_get_hooks();
-  if (!isset($hooks[(string)$function])) {
+  if (!isset($hooks[(string)$name])) {
     drupal_not_found();
     exit;
   }
 
-  // When run manually don't double check the rules
-  $hooks[$function]['skip_catch_up'] = TRUE;
-
   try {
-    $process = ultimate_cron_run_hook($hooks[$function]);
-    drupal_set_message(t('%function started', array('%function' => $function)));
+    $process = ultimate_cron_run_hook($hooks[$name], TRUE);
+    drupal_set_message(t('%function started', array('%function' => $name)));
   }
   catch (Exception $e) {
-    drupal_set_message(t('%function could not start (%error)', array('%function' => $function, '%error' => (string) $e)), 'error');
+    drupal_set_message(t('%function could not start (%error)', array('%function' => $name, '%error' => (string) $e)), 'error');
   }
 
   drupal_goto();
@@ -560,13 +557,15 @@ function ultimate_cron_service_start($function) {
 
 /**
  * Enable/disable cron job
- * @param type $function
+ * @param type $name
  * @param type $enabled
  */
-function ultimate_cron_service_enable($function, $enabled) {
-  $conf = ultimate_cron_get_settings($function);
-  $conf['enabled'] = $enabled;
-  ultimate_cron_set_settings($function, $conf);
+function ultimate_cron_service_enable($name, $enabled) {
+  $settings = ultimate_cron_load($name);
+  $settings->settings = $settings->settings ? $settings->settings : array();
+  $settings->settings['enabled'] = $enabled;
+  ultimate_cron_save($settings);
+  drupal_set_message(t('!name !enabled', array('!name' => $name, '!enabled' => t($enabled ? 'enabled' : 'disabled'))));
   drupal_goto();
 }
 
