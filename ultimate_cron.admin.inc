@@ -18,7 +18,30 @@ function ultimate_cron_run_cron() {
 function ultimate_cron_settings_form() {
   $form = array();
   $advanced_help_enabled = module_exists('advanced_help');
-   // General settings -----------------------------------
+
+  $form['general'] = array(
+    '#title' => t('General'),
+    '#type' => 'fieldset',
+    '#collapsible' => TRUE,
+    '#collapsed' => FALSE,
+    '#tree' => FALSE,
+  );
+  $service_groups = $options = background_process_get_service_groups();
+  foreach ($options as $key => &$value) {
+    $value = (empty($value['description']) ? $key : $value['description']) . ' (' . join(',', $value['hosts']) . ')';
+  }
+  $form['general']['ultimate_cron_service_group'] = array(
+    '#type' => 'select',
+    '#title' => t('Service group'),
+    '#description' => ($advanced_help_enabled ? theme('advanced_help_topic', array(
+                              'module' => 'ultimate_cron',
+                              'topic' => 'service_group',
+                              'type' => 'icon')
+                      ) : '') . t('Service group to use for all jobs. See Background Process !url for managing service groups.', array('!url' => l(t('settings'), 'admin/config/system/background-process'))),
+    '#options' => $options,
+    '#default_value' => variable_get('ultimate_cron_service_group', ULTIMATE_CRON_SERVICE_GROUP),
+  );
+
   $form['rules'] = array(
     '#title' => t('Rules'),
     '#type' => 'fieldset',
@@ -46,6 +69,7 @@ function ultimate_cron_settings_form() {
                               'type' => 'icon')
                       ) : '') . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) . ')'),
   );
+
   $form['cleanup'] = array(
     '#title' => t('Clean up'),
     '#type' => 'fieldset',
@@ -63,6 +87,7 @@ function ultimate_cron_settings_form() {
                               'type' => 'icon')
                       ) : '') . t('Enter maximum age, in seconds, for log entries'),
   );
+
   $form['queues'] = array(
     '#title' => t('Queues'),
     '#type' => 'fieldset',
@@ -90,6 +115,7 @@ function ultimate_cron_settings_form() {
                               'type' => 'icon')
                       ) : '') . t('Time in seconds to keep lock on claimed item'),
   );
+
   $form['poorman'] = array(
     '#title' => t('Poormans cron'),
     '#type' => 'fieldset',
@@ -124,13 +150,14 @@ function ultimate_cron_function_settings_form($form, &$form_state, $name) {
 
   // Load settings
   $hook = $hooks[$name];
+  #var_dump($hook);
   $settings = ultimate_cron_load($name);
   $settings = $settings ? $settings->settings : array();
   $settings += array(
     'enabled' => TRUE,
     'rules' => array(),
     'catch up' => '',
-    'service group' => 'default',
+    'service group' => '',
     'queue lease time' => '',
   );
 
@@ -190,11 +217,12 @@ function ultimate_cron_function_settings_form($form, &$form_state, $name) {
     );
   }
 
-  $options = background_process_get_service_groups();
+  $service_groups = $options = background_process_get_service_groups();
   foreach ($options as $key => &$value) {
     $value = (empty($value['description']) ? $key : $value['description']) . ' (' . join(',', $value['hosts']) . ')';
   }
-  #$options += array(NULL => '<default>');
+  $options += array(
+    NULL => 'Ultimate Cron service group (' . join(',', $service_groups[variable_get('ultimate_cron_service_group', ULTIMATE_CRON_SERVICE_GROUP)]['hosts']) . ')');
   $form['general']['service group'] = array(
     '#type' => 'select',
     '#title' => t('Service group'),
@@ -233,6 +261,13 @@ function ultimate_cron_function_settings_form_validate($form, &$form_state) {
       if (!ultimate_cron_validate_rule($rule)) {
         form_set_error('rules', t('Invalid rule.'));
       }
+    }
+  }
+
+  // Clean up blank values
+  foreach ($settings as $idx => $value) {
+    if (empty($value)) {
+      unset($settings[$idx]);
     }
   }
 }

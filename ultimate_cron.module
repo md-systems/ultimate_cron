@@ -27,6 +27,11 @@ define('ULTIMATE_CRON_RULE',         '*/10+@ * * * *');
 define('ULTIMATE_CRON_MAX_EXECUTION_TIME', 86400);
 
 /**
+ * Default serviec group for Ultimate Cron.
+ */
+define('ULTIMATE_CRON_SERVICE_GROUP', 'default');
+
+/**
  * Default catch up time for Ultimate Cron.
  */
 define('ULTIMATE_CRON_CATCH_UP', 300);
@@ -773,6 +778,7 @@ function ultimate_cron_get_hooks() {
           'callback' => $name,
           'catch up' => variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP),
           'background_process' => empty($processes['uc:' . $name]) ? NULL : BackgroundProcess::create($processes['uc:' . $name]),
+          'service group' => variable_get('ultimate_cron_service_group', ULTIMATE_CRON_SERVICE_GROUP),
           'enabled' => TRUE,
         );
         $item['name'] = $name;
@@ -893,6 +899,22 @@ function ultimate_cron_load($name) {
 }
 
 /**
+ * CRUD save. Also used for ctools integration.
+ * @param object $object
+ *   object to be saved ->name containing unique machine name.
+ * @return boolean
+ *   result of query.
+ */
+function ultimate_cron_crud_save($object) {
+  return db_merge('ultimate_cron')
+    ->key(array('name' => $object->name))
+    ->fields(array(
+      'settings' => serialize($object->settings),
+    ))
+    ->execute();
+}
+
+/**
  * Save
  *
  * @param object $object
@@ -909,12 +931,7 @@ function ultimate_cron_save($object) {
     return ctools_export_crud_save('ultimate_cron', $settings);
   }
   else {
-    return db_merge('ultimate_cron')
-             ->key(array('name' => $object->name))
-             ->fields(array(
-               'settings' => serialize($object->settings),
-             ))
-             ->execute();
+    return ultimate_cron_crud_save($object);
   }
 }
 

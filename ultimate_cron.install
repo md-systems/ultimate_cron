@@ -19,6 +19,7 @@ function ultimate_cron_schema() {
       'primary key' => 'fid',
       'identifier' => 'name',
       'default hook' => 'default_ultimate_cron_function',
+      'save callback' => 'ultimate_cron_crud_save',
       'api' => array(
         'owner' => 'ultimate_cron',
         'api' => 'default_ultimate_cron_functions',
