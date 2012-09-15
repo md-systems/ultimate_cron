@@ -240,17 +240,14 @@ function drush_ultimate_cron_cron_run($name = NULL) {
       return;
     }
   }
-  else {
-    $hook['skip_catch_up'] = TRUE;
-  }
 
 
   if ($cli) {
     $start = microtime(TRUE);
-    $result = ultimate_cron_run_hook_cli($hook);
+    $result = ultimate_cron_run_hook_cli($hook, TRUE);
   }
   else {
-    $result = ultimate_cron_run_hook($hook);
+    $result = ultimate_cron_run_hook($hook, TRUE);
   }
 
 
