@@ -159,6 +159,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $name) {
     'catch up' => '',
     'service group' => '',
     'queue lease time' => '',
+    'queue polling latency' => '',
   );
 
   // Setup form
@@ -214,6 +215,16 @@ function ultimate_cron_function_settings_form($form, &$form_state, $name) {
                                 'topic' => 'queue lease time',
                                 'type' => 'icon')
                         ) : '') . t('Time in seconds to keep lock on claimed item. (blank = ' . $hook['queue lease time'] . ')'),
+    );
+    $form['general']['queue polling latency'] = array(
+      '#title' => t("Queue polling latency"),
+      '#type' => 'textfield',
+      '#default_value' => $settings['queue polling latency'],
+      '#description' => ($advanced_help_enabled ? theme('advanced_help_topic', array(
+                                'module' => 'ultimate_cron',
+                                'topic' => 'polling_latency',
+                                'type' => 'icon')
+                        ) : '') . t('Queue polling latency in miliseconds. (blank = ' . (is_numeric($hook['queue polling latency']) ? $hook['queue polling latency'] : t('disabled')) . ')'),
     );
   }
 
