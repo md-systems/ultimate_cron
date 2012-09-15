@@ -102,7 +102,6 @@ function ultimate_cron_nagios_functions() {
   return array(
     'ultimate_cron_running' => t('Check number of currently running jobs'),
     'ultimate_cron_failed' => t('Check the number of jobs that failed last run'),
-
     'ultimate_cron_longrunning' => t('Check the number of jobs that are running longer than usual'),
   );
 }
@@ -111,12 +110,12 @@ function ultimate_cron_nagios_functions() {
  * Get information about running jobs - currently running or failed.
  *
  * @staticvar array $overview
- * @param string $mode Which mode to get info about; 'running' or 'errors'
+ * @param string $mode Which mode to get info about; 'running' or 'error'
  * @return int 
  */
 function ultimate_cron_nagios_get_job_info($mode = 'running') {
   // Ensure valid mode
-  if (!in_array($mode, array('running', 'errors'))) {
+  if (!in_array($mode, array('running', 'error'))) {
     $mode = 'running';
   }
   static $overview = array();
@@ -124,24 +123,18 @@ function ultimate_cron_nagios_get_job_info($mode = 'running') {
   if (!isset($overview[$mode])) {
     $overview[$mode] = 0;
     // Get hooks and their data
-    $data = _ultimate_cron_preload_cron_data();
     $hooks = ultimate_cron_get_hooks();
 
     $modules = array();
-    foreach ($hooks as $function => $hook) {
+    foreach ($hooks as $name => $hook) {
       if (!$module || $module == $hook['module']) {
-        $hook['settings'] = $data[$function]['settings'] + $hook['settings'];
-        $hook['background_process'] = $data[$function]['background_process'];
-        $hook['log'] = ultimate_cron_get_log($function);
+        $log = ultimate_cron_get_log($name);
         
-        // Setup process
         if ($hook['background_process']) {
           $overview['running']++;
         }
-        $log = $hook['log'];
-        if (isset($log['status']) && !$log['status']) {
-          $overview['errors']++;
-        }
+        $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= WATCHDOG_NOTICE ? 'info' : ($log['severity'] >= WATCHDOG_WARNING ? 'warning' : 'error'));
+        $overview[$severity_type]++;
       }
     }
   }
