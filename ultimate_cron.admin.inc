@@ -527,6 +527,20 @@ function ultimate_cron_function_log_page($name) {
     $rows[] = $data;
   }
 
+  $chart = NULL;
+  if (module_exists('chart')) {
+    $chart = array(
+      '#chart_id' => 'ultimate_cron_log_chart_' . $hook['name'],
+      '#title' => $hook['description'],
+      '#type' => CHART_TYPE_BAR_V_GROUPED,
+      '#size' => chart_size(400, 200),
+      #'#grid_lines' => chart_grid_lines(10, 15),
+      #'#bar_size' => chart_bar_size(25, 25), 
+      '#labels' => array(t('Time')),
+      '#adjust_resolution' => TRUE,
+    );
+  }
+
   foreach ($logs as $log) {
     $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= WATCHDOG_INFO ? 'info' : ($log['severity'] >= WATCHDOG_WARNING ? 'warning' : 'error'));
     $css_status = $severity_type;
@@ -543,6 +557,11 @@ function ultimate_cron_function_log_page($name) {
     $data[3]['data'] = '<span>' . $log['severity'] . '</span>';
     $data[4]['data'] = $log['msg'];
     $rows[] = $data;
+
+    if ($chart) {
+      #$chart['#data'][$data[0]['data']] = ($log['end_time'] - $log['start_time']);
+      $chart['#data']['time'][] = ($log['end_time'] - $log['start_time']);
+    }
   }
 
   $output .= theme('table', array(
@@ -551,6 +570,11 @@ function ultimate_cron_function_log_page($name) {
     'attributes' => array('id' => 'ultimate-cron-view')
   ));
   $output .= theme('pager');
+
+
+  if ($chart) {
+    $output = theme('chart', array('chart' => $chart)) . $output;
+  }
 
   return $output;
 }
