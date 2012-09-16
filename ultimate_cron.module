@@ -5,7 +5,7 @@
  * @todo Add filter on overview page.
  * @todo Add log view (with graph).
  * @todo Make proper markup for overview page.
- * @todo Refactor drush stuff, too many intimate relations with Background Process
+ * @todo Fix catch up logic ... is buggy sometimes?
  * @todo Refactor Cron % offset stuff. Too mixed up and ungrokable code-wise and 'delta' is not consistent.
  *
  * hook_cron_alter(&$hooks)
