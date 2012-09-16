@@ -567,6 +567,7 @@ function ultimate_cron_cleanup_log() {
   $total = $query->countQuery()->execute()->fetchField();
   $progress = 0;
   $process = BackgroundProcess::currentProcess();
+  $process->setProgress(0);
   do {
     $lids = $query->range(0, 1000)
               ->execute()
@@ -578,6 +579,7 @@ function ultimate_cron_cleanup_log() {
       $process->setProgress($progress / $total);
     }
   } while (!empty($lids));
+  $process->setProgress(1);
 }
 
 /**

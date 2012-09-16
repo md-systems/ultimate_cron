@@ -159,7 +159,7 @@ function drush_ultimate_cron_cron_list($type = 'all') {
       $hook['log']['start_time'] = $hook['background_process']->getStartTime();
       $hook['log']['end_time'] = microtime(TRUE);
       $progress = $hook['background_process']->getProgress();
-      $progress = $progress ? sprintf(" (%02d%%)", $progress * 100) : '';
+      $progress = $progress >= 0 ? sprintf(" (%02d%%)", $progress * 100) : '';
     }
     if (empty($hook['enabled'])) $legend .= 'D';
 

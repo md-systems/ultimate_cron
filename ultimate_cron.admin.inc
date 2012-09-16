@@ -360,7 +360,7 @@ function ultimate_cron_view_page($module = NULL) {
         if ($process->getStatus() == BACKGROUND_PROCESS_STATUS_RUNNING) {
           $log['end_time'] = microtime(TRUE);
           $progress = $process->getProgress();
-          $percentage = $progress ? sprintf(" (%02d%%)", $progress * 100) : '';
+          $percentage = $progress >= 0 ? sprintf(" (%02d%%)", $progress * 100) : '';
         }
         else {
           $log['end_time'] = NULL;
