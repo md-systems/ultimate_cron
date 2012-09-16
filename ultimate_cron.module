@@ -600,6 +600,7 @@ function ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
     if (!empty($hook['service group'])) {
       $process->setServiceGroup($hook['service group']);
     }
+    $hook['timestamp'] = time();
     $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
     $process->call();
     return $process;
@@ -650,8 +651,8 @@ function _ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
   $time = time();
   if (!$skip_catch_up && !ultimate_cron_hook_should_run($hook)) {
     // Hook started too late!
-    watchdog('ultimate_cron', '%function skipped. Invoked at %invoke, but did not start until %start', array(
-      '%function' => $name,
+    watchdog('ultimate_cron', '%name skipped. Invoked at %invoke, but did not start until %start', array(
+      '%name' => $hook['name'],
       '%invoke' => format_date($hook['timestamp'], 'custom', 'Y-m-d H:i:s'),
       '%start' => format_date($time, 'custom', 'Y-m-d H:i:s'),
     ), WATCHDOG_ERROR);
