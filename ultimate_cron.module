@@ -1014,6 +1014,35 @@ function ultimate_cron_get_last_log_entry($name, $reset = FALSE) {
            ->fetchAssoc();
   $logs[$name] = $log;
   return $log;
+
+  // @fixme Only MySQL supports this?
+  $logs = ultimate_cron_get_last_log_entries($reset);
+  return isset($logs[$name]) ? $logs[$name] : array();
+}
+
+/**
+ * Get latest log lines for all functions.
+ *
+ * @fixme Only MySQL supports this?
+ */
+function ultimate_cron_get_last_log_entries($reset = FALSE) {
+  static $logs = NULL;
+  if (!$reset && isset($logs)) {
+    return $logs;
+  }
+  $logs = db_query("SELECT l.*
+  FROM {ultimate_cron_log} l
+  JOIN (
+    SELECT l3.name, (
+      SELECT l4.lid
+      FROM {ultimate_cron_log} l4
+      WHERE l4.name = l3.name
+      ORDER BY l4.name desc, l4.start_time DESC
+      LIMIT 1
+    ) AS lid FROM {ultimate_cron_log} l3
+    GROUP BY l3.name
+  ) l2 on l2.lid = l.lid")->fetchAllAssoc('name', PDO::FETCH_ASSOC);
+  return $logs;
 }
 
 // ---------- POORMAN FUNCTIONS ----------
