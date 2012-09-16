@@ -480,6 +480,7 @@ function ultimate_cron_function_log_page($name) {
     drupal_not_found();
     exit;
   }
+  $hook = $hooks[(string)$name];
 
   drupal_add_css(drupal_get_path('module', 'ultimate_cron') . '/css/ultimate_cron.admin.css');
 
@@ -504,9 +505,31 @@ function ultimate_cron_function_log_page($name) {
 
   $output = '';
   $rows = array();
+  if ($hook['background_process']) {
+    $process = $hook['background_process'];
+    $data = array(
+      array('class' => array('ultimate-cron-admin-start')),
+      array('class' => array('ultimate-cron-admin-end')),
+      array('class' => array('ultimate-cron-admin-duration')),
+      array('class' => array('ultimate-cron-admin-status ultimate-cron-admin-status-running')),
+      array('class' => array('ultimate-cron-admin-message')),
+    );
+    $duration = time() - $process->getStartTime();
+    $duration = gmdate('H:i:s', (int)$duration);
+    if ($process->getProgress() > 0) {
+      $duration .= sprintf(" (%02d%%)", $process->getProgress() * 100);
+    }
+    $data[0]['data'] = format_date((int)$process->getStartTime(), 'custom', 'Y-m-d H:i:s');
+    $data[1]['data'] = t('N/A');
+    $data[2]['data'] = $duration;
+    $data[3]['data'] = '<span>' . t('running') . '</span>';
+    $data[4]['data'] = '';
+    $rows[] = $data;
+  }
+
   foreach ($logs as $log) {
     $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= WATCHDOG_INFO ? 'info' : ($log['severity'] >= WATCHDOG_WARNING ? 'warning' : 'error'));
-    $css_status = !empty($process) ? 'running' : $severity_type;
+    $css_status = $severity_type;
     $data = array(
       array('class' => array('ultimate-cron-admin-start')),
       array('class' => array('ultimate-cron-admin-end')),
