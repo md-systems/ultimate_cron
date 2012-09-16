@@ -58,7 +58,7 @@ function ultimate_cron_settings_form() {
                               'module' => 'ultimate_cron',
                               'topic' => 'catch_up',
                               'type' => 'icon')
-                      ) : '') . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP) . ')'),
+                      ) : '') . t('Time in seconds to catch up, if a job could not be run within its time frame.'),
   );
 
   $form['cleanup'] = array(
