@@ -1094,11 +1094,9 @@ function ultimate_cron_launch_poorman() {
  */
 function _ultimate_cron_poorman() {
   if (!variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN)) {
+    BackgroundProcess::currentProcess()->keepAlive(FALSE);
     return;
   }
-
-  // Restart when done
-  #background_process_keepalive();
 
   // Derive current minute
   $time = time();
