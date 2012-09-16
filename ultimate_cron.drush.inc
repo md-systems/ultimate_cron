@@ -256,7 +256,7 @@ function drush_ultimate_cron_cron_run($name = NULL) {
   }
 
   if ($cli) {
-    $log = ultimate_cron_get_log($name);
+    $log = ultimate_cron_get_last_log_entry($name);
     if ($log['start'] >= $start && !empty($log['msg'])) {
       drush_print("[$name]: " . $log['msg']);
     }
