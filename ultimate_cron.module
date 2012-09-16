@@ -375,8 +375,9 @@ function ultimate_cron_cron_run($return = FALSE) {
 
   // Get schedule.
   $schedule = ultimate_cron_get_schedule($hooks);
+  $scheduled = count($schedule);
 
-  drupal_set_message(t('%jobs jobs scheduled for launch', array('%jobs' => count($schedule))));
+  drupal_set_message(t('%jobs jobs scheduled for launch', array('%jobs' => $scheduled)));
 
   // Start the jobs. Keep launching jobs until X seconds into the request.
   set_time_limit(120);
@@ -439,17 +440,21 @@ function ultimate_cron_cron_run($return = FALSE) {
                  ->condition('exec_status', BACKGROUND_PROCESS_STATUS_LOCKED)
                  ->execute();
   }
+  else {
+    $running = 0;
+  }
 
-  drupal_set_message(t('%jobs jobs launched in %time seconds', array('%jobs' => $launched - count($running), '%time' => $time)));
+  drupal_set_message(t('%jobs jobs launched in %time seconds', array('%jobs' => $launched - $running, '%time' => $time)));
 
-  if (count($running)) {
+  $unlaunched = $scheduled - ($launched - $running);
+  if ($unlaunched) {
     drupal_set_message(t('%jobs jobs failed to launch within %seconds seconds', array(
-      '%jobs' => count($running),
-      '%seconds' => variable_get('ultimate_cron_launch_window', ULTIMATE_CRON_LAUNCH_WINDOW)
-    )), empty($running) ? 'status' : 'error');
+      '%jobs' => $unlaunched,
+      '%seconds' => $time,
+    )), 'error');
     watchdog('ultimate_cron', '%jobs jobs failed to launch within %seconds seconds', array(
-      '%jobs' => count($running),
-      '%seconds' => variable_get('ultimate_cron_launch_window', ULTIMATE_CRON_LAUNCH_WINDOW)
+      '%jobs' => $unlaunched,
+      '%seconds' => $time,
     ), WATCHDOG_WARNING);
   }
 
