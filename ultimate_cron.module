@@ -384,77 +384,83 @@ function ultimate_cron_cron_run($return = FALSE) {
   $expire = $time + variable_get('ultimate_cron_launch_window', ULTIMATE_CRON_LAUNCH_WINDOW);
   $running = array();
   $launched = 0;
+  $finished = FALSE;
 
   // Try to launch jobs within the given time frame
-  while (!empty($schedule) && time() < $expire) {
-    $running_processes = db_select('background_process', 'bp', array('target' => 'background_process'))
-                          ->fields('bp', array('handle'))
-                          ->condition('bp.handle', 'uc:%', 'LIKE')
-                          ->countQuery()
-                          ->execute()
-                          ->fetchField();
-
+  while (!$finished && time() < $expire) {
     // Launch jobs.
     reset($schedule);
     while ((list($name, $hook) = each($schedule)) && time() < $expire) {
       if ($hook['background_process']) {
+        // Already running, don't launch
         continue;
       }
       $process = ultimate_cron_run_hook($hook);
       if (!$process) {
+        // Could not launch?
         continue;
       }
 
       $running[$process->handle] = $process;
       unset($schedule[$name]);
       $launched++;
-      $running_processes++;
     }
 
     // Jobs running ... check for start
     if ($running) {
       $pids = db_select('background_process', 'bp', array('target' => 'background_process'))
-                ->fields('bp', array('pid', 'handle'))
+                ->fields('bp', array('handle', 'pid'))
                 ->condition('bp.handle', array_keys($running), 'IN')
-                ->condition('bp.exec_status', BACKGROUND_PROCESS_STATUS_RUNNING)
+                ->condition('bp.exec_status', BACKGROUND_PROCESS_STATUS_LOCKED)
                 ->execute()
                 ->fetchAllKeyed(0, 1);
-      foreach ($pids as $pid => $handle) {
-        unset($running[$handle]);
+      foreach ($running as $handle => $process) {
+        if (empty($pids[$handle])) {
+          unset($running[$handle]);
+        }
       }
     }
+    $finished = empty($schedule) && empty($running);
     sleep(1);
-  }
-
-  // Close all jobs left
-  if ($running) {
-    foreach (array_keys($running) as $handle) {
-      #fclose($running[$handle]);
-      unset($running[$handle]);
-    }
   }
 
   // Update drupals cron timestamp, but don't clear the cache for all variables!
   _ultimate_cron_variable_set('cron_last', time());
 
-  drupal_set_message(t('%jobs jobs launched', array('%jobs' => $launched)));
-  if (count($schedule)) {
+  $time = time() - $time;
+
+  if ($running) {
+    $pids = array();
+    foreach ($running as $handle => $process) {
+      $pids[] = $process->pid;
+    }
+    $running = db_delete('background_process', array('target' => 'background_process'))
+                 ->condition('pid', $pids, 'IN')
+                 ->condition('exec_status', BACKGROUND_PROCESS_STATUS_LOCKED)
+                 ->execute()
+                 ->rowCount();
+  }
+
+  drupal_set_message(t('%jobs jobs launched in %time seconds', array('%jobs' => $launched - count($running), '%time' => $time)));
+
+  if (count($running)) {
     drupal_set_message(t('%jobs jobs failed to launch within %seconds seconds', array(
-      '%jobs' => count($schedule),
+      '%jobs' => count($running),
       '%seconds' => variable_get('ultimate_cron_launch_window', ULTIMATE_CRON_LAUNCH_WINDOW)
-    )), empty($schedule) ? 'status' : 'error');
+    )), empty($running) ? 'status' : 'error');
     watchdog('ultimate_cron', '%jobs jobs failed to launch within %seconds seconds', array(
-      '%jobs' => count($schedule),
+      '%jobs' => count($running),
       '%seconds' => variable_get('ultimate_cron_launch_window', ULTIMATE_CRON_LAUNCH_WINDOW)
     ), WATCHDOG_WARNING);
   }
+
 
   // Release the lock
   lock_release('cron');
 
   // And we're done ...
   if ($return) {
-    return empty($schedule);
+    return empty($running);
   }
   else {
     exit;
@@ -589,7 +595,7 @@ function ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
       $process->setServiceGroup($hook['settings']['service_group']);
     }
     $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
-    $process->call();
+    $process->detach()->call();
     return $process;
   }
   catch (Exception $e) {
@@ -690,7 +696,7 @@ function ultimate_cron_get_schedule($hooks) {
     $last_run = isset($log['start']) ? $log['start'] : 0;
     $hook['last_run'] = $last_run;
 
-    if (ultimate_cron_hook_should_run($hook)) {
+    if (!$hook['background_process'] && ultimate_cron_hook_should_run($hook)) {
       $schedule[$name] = $hook;
     }
   }
