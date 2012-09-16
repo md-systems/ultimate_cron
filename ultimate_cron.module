@@ -839,7 +839,6 @@ function ultimate_cron_record_log($msg = NULL, $severity = -1) {
   $log = &drupal_static('ultimate_cron_record_log', array('msg' => '', 'severity' => -1));
   if ($msg) {
     $log['msg'] .= "$msg\n";
-    error_log($msg);
   }
   if ($severity > 0) {
     if ($log['severity'] < 0 || $severity <= $log['severity']) {
