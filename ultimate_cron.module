@@ -397,7 +397,7 @@ function ultimate_cron_cron_run($return = FALSE) {
       }
       $process = ultimate_cron_run_hook($hook);
       if (!$process) {
-        // Could not launch?
+        // Could not launch? ... let's retry
         continue;
       }
 
@@ -437,8 +437,7 @@ function ultimate_cron_cron_run($return = FALSE) {
     $running = db_delete('background_process', array('target' => 'background_process'))
                  ->condition('pid', $pids, 'IN')
                  ->condition('exec_status', BACKGROUND_PROCESS_STATUS_LOCKED)
-                 ->execute()
-                 ->rowCount();
+                 ->execute();
   }
 
   drupal_set_message(t('%jobs jobs launched in %time seconds', array('%jobs' => $launched - count($running), '%time' => $time)));
@@ -591,11 +590,11 @@ function ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
     $process = BackgroundProcess::lock($handle);
 
     // Determine service group
-    if (!empty($hook['settings']['service_group'])) {
-      $process->setServiceGroup($hook['settings']['service_group']);
+    if (!empty($hook['service group'])) {
+      $process->setServiceGroup($hook['service group']);
     }
     $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
-    $process->detach()->call();
+    $process->call();
     return $process;
   }
   catch (Exception $e) {
@@ -610,10 +609,6 @@ function ultimate_cron_run_hook_cli($hook, $skip_catch_up = FALSE) {
   try {
     $process = BackgroundProcess::lock($handle);
 
-    // Determine service group
-    if (!empty($hook['settings']['service_group'])) {
-      $process->setServiceGroup($hook['settings']['service_group']);
-    }
     $hook['timestamp'] = time();
     $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
     $process->runNow();
