@@ -620,6 +620,10 @@ function ultimate_cron_service_start($name = NULL) {
  */
 function ultimate_cron_service_enable($name, $enabled) {
   $settings = ultimate_cron_load($name);
+  if (!$settings) {
+    $settings = new stdClass();
+    $settings->name = $name;
+  }
   $settings->settings = $settings->settings ? $settings->settings : array();
   $settings->settings['enabled'] = $enabled;
   ultimate_cron_save($settings);

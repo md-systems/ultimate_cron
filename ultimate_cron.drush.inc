@@ -275,31 +275,27 @@ function drush_ultimate_cron_cron_run($name = NULL) {
 /**
  * Enable a cron job
  */
-function drush_ultimate_cron_cron_enable($name) {
+function drush_ultimate_cron_cron_enable($name, $enabled = TRUE) {
   $hooks = ultimate_cron_get_hooks();
   if (!isset($hooks[$name])) {
     return drush_set_error(dt('"!name" not found', array('!name' => $name)));
   }
   $settings = ultimate_cron_load($name);
+  if (!$settings) {
+    $settings = new stdClass();
+    $settings->name = $name;
+  }
   $settings->settings = $settings->settings ? $settings->settings : array();
-  $settings->settings['enabled'] = TRUE;
+  $settings->settings['enabled'] = $enabled;
   ultimate_cron_save($settings);
-  drush_print(dt('!name enabled', array('!name' => $name)));
+  drush_print(dt('!name !enabled', array('!name' => $name, '!enabled' => $enabled ? dt('enabled') : dt('disabled'))));
 }
 
 /**
  * Disable a cron job
  */
 function drush_ultimate_cron_cron_disable($name) {
-  $hooks = ultimate_cron_get_hooks();
-  if (!isset($hooks[$name])) {
-    return drush_set_error(dt('"!name" not found', array('!name' => $name)));
-  }
-  $settings = ultimate_cron_load($name);
-  $settings->settings = $settings->settings ? $settings->settings : array();
-  $settings->settings['enabled'] = FALSE;
-  ultimate_cron_save($settings);
-  drush_print(dt('!name disabled', array('!name' => $name)));
+  drush_ultimate_cron_cron_enable($name, FALSE);
 }
 
 /**
