@@ -447,13 +447,25 @@ function ultimate_cron_view_page($module = NULL) {
   ));
 
   if ($overview['running']) {
-    drupal_set_message(t('@jobs jobs are currently running', array('@jobs' => $overview['running'])));
+    drupal_set_message(format_plural($overview['running'],
+                        '@jobs job is currently running',
+                        '@jobs jobs are currently running',
+                        array('@jobs' => $overview['running'])
+                      ));
   }
   if ($overview['warning']) {
-    drupal_set_message(t('@jobs jobs had errors warnings their last run', array('@jobs' => $overview['warning'])), 'warning');
+    drupal_set_message(format_plural($overview['warning'],
+                        '@jobs job had warnings during it\'s last run', 
+                        '@jobs jobs had warnings during their last run', 
+                        array('@jobs' => $overview['warning'])
+                      ), 'warning');
   }
   if ($overview['error']) {
-    drupal_set_message(t('@jobs jobs had errors during their last run', array('@jobs' => $overview['error'])), 'error');
+    drupal_set_message(format_plural($overview['error'],
+                        '@jobs job had errors during it\'s last run',
+                        '@jobs jobs had errors during their last run',
+                        array('@jobs' => $overview['error'])
+                      ), 'error');
   }
 
   return $output;

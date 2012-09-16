@@ -561,19 +561,21 @@ function ultimate_cron_module_name($module) {
  * Clean up log entries.
  */
 function ultimate_cron_cleanup_log() {
-  watchdog('ultimate_cron', 'testing1 ...', array(), WATCHDOG_INFO);
-  #watchdog('ultimate_cron', 'testing2 ...', array(), WATCHDOG_CRITICAL);
+  $query = db_select('ultimate_cron_log', 'l')
+            ->fields('l', array('lid'))
+            ->condition('start_time', time() - variable_get('ultimate_cron_cleanup_log', ULTIMATE_CRON_CLEANUP_LOG), '<');
+  $total = $query->countQuery()->execute()->fetchField();
+  $progress = 0;
+  $process = BackgroundProcess::currentProcess();
   do {
-    $lids = db_select('ultimate_cron_log', 'l')
-              ->fields('l', array('lid'))
-              ->condition('start_time', time() - variable_get('ultimate_cron_cleanup_log', ULTIMATE_CRON_CLEANUP_LOG), '<')
-              ->range(0, 1000)
+    $lids = $query->range(0, 1000)
               ->execute()
               ->fetchAllKeyed(0, 0);
     if (!empty($lids)) {
-      db_delete('ultimate_cron_log')
-        ->condition('lid', $lids, 'IN')
-        ->execute();
+      $progress += db_delete('ultimate_cron_log')
+                     ->condition('lid', $lids, 'IN')
+                     ->execute();
+      $process->setProgress($progress / $total);
     }
   } while (!empty($lids));
 }
