@@ -341,6 +341,7 @@ function ultimate_cron_view_page($module = NULL) {
       $log = $hook['log'];
       if (!$log) {
         $log = array(
+          'msg' => '',
           'severity' => -1,
           'start_time' => NULL,
           'end_time' => NULL,
@@ -348,6 +349,7 @@ function ultimate_cron_view_page($module = NULL) {
       }
       $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= WATCHDOG_NOTICE ? 'info' : ($log['severity'] >= WATCHDOG_WARNING ? 'warning' : 'error'));
       $css_status = !empty($process) ? 'running' : $severity_type;
+      $css_status = $log['msg'] && $severity_type == 'success' ? 'info' : $css_status;
 
       $short_msg = $log['severity'];
       $msg = !empty($log['msg']) ? $log['msg'] : t('No errors');
