@@ -188,18 +188,6 @@ function ultimate_cron_cronapi() {
     'rules' => array('* * * * *'),
   );
 
-  // Get default cron hooks
-  foreach (module_implements('cron') as $module) {
-    $file = drupal_get_path('module', $module) . '/' . $module . '.info';
-    $info = drupal_parse_info_file($file);
-    $items["{$module}_cron"] = array(
-      'module' => $module,
-      'description' => 'Default cron handler',
-      'configure' => empty($info['configure']) ? NULL : $info['configure'],
-    );
-
-  }
-
   // Grab the defined cron queues.
   $queues = _ultimate_cron_get_queues();
 
@@ -776,6 +764,17 @@ function ultimate_cron_get_hooks($reset = FALSE) {
   foreach ($modules as $module) {
     // Get cronapi data
     $cron = module_invoke($module, 'cronapi', 'list');
+
+    // Get default cron hook
+    if (empty($cron["{$module}_cron"]) && module_hook($module, 'cron')) {
+      $file = drupal_get_path('module', $module) . '/' . $module . '.info';
+      $info = drupal_parse_info_file($file);
+      $cron["{$module}_cron"] = array(
+        'module' => $module,
+        'description' => 'Default cron handler',
+        'configure' => empty($info['configure']) ? NULL : $info['configure'],
+      );
+    }
 
     // Cleanup data
     if ($cron) {
