@@ -257,6 +257,16 @@ function ultimate_cron_background_process_shutdown($process, $msg = NULL) {
       $error = error_get_last();
       if ($error) {
         $msg .= $error['message'] . ' (line ' . $error['line'] . ' of ' . $error['file'] . ').' . "\n";
+        $log['severity'] = WATCHDOG_INFO;
+        if ($error['type'] && (E_NOTICE || E_USER_NOTICE || E_USER_WARNING)) {
+          $log['severity'] = WATCHDOG_NOTICE;
+        }
+        if ($error['type'] && (E_WARNING || E_CORE_WARNING || E_USER_WARNING)) {
+          $log['severity'] = WATCHDOG_WARNING;
+        }
+        if ($error['type'] && (E_ERROR || E_CORE_ERROR || E_USER_ERROR || E_RECOVERABLE_ERROR)) {
+          $log['severity'] = WATCHDOG_ERROR;
+        }
       }
     }
 
