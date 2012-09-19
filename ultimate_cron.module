@@ -606,6 +606,10 @@ function ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
     return $process;
   }
   catch (Exception $e) {
+    $process = BackgroundProcess::loadByHandle($handle);
+    if ($process && $process->reDispatch()) {
+      return $process;
+    }
     return FALSE;
   }
 }
@@ -699,7 +703,12 @@ function ultimate_cron_get_schedule($hooks) {
     $last_run = isset($log['start']) ? $log['start'] : 0;
     $hook['last_run'] = $last_run;
 
-    if (!$hook['background_process'] && ultimate_cron_hook_should_run($hook)) {
+    if ($hook['background_process'] && $hook['background_process']->getStatus() == BACKGROUND_PROCESS_STATUS_RUNNING) {
+      // If already running, then don't schedule
+      continue;
+    }
+
+    if (ultimate_cron_hook_should_run($hook)) {
       $schedule[$name] = $hook;
     }
   }
@@ -1102,8 +1111,9 @@ function ultimate_cron_launch_poorman() {
  * @return type
  */
 function _ultimate_cron_poorman() {
+  $process = BackgroundProcess::currentProcess();
   if (!variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN)) {
-    BackgroundProcess::currentProcess()->keepAlive(FALSE);
+    $process->keepAlive(FALSE);
     return;
   }
 
@@ -1113,6 +1123,8 @@ function _ultimate_cron_poorman() {
 
   // Run the cron
   ultimate_cron_cron_run(TRUE);
+
+  $process->setServiceHost('ultimate_cron_poorman');
 
   // Wait until end of "current" minute
   $wait = $time + 60 - time();
