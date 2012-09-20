@@ -130,7 +130,7 @@ function ultimate_cron_settings_form() {
 }
 
 /**
- * Function settings form.
+ * Job settings form.
  */
 function ultimate_cron_function_settings_form($form, &$form_state, $name) {
   $hooks = ultimate_cron_get_hooks();
@@ -310,7 +310,7 @@ function ultimate_cron_view_page($module = NULL) {
     }
   }
 
-  $headers = array('', t('Module'), t('Function'), t('Rules'), t('Start'), t('Duration'), t('Status'), array('colspan' => 3, 'data' => ''), l(t('Run all'), 'admin/reports/status/run-cron', array('query' => drupal_get_destination())));
+  $headers = array('', t('Module'), t('Description'), t('Rules'), t('Start'), t('Duration'), t('Status'), array('colspan' => 3, 'data' => ''), l(t('Run all'), 'admin/reports/status/run-cron', array('query' => drupal_get_destination())));
   $output = '';
   $rows = array();
 
@@ -404,6 +404,7 @@ function ultimate_cron_view_page($module = NULL) {
       $data[0]['data'] = $link_toggle;
       $data[0]['title'] = $enable ? t('Enable') : t('Disable');
       $data[1]['data'] = ultimate_cron_module_name($module);
+      $data[1]['title'] = $hook['callback'];
       $data[2]['data'] = $hook['description'];
       $data[2]['title'] = $name;
       $data[3]['data'] = join("<br/>", $rules);
@@ -474,7 +475,7 @@ function ultimate_cron_view_page($module = NULL) {
 }
 
 /**
- * Function log page.
+ * Job log page.
  */
 function ultimate_cron_function_log_page($name) {
   $hooks = ultimate_cron_get_hooks();
