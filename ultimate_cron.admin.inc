@@ -545,7 +545,7 @@ function ultimate_cron_function_log_page($name) {
 
   foreach ($logs as $log) {
     $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= WATCHDOG_INFO ? 'info' : ($log['severity'] >= WATCHDOG_WARNING ? 'warning' : 'error'));
-    $css_status = $severity_type;
+    $css_status = $log['msg'] && $severity_type == 'success' ? 'info' : $severity_type;
     $data = array(
       array('class' => array('ultimate-cron-admin-start')),
       array('class' => array('ultimate-cron-admin-end')),
