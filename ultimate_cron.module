@@ -737,7 +737,7 @@ function ultimate_cron_hook_should_run($hook) {
   }
 
   $log = ultimate_cron_get_last_log_entry($hook['name']);
-  $last_run = isset($log['start']) ? $log['start'] : 0;
+  $last_run = isset($log['start_time']) ? $log['start_time'] : 0;
 
   return ultimate_cron_should_run($hook['rules'], $last_run, time(), $hook['catch up'], $hook['original weight']);
 }
@@ -1094,7 +1094,10 @@ function ultimate_cron_trigger_poorman() {
 function ultimate_cron_launch_poorman() {
   $handle = 'ultimate_cron_poorman';
   if ($process = BackgroundProcess::loadByHandle($handle)) {
-    if ($process->getStartTime() + 120 < time()) {
+    if ($process->reDispatch()) {
+      return;
+    }
+    if ($process->getStatus() == BACKGROUND_PROCESS_STATUS_RUNNING && $process->getStartTime() + 120 < time()) {
       $process->shutdown('Stale poorman launcher ... shutting it down');
       $process = NULL;
     }
