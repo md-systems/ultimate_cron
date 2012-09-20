@@ -240,7 +240,7 @@ function ultimate_cron_function_settings_form_validate($form, &$form_state) {
     }
   }
 
-  if ($settings['rules']) {
+  if (!empty($settings['rules'])) {
     $settings['rules'] = $settings['rules'] ? explode(';', $settings['rules']) : array();
     foreach ($settings['rules'] as &$rule) {
       $rule = trim($rule);
