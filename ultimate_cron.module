@@ -602,6 +602,7 @@ function ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
     }
     $hook['timestamp'] = time();
     $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
+    $process->storeResult(FALSE);
     $process->call();
     return $process;
   }
@@ -623,6 +624,7 @@ function ultimate_cron_run_hook_cli($hook, $skip_catch_up = FALSE) {
 
     $hook['timestamp'] = time();
     $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
+    $process->storeResult(FALSE);
     $process->runNow();
     return $process;
   }
@@ -700,7 +702,7 @@ function ultimate_cron_get_schedule($hooks) {
   foreach ($hooks as $name => &$hook) {
     // Store last run in hook for sorting purposes
     $log = ultimate_cron_get_last_log_entry($name);
-    $last_run = isset($log['start']) ? $log['start'] : 0;
+    $last_run = isset($log['start_time']) ? $log['start_time'] : 0;
     $hook['last_run'] = $last_run;
 
     if ($hook['background_process'] && $hook['background_process']->getStatus() == BACKGROUND_PROCESS_STATUS_RUNNING) {

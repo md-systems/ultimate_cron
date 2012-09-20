@@ -626,7 +626,7 @@ function ultimate_cron_service_enable($name, $enabled) {
     $settings = new stdClass();
     $settings->name = $name;
   }
-  $settings->settings = $settings->settings ? $settings->settings : array();
+  $settings->settings = !empty($settings->settings) ? $settings->settings : array();
   $settings->settings['enabled'] = $enabled;
   ultimate_cron_save($settings);
   drupal_set_message(t('!name !enabled', array('!name' => $name, '!enabled' => t($enabled ? 'enabled' : 'disabled'))));
