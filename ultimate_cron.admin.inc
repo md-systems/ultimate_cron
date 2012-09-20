@@ -269,6 +269,7 @@ function ultimate_cron_function_settings_form_submit($form, &$form_state) {
 function ultimate_cron_view_page($module = NULL) {
   require_once 'CronRule.class.php';
   drupal_add_css(drupal_get_path('module', 'ultimate_cron') . '/css/ultimate_cron.admin.css');
+  drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.js');
 
   module_load_install('ultimate_cron');
   $requirements = ultimate_cron_requirements('runtime');
@@ -288,8 +289,18 @@ function ultimate_cron_view_page($module = NULL) {
     }
   }
 
-  $headers = array('', t('Module'), t('Description'), t('Rules'), t('Start'), t('Duration'), t('Status'), array('colspan' => 3, 'data' => ''), l(t('Run all'), 'admin/reports/status/run-cron', array('query' => drupal_get_destination())));
   $output = '';
+  $links = array(
+    array('href' => '', 'title' => t('Errors'), 'attributes' => array('id' => 'ultimate-cron-show-error')),
+    array('href' => '', 'title' => t('Warnings'), 'attributes' => array('id' => 'ultimate-cron-show-warning')),
+    array('href' => '', 'title' => t('Info'), 'attributes' => array('id' => 'ultimate-cron-show-info')),
+    array('href' => '', 'title' => t('Success'), 'attributes' => array('id' => 'ultimate-cron-show-success')),
+    array('href' => '', 'title' => t('Running'), 'attributes' => array('id' => 'ultimate-cron-show-running')),
+    array('href' => '', 'title' => t('All'), 'attributes' => array('id' => 'ultimate-cron-show-all')),
+  );
+  $output .= theme('links', array('links' => $links, 'attributes' => array('class' => 'tabs secondary')));
+
+  $headers = array('', t('Module'), t('Description'), t('Rules'), t('Start'), t('Duration'), t('Status'), array('colspan' => 3, 'data' => ''), l(t('Run all'), 'admin/reports/status/run-cron', array('query' => drupal_get_destination())));
   $rows = array();
 
   $overview = array();

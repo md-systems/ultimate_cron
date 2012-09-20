@@ -5,5 +5,6 @@ core = 7.x
 dependencies[] = background_process
 
 files[] = tests/rules.test
+files[] = js/ultimate_cron.js
 
 configure = admin/config/system/cron/settings

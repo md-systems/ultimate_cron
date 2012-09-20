@@ -649,6 +649,7 @@ function _ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
     call_user_func_array($hook['callback'], $args);
   }
   else {
+    $process->keepAlive(FALSE);
     watchdog('ultimate_cron', '!callback is invalid!', array('!callback' => $hook['callback']), WATCHDOG_CRITICAL);
   }
 
