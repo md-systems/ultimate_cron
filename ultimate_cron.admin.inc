@@ -86,16 +86,6 @@ function ultimate_cron_settings_form() {
     '#collapsed' => FALSE,
     '#tree' => FALSE,
   );
-  $form['queues']['ultimate_cron_queue_polling_latency'] = array(
-    '#title' => t("Queue polling latency"),
-    '#type' => 'textfield',
-    '#default_value' => variable_get('ultimate_cron_queue_polling_latency', ULTIMATE_CRON_QUEUE_POLLING_LATENCY),
-    '#description' => ($advanced_help_enabled ? theme('advanced_help_topic', array(
-                              'module' => 'ultimate_cron',
-                              'topic' => 'polling_latency',
-                              'type' => 'icon')
-                      ) : '') . t('Queue polling latency in miliseconds. Leave blank to disable continuous processing of queues.'),
-  );
   $form['queues']['ultimate_cron_queue_lease_time'] = array(
     '#title' => t('Queue lease time'),
     '#type' => 'textfield',
@@ -141,15 +131,13 @@ function ultimate_cron_function_settings_form($form, &$form_state, $name) {
 
   // Load settings
   $hook = $hooks[$name];
-  $settings = ultimate_cron_load($name);
-  $settings = $settings ? $settings->settings : array();
+  $settings = $hook['settings'];
   $settings += array(
     'enabled' => TRUE,
     'rules' => array(),
     'catch up' => '',
     'service group' => '',
     'queue lease time' => '',
-    'queue polling latency' => '',
   );
 
   // Setup form
@@ -183,7 +171,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $name) {
                               'module' => 'ultimate_cron',
                               'topic' => 'rules',
                               'type' => 'icon')
-                      ) : '') . t('Semi-colon separated list of rules for this job. (blank = ' . implode(';', $hook['rules']) . ')'),
+                      ) : '') . t('Semi-colon separated list of rules for this job. (blank = ' . implode(';', $hook['defaults']['rules']) . ')'),
   );
   $form['general']['catch up'] = array(
     '#title' => t('Catch up'),
@@ -193,7 +181,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $name) {
                               'module' => 'ultimate_cron',
                               'topic' => 'catch_up',
                               'type' => 'icon')
-                      ) : '') . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . $hook['catch up'] . ')'),
+                      ) : '') . t('Time in seconds to catch up, if a job could not be run within its time frame. (blank = ' . $hook['defaults']['catch up'] . ')'),
   );
   if (isset($hook['queue lease time'])) {
     $form['general']['queue lease time'] = array(
@@ -204,17 +192,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $name) {
                                 'module' => 'ultimate_cron',
                                 'topic' => 'queue lease time',
                                 'type' => 'icon')
-                        ) : '') . t('Time in seconds to keep lock on claimed item. (blank = ' . $hook['queue lease time'] . ')'),
-    );
-    $form['general']['queue polling latency'] = array(
-      '#title' => t("Queue polling latency"),
-      '#type' => 'textfield',
-      '#default_value' => $settings['queue polling latency'],
-      '#description' => ($advanced_help_enabled ? theme('advanced_help_topic', array(
-                                'module' => 'ultimate_cron',
-                                'topic' => 'polling_latency',
-                                'type' => 'icon')
-                        ) : '') . t('Queue polling latency in miliseconds. (blank = ' . (is_numeric($hook['queue polling latency']) ? $hook['queue polling latency'] : t('disabled')) . ')'),
+                        ) : '') . t('Time in seconds to keep lock on claimed item. (blank = ' . $hook['defaults']['queue lease time'] . ')'),
     );
   }
 
@@ -349,7 +327,7 @@ function ultimate_cron_view_page($module = NULL) {
       }
       $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= WATCHDOG_NOTICE ? 'info' : ($log['severity'] >= WATCHDOG_WARNING ? 'warning' : 'error'));
       $css_status = !empty($process) ? 'running' : $severity_type;
-      $css_status = $log['msg'] && $severity_type == 'success' ? 'info' : $css_status;
+      $css_status = $log['msg'] && ($css_status == 'success') ? 'info' : $css_status;
 
       $short_msg = $log['severity'];
       $msg = !empty($log['msg']) ? $log['msg'] : t('No errors');

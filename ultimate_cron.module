@@ -52,11 +52,6 @@ define('ULTIMATE_CRON_CLEANUP_LOG', 86400 * 30);
 define('ULTIMATE_CRON_POORMAN', FALSE);
 
 /**
- * Default queue polling latency.
- */
-define('ULTIMATE_CRON_QUEUE_POLLING_LATENCY', '');
-
-/**
  * Time in seconds to spend on launcing cron jobs.
  */
 define('ULTIMATE_CRON_LAUNCH_WINDOW', 55);
@@ -198,7 +193,6 @@ function ultimate_cron_cronapi() {
       'arguments' => array($queue_name),
       'rules' => array('* * * * *'),
       'queue lease time' => variable_get('ultimate_cron_queue_lease_time', ULTIMATE_CRON_QUEUE_LEASE_TIME),
-      'queue polling latency' => variable_get('ultimate_cron_queue_polling_latency', ULTIMATE_CRON_QUEUE_POLLING_LATENCY),
     );
   }
   return $items;
@@ -473,7 +467,6 @@ function ultimate_cron_cron_run($return = FALSE) {
  * Process a cron queue.
  */
 function ultimate_cron_queue_cron($hook, $queue_name) {
-  $polling_latency = $hook['queue polling latency'];
   $queues = _ultimate_cron_get_queues();
   $info = $queues[$queue_name];
 
@@ -481,35 +474,13 @@ function ultimate_cron_queue_cron($hook, $queue_name) {
   $end = time() + (isset($info['time']) ? $info['time'] : 15);
   $queue = DrupalQueue::get($queue_name);
   $items = 0;
-  while (time() < $end) {
-    $item = $queue->claimItem($hook['queue lease time']);
-    if (!$item) {
-      if (is_numeric($polling_latency)) {
-        usleep($polling_latency * 1000);
-        continue;
-      }
-      else {
-        break;
-      }
-    }
+  while (time() < $end && $item = $queue->claimItem($hook['queue lease time'])) {;
     $function($item->data);
     $queue->deleteItem($item);
     $items++;
   }
   drupal_set_message(t('Processed @items items', array('@items' => $items)));
 
-
-  $keepalive = FALSE;
-  if (is_numeric($polling_latency)) {
-    // Reload settings
-    $hook = ultimate_cron_get_hook($hook['name'], TRUE);
-    if (!$hook) {
-      $keepalive = ultimate_cron_hook_should_run($hook);
-    }
-  }
-  $process = BackgroundProcess::currentProcess();
-  $process->setCallback($process->callback, array($hook, $queue_name));
-  $process->keepAlive($keepalive);
   return;
 }
 
@@ -800,28 +771,25 @@ function ultimate_cron_get_hooks($reset = FALSE) {
     // Cleanup data
     if ($cron) {
       foreach ($cron as $name => &$item) {
+        $defaults = $item;
+
+        // Support old style cronapi :-(
         if (!is_array($item)) {
-          // Support old style cronapi :-(
           $desc = $item;
 
           $rules = module_invoke($module, 'cronapi', 'rule', $name);
           $rules = is_array($rules) ? $rules : ($rules ? array($rules) : array());
 
-          $legacy_settings = module_invoke($module, 'cronapi', 'settings', $name);
-          $legacy_settings = $legacy_settings ? $legacy_settings : array();
-          if (empty($legacy_settings['rules']) && $rules) $legacy_settings['rules'] = $rules;
+          $defaults = (array)module_invoke($module, 'cronapi', 'settings', $name);
+          if (empty($defaults['rules']) && $rules) $defaults['rules'] = $rules;
 
-          $item = empty($settings[$name]) ? array() : $settings[$name]->settings;
-          $item += $legacy_settings;
-          $item += array(
+          $defaults += array(
             'description' => $desc,
             'configure' => module_invoke($module, 'cronapi', 'configure', $name),
           );
         }
-        else {
-          $item = empty($settings[$name]) ? $item : $settings[$name]->settings + $item;
-        }
-        $item += array(
+
+        $defaults += array(
           'description' => $name,
           'module' => $module,
           'file path' => drupal_get_path('module', $module),
@@ -835,7 +803,12 @@ function ultimate_cron_get_hooks($reset = FALSE) {
           'service group' => variable_get('ultimate_cron_service_group', ULTIMATE_CRON_SERVICE_GROUP),
           'enabled' => TRUE,
         );
+
+        $overloaded = empty($settings[$name]) ? array() : $settings[$name]->settings;
+        $item = $overloaded + $defaults;
         $item['name'] = $name;
+        $item['defaults'] = $defaults;
+        $item['settings'] = $overloaded;
       }
       $hooks += $cron;
     }
