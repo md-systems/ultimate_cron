@@ -83,3 +83,9 @@
 .ultimate-cron-admin-message {
   white-space: pre-line;
 }
+
+a.ultimate-cron-admin-status {
+  padding-left: 24px !important;
+  background-position-x: 5px;
+}
+

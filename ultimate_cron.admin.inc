@@ -269,6 +269,7 @@ function ultimate_cron_function_settings_form_submit($form, &$form_state) {
 function ultimate_cron_view_page($module = NULL) {
   require_once 'CronRule.class.php';
   drupal_add_css(drupal_get_path('module', 'ultimate_cron') . '/css/ultimate_cron.admin.css');
+  drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/jquery.tablesorter.js');
   drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.js');
 
   module_load_install('ultimate_cron');
@@ -290,15 +291,18 @@ function ultimate_cron_view_page($module = NULL) {
   }
 
   $output = '';
+  $path = isset($_GET['q']) ? $_GET['q'] : '<front>';
+
   $links = array(
-    array('href' => '', 'title' => t('Errors'), 'attributes' => array('id' => 'ultimate-cron-show-error')),
-    array('href' => '', 'title' => t('Warnings'), 'attributes' => array('id' => 'ultimate-cron-show-warning')),
-    array('href' => '', 'title' => t('Info'), 'attributes' => array('id' => 'ultimate-cron-show-info')),
-    array('href' => '', 'title' => t('Success'), 'attributes' => array('id' => 'ultimate-cron-show-success')),
-    array('href' => '', 'title' => t('Running'), 'attributes' => array('id' => 'ultimate-cron-show-running')),
-    array('href' => '', 'title' => t('All'), 'attributes' => array('id' => 'ultimate-cron-show-all')),
+    '<a href="#show-error" id="ultimate-cron-show-error" class="ultimate-cron-admin-status ultimate-cron-admin-status-error">' . t('Errors') . '</a>',
+    '<a href="#show-warning" id="ultimate-cron-show-warning" class="ultimate-cron-admin-status ultimate-cron-admin-status-warning">' . t('Warnings') . '</a>',
+    '<a href="#show-info" id="ultimate-cron-show-info" class="ultimate-cron-admin-status ultimate-cron-admin-status-info">' . t('Info') . '</a>',
+    '<a href="#show-success" id="ultimate-cron-show-success" class="ultimate-cron-admin-status ultimate-cron-admin-status-success">' . t('Success') . '</a>',
+    '<a href="#show-running" id="ultimate-cron-show-running" class="ultimate-cron-admin-status ultimate-cron-admin-status-running">' . t('Running') . '</a>',
+    '<a href="#show-all" id="ultimate-cron-show-all">' . t('All') . '</a>',
   );
-  $output .= theme('links', array('links' => $links, 'attributes' => array('class' => 'tabs secondary')));
+  $output .= theme('item_list', array('items' => $links, 'attributes' => array('class' => 'tabs secondary')));
+  $output .= '<div class="clearfix"></div>';
 
   $headers = array('', t('Module'), t('Description'), t('Rules'), t('Start'), t('Duration'), t('Status'), array('colspan' => 3, 'data' => ''), l(t('Run all'), 'admin/reports/status/run-cron', array('query' => drupal_get_destination())));
   $rows = array();
