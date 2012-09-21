@@ -626,7 +626,7 @@ function _ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
   $record = TRUE;
 
   $time = time();
-  if (!$skip_catch_up && !ultimate_cron_hook_should_run($hook)) {
+  if (FALSE && !$skip_catch_up && !ultimate_cron_hook_should_run($hook)) {
     // Hook started too late!
     watchdog('ultimate_cron', '%name skipped. Invoked at %invoke, but did not start until %start', array(
       '%name' => $hook['name'],
@@ -650,7 +650,7 @@ function _ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
   }
   else {
     $process->keepAlive(FALSE);
-    watchdog('ultimate_cron', '!callback is invalid!', array('!callback' => $hook['callback']), WATCHDOG_CRITICAL);
+    watchdog('ultimate_cron', '!callback for !name is invalid!', array('!callback' => $hook['callback'], '!name' => $hook['name']), WATCHDOG_CRITICAL);
   }
 
   // Let other modules do stuff after execution, if they need to.
@@ -688,7 +688,9 @@ function ultimate_cron_get_schedule($hooks) {
   }
 
   // Sort by last run time
-  uasort($schedule, '_ultimate_cron_sort_schedule');
+  uasort($schedule, function ($a, $b) {
+    return $a['last_run'] == $b['last_run'] ? 0 : ($a['last_run'] < $b['last_run'] ? -1 : 1);
+  });
 
   // Allow other to manipulate the schedule
   drupal_alter('cron_schedule', $schedule);
@@ -795,8 +797,8 @@ function ultimate_cron_get_hooks($reset = FALSE) {
           'module' => $module,
           'file path' => drupal_get_path('module', $module),
           'rules' => array(variable_get('ultimate_cron_rule', ULTIMATE_CRON_RULE)),
-          'original weight' => $weight++,
-          'weight' => 0,
+          'original weight' => $weight,
+          'weight' => $weight,
           'arguments' => array(),
           'callback' => $name,
           'catch up' => variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP),
@@ -804,6 +806,7 @@ function ultimate_cron_get_hooks($reset = FALSE) {
           'service group' => variable_get('ultimate_cron_service_group', ULTIMATE_CRON_SERVICE_GROUP),
           'enabled' => TRUE,
         );
+        $weight++;
 
         $overloaded = empty($settings[$name]) ? array() : $settings[$name]->settings;
         $item = $overloaded + $defaults;
@@ -817,6 +820,11 @@ function ultimate_cron_get_hooks($reset = FALSE) {
 
   // Allow other to manipulate the hook list
   drupal_alter('cron', $hooks);
+
+  // Sort by original weight
+  uasort($hooks, function ($a, $b) {
+    return $a['weight'] == $b['weight'] ? 0 : ($a['weight'] < $b['weight'] ? -1 : 1);
+  });
 
   return $hooks;
 }
