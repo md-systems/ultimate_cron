@@ -603,7 +603,7 @@ function ultimate_cron_service_start($name = NULL) {
     drupal_set_message(t('%function started', array('%function' => $name)));
   }
   catch (Exception $e) {
-    drupal_set_message(t('%function could not start (%error)', array('%function' => $name, '%error' => (string) $e)), 'error');
+    drupal_set_message(t('%function could not start (%error)', array('%function' => $name, '%error' => $e->getMessage())), 'error');
   }
 
   drupal_goto();
