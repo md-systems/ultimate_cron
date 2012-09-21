@@ -605,6 +605,20 @@ function ultimate_cron_run_hook_cli($hook, $skip_catch_up = FALSE) {
 }
 
 /**
+ * Trigger a cron job.
+ */
+function ultimate_cron_trigger_cron_job($name, $skip_catch_up = FALSE) {
+  $hooks = ultimate_cron_get_hooks();
+  try {
+    $process = ultimate_cron_run_hook($hooks[$name], $skip_catch_up);
+    return TRUE;
+  }
+  catch (Exception $e) {
+    return FALSE;
+  }
+}
+
+/**
  * This is the function that is launched into a background process.
  * It runs the cron job and does housekeeping, pre/post execute hooks, etc.
  *

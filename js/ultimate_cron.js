@@ -23,7 +23,7 @@ jQuery(document).ready(function($) {
     $("tr .ultimate-cron-admin-status-running").parent().show();
   });
 
-  $("#ultimate-cron-view").tablesorter();
+  // $("#ultimate-cron-view").tablesorter();
 
   var sel = location.hash.substring(1);
   $('a#ultimate-cron-' + sel).trigger('click');
