@@ -388,15 +388,15 @@ function ultimate_cron_cron_run($return = FALSE) {
         // Already running, don't launch
         continue;
       }
-      $process = ultimate_cron_run_hook($hook);
-      if (!$process) {
-        // Could not launch? ... let's retry
-        continue;
+      try {
+        $process = ultimate_cron_run_hook($hook);
+        $running[$process->handle] = $process;
+        unset($schedule[$name]);
+        $launched++;
       }
-
-      $running[$process->handle] = $process;
-      unset($schedule[$name]);
-      $launched++;
+      catch (Exception $e) {
+        // Could not launch? ... let's retry
+      }
     }
 
     // Jobs running ... check for start
@@ -582,7 +582,7 @@ function ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
     if ($process && $process->reDispatch()) {
       return $process;
     }
-    return FALSE;
+    throw $e;
   }
 }
 
@@ -1096,6 +1096,7 @@ function _ultimate_cron_poorman() {
     return;
   }
 
+
   // Derive current minute
   $time = time();
   $time = floor($time / 60) * 60;
@@ -1111,3 +1112,4 @@ function _ultimate_cron_poorman() {
     sleep($wait);
   }
 }
+
