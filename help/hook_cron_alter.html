@@ -4,7 +4,7 @@
 <p>Change default rules for the Node modules cron hook and hi-jack system cron:</p>
 <pre>
 function hook_cron_alter(&$hooks) {
-  $hooks['node_cron']['settings']['rules'] = array('0 * * * *');
+  $hooks['node_cron']['rules'] = array('0 * * * *');
   $hooks['system_cron']['module'] = 'mymodule';
   $hooks['system_cron']['callback'] = 'mymodule_new_system_cron';
   $hooks['system_cron']['file'] = drupal_get_path('module', 'mymodule') . '/mymodule.cron.inc';

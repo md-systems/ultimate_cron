@@ -1,10 +1,10 @@
-<p>The hook_cron_post_execute($function, &$hook) is invoked just after running the cron function.</p>
+<p>The hook_cron_post_execute(&$hook) is invoked just after running the cron function.</p>
 
 <h3>Example</h3>
 <p>Log that node_cron is done</p>
 <pre>
-function hook_cron_post_execute($function, &$hook) {
-  if ($function == 'node_cron') {
+function hook_cron_post_execute(&$hook) {
+  if ($hook['name'] == 'node_cron') {
     error_log('node_cron is done');
   }
 }

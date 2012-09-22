@@ -572,6 +572,7 @@ function ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
       $process->setServiceGroup($hook['service group']);
     }
     $hook['timestamp'] = time();
+    unset($hook['background_process']);
     $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
     $process->storeResult(FALSE);
     $process->call();
