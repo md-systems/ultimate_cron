@@ -314,7 +314,7 @@ function drush_ultimate_cron_cron_unlock($name) {
   }
 
   // Unlock the process
-  if ($hook['background_process']->unlock()) {
+  if ($hook['background_process']->log(t('Manually unlocked by "Drush"'))->unlock()) {
     drush_print(dt('Cron job !name unlocked (process handle: !handle)', array('!handle' => $hook['background_process']->getHandle(), '!name' => $name)));
   }
   else {

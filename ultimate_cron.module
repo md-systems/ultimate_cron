@@ -199,17 +199,6 @@ function ultimate_cron_cronapi() {
 }
 
 /**
- * Implements hook_watchdog().
- */
-function ultimate_cron_watchdog($log = array()) {
-  $record = &drupal_static('ultimate_cron_record', FALSE);
-  if ($record) {
-    $log['variables'] = is_array($log['variables']) ? $log['variables'] : array();
-    ultimate_cron_record_log(t($log['message'], $log['variables']), $log['severity']);
-  }
-}
-
-/**
  * Implements hook_init().
  */
 function ultimate_cron_init() {
@@ -228,40 +217,17 @@ function ultimate_cron_init() {
  *
  * Shutdown handler for cronjobs.
  */
-function ultimate_cron_background_process_shutdown($process, $msg = NULL) {
-  $args = func_get_args();
+function ultimate_cron_background_process_shutdown($process) {
+  // @todo Refactor this regex stuff, by implementing a shutdown handler registrator in Background Process?
   $name = preg_replace('/^uc:/', '', $process->getHandle());
   if (!empty($name) && $name != $process->getHandle()) {
     // Record end time
     $end = microtime(TRUE);
 
-    $log = array('severity' => WATCHDOG_WARNING);
-    if (!$msg) {
-      // Get watchdog messages
-      $log = ultimate_cron_record_log();
-      $msg = $log['msg'];
-
-      // Get drupal messages
-      $messages = drupal_get_messages();
-      $msg .= empty($messages['status']) ? '' : join("\n", $messages['status']) . "\n";
-      $msg .= empty($messages['warning']) ? '' : join("\n", $messages['warning']) . "\n";
-      $msg .= empty($messages['error']) ? '' : join("\n", $messages['error']) . "\n";
-
-      // Get error messages
-      $error = error_get_last();
-      if ($error) {
-        $msg .= $error['message'] . ' (line ' . $error['line'] . ' of ' . $error['file'] . ').' . "\n";
-        $log['severity'] = WATCHDOG_INFO;
-        if ($error['type'] && (E_NOTICE || E_USER_NOTICE || E_USER_WARNING)) {
-          $log['severity'] = WATCHDOG_NOTICE;
-        }
-        if ($error['type'] && (E_WARNING || E_CORE_WARNING || E_USER_WARNING)) {
-          $log['severity'] = WATCHDOG_WARNING;
-        }
-        if ($error['type'] && (E_ERROR || E_CORE_ERROR || E_USER_ERROR || E_RECOVERABLE_ERROR)) {
-          $log['severity'] = WATCHDOG_ERROR;
-        }
-      }
+    $log = $process->getLog();
+    $msg = array();
+    foreach ($log['entries'] as $entry) {
+      $msg[] = trim($entry['message']);
     }
 
     // log results here ...
@@ -270,7 +236,7 @@ function ultimate_cron_background_process_shutdown($process, $msg = NULL) {
       'start_time' => $process->getStartTime(),
       'end_time' => $end,
       'severity' => $log['severity'],
-      'msg' => trim($msg),
+      'msg' => trim(join("\n", $msg)),
     );
     drupal_write_record('ultimate_cron_log', $object);
   }
@@ -1095,7 +1061,7 @@ function ultimate_cron_launch_poorman() {
       return;
     }
     if ($process->getStatus() == BACKGROUND_PROCESS_STATUS_RUNNING && $process->getStartTime() + 120 < time()) {
-      $process->shutdown('Stale poorman launcher ... shutting it down');
+      $process->log(t('Stale poorman launcher ... shutting it down'))->unlock();
       $process = NULL;
     }
   }
