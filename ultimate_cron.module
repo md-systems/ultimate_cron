@@ -213,33 +213,28 @@ function ultimate_cron_init() {
 }
 
 /**
- * Implements hook_background_process_shutdown().
- *
  * Shutdown handler for cronjobs.
  */
-function ultimate_cron_background_process_shutdown($process) {
-  // @todo Refactor this regex stuff, by implementing a shutdown handler registrator in Background Process?
-  $name = preg_replace('/^uc:/', '', $process->getHandle());
-  if (!empty($name) && $name != $process->getHandle()) {
-    // Record end time
-    $end = microtime(TRUE);
+function ultimate_cron_background_process_shutdown_callback($hook, $process) {
+  $name = $hook['name'];
+  // Record end time
+  $end = microtime(TRUE);
 
-    $log = $process->getLog();
-    $msg = array();
-    foreach ($log['entries'] as $entry) {
-      $msg[] = trim($entry['message']);
-    }
-
-    // log results here ...
-    $object = (object)array(
-      'name' => $name,
-      'start_time' => $process->getStartTime(),
-      'end_time' => $end,
-      'severity' => $log['severity'],
-      'msg' => trim(join("\n", $msg)),
-    );
-    drupal_write_record('ultimate_cron_log', $object);
+  $log = $process->getLog();
+  $msg = array();
+  foreach ($log['entries'] as $entry) {
+    $msg[] = trim($entry['message']);
   }
+
+  // log results here ...
+  $object = (object)array(
+    'name' => $name,
+    'start_time' => $process->getStartTime(),
+    'end_time' => $end,
+    'severity' => $log['severity'],
+    'msg' => trim(join("\n", $msg)),
+  );
+  drupal_write_record('ultimate_cron_log', $object);
 }
 
 
@@ -540,6 +535,7 @@ function ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
     $hook['timestamp'] = time();
     unset($hook['background_process']);
     $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
+    $process->setShutdownCallback('ultimate_cron_background_process_shutdown_callback', array($hook));
     $process->storeResult(FALSE);
     $process->call();
     return $process;
@@ -562,6 +558,7 @@ function ultimate_cron_run_hook_cli($hook, $skip_catch_up = FALSE) {
 
     $hook['timestamp'] = time();
     $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
+    $process->setShutdownCallback('ultimate_cron_background_process_shutdown_callback', array($hook));
     $process->storeResult(FALSE);
     $process->runNow();
     return $process;
