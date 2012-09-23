@@ -347,6 +347,7 @@ function ultimate_cron_cron_run($return = FALSE) {
     while ((list($name, $hook) = each($schedule)) && time() < $expire) {
       if ($hook['background_process']) {
         // Already running, don't launch
+        unset($schedule[$name]);
         continue;
       }
       try {
@@ -354,27 +355,14 @@ function ultimate_cron_cron_run($return = FALSE) {
         $running[$process->handle] = $process;
         unset($schedule[$name]);
         $launched++;
+        drupal_set_message(t('Launched !name', array('!name' => $name)));
       }
       catch (Exception $e) {
         // Could not launch? ... let's retry
       }
     }
 
-    // Jobs running ... check for start
-    if ($running) {
-      $pids = db_select('background_process', 'bp', array('target' => 'background_process'))
-                ->fields('bp', array('handle', 'pid'))
-                ->condition('bp.handle', array_keys($running), 'IN')
-                ->condition('bp.exec_status', BACKGROUND_PROCESS_STATUS_LOCKED)
-                ->execute()
-                ->fetchAllKeyed(0, 1);
-      foreach ($running as $handle => $process) {
-        if (empty($pids[$handle])) {
-          unset($running[$handle]);
-        }
-      }
-    }
-    $finished = empty($schedule) && empty($running);
+    $finished = empty($schedule);
     sleep(1);
   }
 
@@ -383,6 +371,7 @@ function ultimate_cron_cron_run($return = FALSE) {
 
   $time = time() - $time;
 
+  // Remove and count all jobs that failed to launch
   if ($running) {
     $pids = array();
     foreach ($running as $handle => $process) {
@@ -557,6 +546,7 @@ function ultimate_cron_run_hook_cli($hook, $skip_catch_up = FALSE) {
     $process = BackgroundProcess::lock($handle);
 
     $hook['timestamp'] = time();
+    unset($hook['background_process']);
     $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
     $process->setShutdownCallback('ultimate_cron_background_process_shutdown_callback', array($hook));
     $process->storeResult(FALSE);
@@ -780,7 +770,6 @@ function ultimate_cron_get_hooks($reset = FALSE) {
           'arguments' => array(),
           'callback' => $name,
           'catch up' => variable_get('ultimate_cron_catch_up', ULTIMATE_CRON_CATCH_UP),
-          'background_process' => empty($processes['uc:' . $name]) ? NULL : BackgroundProcess::create($processes['uc:' . $name]),
           'service group' => variable_get('ultimate_cron_service_group', ULTIMATE_CRON_SERVICE_GROUP),
           'enabled' => TRUE,
         );
@@ -789,6 +778,7 @@ function ultimate_cron_get_hooks($reset = FALSE) {
         $overloaded = empty($settings[$name]) ? array() : $settings[$name]->settings;
         $item = $overloaded + $defaults;
         $item['name'] = $name;
+        $item['background_process'] = empty($processes['uc:' . $name]) ? NULL : BackgroundProcess::create($processes['uc:' . $name]);
         $item['defaults'] = $defaults;
         $item['settings'] = $overloaded;
       }
@@ -1063,11 +1053,17 @@ function ultimate_cron_launch_poorman() {
     }
   }
   if (!$process) {
-    $process = BackgroundProcess::lock($handle)
-                 ->setServiceHost('ultimate_cron_poorman')
-                 ->setCallback('_ultimate_cron_poorman')
-                 ->keepAlive()
-                 ->call();
+    try {
+      $process = BackgroundProcess::lock($handle)
+                   ->setServiceHost('ultimate_cron_poorman')
+                   ->setCallback('_ultimate_cron_poorman')
+                   ->keepAlive()
+                   ->call();
+    }
+    catch (Exception $e) {
+      // Poorman couldn't start :-(
+      watchdog('ultimate_cron', "Could not launch Poormans cron: !message", array('!message' => (string)$e), WATCHDOG_ERROR);
+    }
   }
 }
 
