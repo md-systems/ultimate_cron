@@ -421,7 +421,7 @@ function ultimate_cron_queue_cron($hook, $queue_name) {
   $info = $queues[$queue_name];
 
   $function = $info['worker callback'];
-  $end = time() + (isset($info['time']) ? $info['time'] : 15);
+  $end = $_SERVER['REQUEST_TIME'] + (isset($info['time']) ? $info['time'] : 15);
   $queue = DrupalQueue::get($queue_name);
   $items = 0;
   while (time() < $end && $item = $queue->claimItem($hook['queue lease time'])) {;
