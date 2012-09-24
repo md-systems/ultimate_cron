@@ -366,25 +366,28 @@ function ultimate_cron_cron_run($return = FALSE) {
     sleep(1);
   }
 
+  // Wait for processes to start
+  while ($running && time() < $expire) {
+    $pids = db_select('background_process', 'bp', array('target' => 'background_process'))
+              ->fields('bp', array('handle', 'pid'))
+              ->condition('bp.handle', array_keys($running), 'IN')
+              ->condition('bp.exec_status', BACKGROUND_PROCESS_STATUS_LOCKED)
+              ->execute()
+              ->fetchAllKeyed(0, 1);
+    foreach ($running as $pid => $process) {
+      if (!in_array($pid, $pids)) {
+        unset($running[$pid]);
+      }
+    }
+    sleep(1);
+  }
+
   // Update drupals cron timestamp, but don't clear the cache for all variables!
   _ultimate_cron_variable_set('cron_last', time());
 
   $time = time() - $time;
 
-  // Remove and count all jobs that failed to launch
-  if ($running) {
-    $pids = array();
-    foreach ($running as $handle => $process) {
-      $pids[] = $process->pid;
-    }
-    $running = db_delete('background_process', array('target' => 'background_process'))
-                 ->condition('pid', $pids, 'IN')
-                 ->condition('exec_status', BACKGROUND_PROCESS_STATUS_LOCKED)
-                 ->execute();
-  }
-  else {
-    $running = 0;
-  }
+  $running = count($running);
 
   drupal_set_message(t('%jobs jobs launched in %time seconds', array('%jobs' => $launched - $running, '%time' => $time)));
 

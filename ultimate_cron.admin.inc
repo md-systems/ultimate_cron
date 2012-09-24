@@ -272,6 +272,11 @@ function ultimate_cron_view_page($module = NULL) {
   drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/jquery.tablesorter.js');
   drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.js');
 
+  if (module_exists('nodejs')) {
+    nodejs_send_content_channel_token('background_process');
+    drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/nodejs.ultimate_cron.js', array('type' => 'file'));
+  }
+
   module_load_install('ultimate_cron');
   $requirements = ultimate_cron_requirements('runtime');
   if ($requirements['ultimate_cron']['severity'] != REQUIREMENT_OK) {
