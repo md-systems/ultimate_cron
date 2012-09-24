@@ -135,6 +135,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $name) {
   $settings += array(
     'enabled' => TRUE,
     'rules' => array(),
+    'weight' => '',
     'catch up' => '',
     'service group' => '',
     'queue lease time' => '',
@@ -172,6 +173,16 @@ function ultimate_cron_function_settings_form($form, &$form_state, $name) {
                               'topic' => 'rules',
                               'type' => 'icon')
                       ) : '') . t('Semi-colon separated list of rules for this job. (blank = ' . implode(';', $hook['defaults']['rules']) . ')'),
+  );
+  $form['general']['weight'] = array(
+    '#title' => t('Weight'),
+    '#type' => 'textfield',
+    '#default_value' => $settings['weight'],
+    '#description' => ($advanced_help_enabled ? theme('advanced_help_topic', array(
+                              'module' => 'ultimate_cron',
+                              'topic' => 'weight',
+                              'type' => 'icon')
+                      ) : '') . t('Weight. Determines the order of the jobs on the overview page. (blank = ' . $hook['defaults']['weight'] . ')'),
   );
   $form['general']['catch up'] = array(
     '#title' => t('Catch up'),
