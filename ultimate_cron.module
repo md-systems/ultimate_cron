@@ -188,7 +188,7 @@ function ultimate_cron_cronapi() {
 
   foreach ($queues as $queue_name => $info) {
     $items['queue_' . $queue_name] = array(
-      'description' => t('Queue: %name', array('%name' => $queue_name)),
+      'description' => t('Queue: !name', array('!name' => $queue_name)),
       'callback' => 'ultimate_cron_queue_cron',
       'arguments' => array($queue_name),
       'rules' => array('* * * * *'),
@@ -584,20 +584,16 @@ function ultimate_cron_run_hook_cli($hook, $skip_catch_up = FALSE) {
   // Run the job in background
   $result = NULL;
   $handle = "uc:" . $hook['name'];
-  try {
-    $process = BackgroundProcess::lock($handle);
 
-    $hook['timestamp'] = time();
-    unset($hook['background_process']);
-    $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
-    $process->setShutdownCallback('ultimate_cron_background_process_shutdown_callback', array($hook));
-    $process->storeResult(FALSE);
-    $process->runNow();
-    return $process;
-  }
-  catch (Exception $e) {
-    return FALSE;
-  }
+  $process = BackgroundProcess::lock($handle);
+
+  $hook['timestamp'] = time();
+  unset($hook['background_process']);
+  $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
+  $process->setShutdownCallback('ultimate_cron_background_process_shutdown_callback', array($hook));
+  $process->storeResult(FALSE);
+  $process->runNow();
+  return $process;
 }
 
 /**
