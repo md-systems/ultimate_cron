@@ -289,10 +289,12 @@ function ultimate_cron_view_page($module = NULL) {
   $hooks = ultimate_cron_get_hooks();
 
   $modules = array();
-  foreach ($hooks as $name => $hook) {
+  foreach ($hooks as $name => &$hook) {
     if (!$module || $module == $hook['module']) {
       $hook['log'] = ultimate_cron_get_last_log_entry($name);
-      $modules[$hook['module']][$name] = $hook;
+    }
+    else {
+      unset($hook[$name]);
     }
   }
 
@@ -320,8 +322,8 @@ function ultimate_cron_view_page($module = NULL) {
   $overview['warning'] = 0;
   $overview['error'] = 0;
 
-  foreach ($modules as $module => $hooks) {
     foreach ($hooks as $name => $hook) {
+      $module = $hook['module'];
       // Setup settings
       $rules = $hook['rules'];
       $cron = new CronRule();
@@ -444,7 +446,7 @@ function ultimate_cron_view_page($module = NULL) {
         'data' => $data,
       );
     }
-  }
+
   $output .= theme('table', array(
     'header' => $headers,
     'rows' => $rows,
