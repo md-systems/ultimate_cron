@@ -15,7 +15,7 @@ function ultimate_cron_schema() {
     'description' => 'Cron job function list',
     'export' => array(
       'key' => 'name',
-      'key name' => 'Function name',
+      'key name' => 'Name',
       'primary key' => 'fid',
       'identifier' => 'name',
       'default hook' => 'default_ultimate_cron_function',
@@ -36,7 +36,7 @@ function ultimate_cron_schema() {
         'no export' => TRUE,
       ),
       'name' => array(
-        'description' => 'Function name',
+        'description' => 'Name',
         'type' => 'varchar',
         'length' => 127,
         'not null' => TRUE,
@@ -64,7 +64,7 @@ function ultimate_cron_schema() {
         'not null' => TRUE,
       ),
       'name' => array(
-        'description' => 'Function name',
+        'description' => 'Name',
         'type' => 'varchar',
         'length' => 127,
         'not null' => TRUE,
@@ -82,6 +82,13 @@ function ultimate_cron_schema() {
         'size' => 'big',
         'not null' => TRUE,
         'default' => 0,
+      ),
+      'service_host' => array(
+        'description' => 'Service host',
+        'type' => 'varchar',
+        'length' => 127,
+        'not null' => TRUE,
+        'default' => '',
       ),
       'severity' => array(
         'description' => 'Max severity level of the execution',

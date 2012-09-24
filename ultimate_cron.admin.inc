@@ -274,6 +274,7 @@ function ultimate_cron_view_page($module = NULL) {
 
   if (module_exists('nodejs')) {
     nodejs_send_content_channel_token('background_process');
+    nodejs_send_content_channel_token('ultimate_cron');
     drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/nodejs.ultimate_cron.js', array('type' => 'file'));
   }
 
@@ -438,7 +439,10 @@ function ultimate_cron_view_page($module = NULL) {
       $data[10]['data'] = ($process ? $link_unlock : $link_execute);
       $data[10]['title'] = ($process ? t('Unlock') : t('Run'));
 
-      $rows[] = $data;
+      $rows[] = array(
+        'class' => array('row-' . $hook['name']),
+        'data' => $data,
+      );
     }
   }
   $output .= theme('table', array(
@@ -489,6 +493,7 @@ function ultimate_cron_function_log_page($name) {
     array('data' => t('Start'), 'field' => 'start_time', 'sort' => 'DESC'),
     array('data' => t('End'),   'field' => 'end_time'),
     t('Duration'),
+    t('Service host'),
     t('Status'),
     t('Message'),
   );
@@ -501,7 +506,7 @@ function ultimate_cron_function_log_page($name) {
     ->limit(10)
     ->extend('TableSort')
     ->orderByHeader($header)
-    ->fields('l', array('lid', 'name', 'start_time', 'end_time', 'severity', 'msg'));
+    ->fields('l', array('lid', 'name', 'start_time', 'end_time', 'service_host', 'severity', 'msg'));
   $logs = $query->execute()->fetchAll(PDO::FETCH_ASSOC);
 
   $output = '';
@@ -523,8 +528,9 @@ function ultimate_cron_function_log_page($name) {
     $data[0]['data'] = format_date((int)$process->getStartTime(), 'custom', 'Y-m-d H:i:s');
     $data[1]['data'] = t('N/A');
     $data[2]['data'] = $duration;
-    $data[3]['data'] = '<span>' . t('running') . '</span>';
-    $data[4]['data'] = '';
+    $data[3]['data'] = $process->getServiceHost() ? $process->getServiceHost() : t('N/A');
+    $data[4]['data'] = '<span>' . t('running') . '</span>';
+    $data[5]['data'] = '';
     $rows[] = $data;
   }
 
@@ -549,14 +555,16 @@ function ultimate_cron_function_log_page($name) {
       array('class' => array('ultimate-cron-admin-start')),
       array('class' => array('ultimate-cron-admin-end')),
       array('class' => array('ultimate-cron-admin-duration')),
+      array('class' => array('ultimate-cron-admin-service-host')),
       array('class' => array('ultimate-cron-admin-status ultimate-cron-admin-status-' . $css_status)),
       array('class' => array('ultimate-cron-admin-message')),
     );
     $data[0]['data'] = format_date((int)$log['start_time'], 'custom', 'Y-m-d H:i:s');
     $data[1]['data'] = format_date((int)$log['end_time'], 'custom', 'Y-m-d H:i:s');
     $data[2]['data'] = gmdate('H:i:s', (int)($log['end_time'] - $log['start_time']));
-    $data[3]['data'] = '<span>' . $log['severity'] . '</span>';
-    $data[4]['data'] = $log['msg'];
+    $data[3]['data'] = $log['service_host'] ? $log['service_host'] : t('N/A');
+    $data[4]['data'] = '<span>' . $log['severity'] . '</span>';
+    $data[5]['data'] = $log['msg'];
     $rows[] = $data;
 
     if ($chart) {

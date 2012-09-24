@@ -231,10 +231,29 @@ function ultimate_cron_background_process_shutdown_callback($hook, $process) {
     'name' => $name,
     'start_time' => $process->getStartTime(),
     'end_time' => $end,
+    'service_host' => (string)$process->getServiceHost(),
     'severity' => $log['severity'],
     'msg' => trim(join("\n", $msg)),
   );
   drupal_write_record('ultimate_cron_log', $object);
+
+  $object->formatted['start_time'] = format_date((int)$object->start_time, 'custom', 'Y-m-d H:i:s');
+  $object->formatted['end_time'] = format_date((int)$object->end_time, 'custom', 'Y-m-d H:i:s');
+  $object->formatted['duration'] = gmdate('H:i:s', (int)($object->end_time - $object->start_time));
+  $object->formatted['severity'] = $object->severity < 0 ? 'success' : ($object->severity >= WATCHDOG_NOTICE ? 'info' : ($object->severity >= WATCHDOG_WARNING ? 'warning' : 'error'));
+  $object->formatted['severity'] = $object->msg && ($object->formatted['severity'] == 'success') ? 'info' : $object->formatted['severity'];
+  $object->formatted['executeURL'] = url('admin/ultimate-cron/service/start/' . $object->name, array('query' => drupal_get_destination()));
+  if (module_exists('nodejs')) {
+    $message = (object) array(
+      'channel' => 'ultimate_cron',
+      'data' => (object) array(
+        'action' => 'log',
+        'log' => $object,
+      ),
+      'callback' => 'nodejsUltimateCron',
+    );
+    nodejs_send_content_channel_message($message);
+  }
 }
 
 
@@ -297,6 +316,23 @@ function ultimate_cron_cron_alter(&$hooks) {
     }
   }
 }
+
+/**
+ * Implements hook_background_process_message_alter().
+ */
+function ultimate_cron_background_process_message_alter($message) {
+  // Only alter Ultimate Cron background process messages
+  if (substr($message->data->background_process->getHandle(), 0, 3) !== 'uc:') {
+    return;
+  }
+
+  $message->data->ultimate_cron['start_time'] = format_date((int)$message->data->background_process->getStartTime(), 'custom', 'Y-m-d H:i:s');
+  if ($message->data->background_process->getProgress() >= 0) {
+    $message->data->ultimate_cron['progress'] = gmdate('H:i:s', (int)(microtime(TRUE) - $message->data->background_process->getStartTime())) . sprintf(" (%02d%%)", $message->data->background_process->getProgress() * 100);
+  }
+  $message->data->ultimate_cron['unlockURL'] = url('background-process/unlock/' . $message->data->background_process->getPID(), array('query' => drupal_get_destination()));
+}
+
 
 // ---------- CALLBACK FUNCTIONS ----------
 
@@ -368,15 +404,15 @@ function ultimate_cron_cron_run($return = FALSE) {
 
   // Wait for processes to start
   while ($running && time() < $expire) {
-    $pids = db_select('background_process', 'bp', array('target' => 'background_process'))
+    $handles = db_select('background_process', 'bp', array('target' => 'background_process'))
               ->fields('bp', array('handle', 'pid'))
               ->condition('bp.handle', array_keys($running), 'IN')
               ->condition('bp.exec_status', BACKGROUND_PROCESS_STATUS_LOCKED)
               ->execute()
-              ->fetchAllKeyed(0, 1);
-    foreach ($running as $pid => $process) {
-      if (!in_array($pid, $pids)) {
-        unset($running[$pid]);
+              ->fetchAllKeyed(0, 0);
+    foreach ($running as $handle => $process) {
+      if (!in_array($handle, $handles)) {
+        unset($running[$handle]);
       }
     }
     sleep(1);
@@ -387,18 +423,21 @@ function ultimate_cron_cron_run($return = FALSE) {
 
   $time = time() - $time;
 
+  foreach ($running as $handle => $process) {
+    watchdog('ultimate_cron', 'Failed to launch !handle', array('!handle' => $handle), WATCHDOG_ERROR);
+  }
+
   $running = count($running);
 
   drupal_set_message(t('%jobs jobs launched in %time seconds', array('%jobs' => $launched - $running, '%time' => $time)));
 
-  $unlaunched = $scheduled - ($launched - $running);
-  if ($unlaunched) {
+  if ($running) {
     drupal_set_message(t('%jobs jobs failed to launch within %seconds seconds', array(
-      '%jobs' => $unlaunched,
+      '%jobs' => $running,
       '%seconds' => $time,
     )), 'error');
     watchdog('ultimate_cron', '%jobs jobs failed to launch within %seconds seconds', array(
-      '%jobs' => $unlaunched,
+      '%jobs' => $running,
       '%seconds' => $time,
     ), WATCHDOG_WARNING);
   }
