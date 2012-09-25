@@ -107,12 +107,12 @@ Drupal.Nodejs.callbacks.nodejsBackgroundProcess = {
         $('tr.' + row + ' td.ultimate-cron-admin-execute').attr('class', 'ultimate-cron-admin-unlock');
         break;
       case 'ultimateCronStatus':
-        switch (process.exec_status) {
+        switch (parseInt(process.exec_status)) {
           case 1:
             message.data.action = 'dispatch';
             return this.callback(message);
           case 2:
-            message.data.action = 'claimed';
+            message.data.action = 'setProgress';
             return this.callback(message);
         }
         return;

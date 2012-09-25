@@ -771,7 +771,7 @@ function ultimate_cron_get_hooks($reset = FALSE) {
   $hooks = array();
   $weight = 0;
 
-  $settings = ultimate_cron_load_all();
+  $settings = ultimate_cron_load_all($reset);
 
   $query = db_select('background_process', 'b', array('target' => 'background_process'))
     ->fields('b')
@@ -937,7 +937,7 @@ function ultimate_cron_should_run($rules, $last_run, $now = NULL, $catch_up = 0,
  * @return object
  *   Settings
  */
-function ultimate_cron_load($name) {
+function ultimate_cron_load($name, $reset = FALSE) {
   if (module_exists('ctools')) {
     ctools_include('export');
     $settings = ctools_export_crud_load('ultimate_cron', $name);
@@ -1001,13 +1001,13 @@ function ultimate_cron_save($object) {
  * @return array
  *   Array of cronjobs and their data.
  */
-function ultimate_cron_load_all() {
+function ultimate_cron_load_all($reset = FALSE) {
   if (module_exists('ctools')) {
     ctools_include('export');
+    if ($reset) {
+      ctools_export_load_object_reset('ultimate_cron');
+    }
     $settings = ctools_export_crud_load_all('ultimate_cron');
-    #foreach ($settings as $info) {
-      #$info->settings = !empty($info->settings) ? (array) unserialize($info->settings) : array();
-    #}
   }
   else {
     $settings = db_select('ultimate_cron', 'u')
