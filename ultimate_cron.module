@@ -181,6 +181,7 @@ function ultimate_cron_cronapi() {
   $items['ultimate_cron_poorman'] = array(
     'description' => t('Poorman\'s Cron'),
     'rules' => array('* * * * *'),
+    'enabled' => FALSE,
   );
   $items['ultimate_cron_cleanup_log'] = array(
     'description' => t('Clean up old log entries'),
