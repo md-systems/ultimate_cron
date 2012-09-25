@@ -8,6 +8,16 @@ $(function() {
   Drupal.settings.ultimate_cron.secondCounterStart = (new Date()).getTime() / 1000;
   Drupal.settings.ultimate_cron.secondCounter = 0;
 
+  // Ping Drupal for initial status of processes.
+  $.ajax({
+    type: 'GET',
+    url: '/admin/ultimate-cron/service/process-status',
+    data: '',
+    dataType: 'json',
+    success: function (processes) {
+    }
+  });
+
   // Setup progress counter
   setInterval(function() {
     var time = (new Date()).getTime() / 1000;
@@ -96,6 +106,16 @@ Drupal.Nodejs.callbacks.nodejsBackgroundProcess = {
         link.html('<span>' + Drupal.t('Unlock') + '</span>');
         $('tr.' + row + ' td.ultimate-cron-admin-execute').attr('class', 'ultimate-cron-admin-unlock');
         break;
+      case 'ultimateCronStatus':
+        switch (process.exec_status) {
+          case 1:
+            message.data.action = 'dispatch';
+            return this.callback(message);
+          case 2:
+            message.data.action = 'claimed';
+            return this.callback(message);
+        }
+        return;
       case 'remove':
         this.updateSkew(message.data.timestamp);
         delete Drupal.settings.ultimate_cron.processes[log.name];

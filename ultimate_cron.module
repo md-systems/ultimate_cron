@@ -139,6 +139,16 @@ function ultimate_cron_menu() {
     'access arguments' => array('administer ultimate cron'),
     'file' => 'ultimate_cron.admin.inc',
   );
+  $items['admin/ultimate-cron/service/process-status'] = array(
+    'type' => MENU_CALLBACK,
+    'title' => 'Cron job process status',
+    'description' => 'Cron job process status',
+    'page callback' => 'ultimate_cron_service_process_status',
+    'delivery callback' => 'ajax_deliver',
+    'access arguments' => array('administer ultimate cron'),
+    'access arguments' => array('administer ultimate cron'),
+    'file' => 'ultimate_cron.admin.inc',
+  );
   return $items;
 }
 

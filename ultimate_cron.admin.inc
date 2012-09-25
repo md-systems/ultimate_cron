@@ -658,6 +658,19 @@ function ultimate_cron_service_enable($name, $enabled) {
 }
 
 /**
+ */
+function ultimate_cron_service_process_status() {
+  $query = db_select('background_process', 'b', array('target' => 'background_process'))
+    ->fields('b')
+    ->condition('handle', 'uc:%', 'LIKE');
+  $processes = $query->execute()->fetchAllAssoc('handle', PDO::FETCH_OBJ);
+  foreach ($processes as $process) {
+    BackgroundProcess::create($process)->sendMessage('ultimateCronStatus');
+  }
+  return drupal_json_encode(array('processes' => $processes));
+}
+
+/**
  * Helper function for links on cron list
  * @param $text
  *   Text for link
