@@ -9,14 +9,11 @@ Drupal.settings.ultimate_cron.secondCounter = 0;
 setInterval(function() {
   var time = (new Date()).getTime() / 1000;
   Drupal.settings.ultimate_cron.secondCounter = Math.round(time - Drupal.settings.ultimate_cron.secondCounterStart);
-  // console.log(Drupal.settings.ultimate_cron.secondCounter);
   $.each(Drupal.settings.ultimate_cron.processes, function (name, process) {
     if (process.exec_status == 2) {
     var row = 'row-' + name;
     var seconds = Math.round(((new Date()).getTime() / 1000) - process.start_time - Drupal.settings.ultimate_cron.skew);
     var formatted = (new Date(seconds * 1000)).toISOString().substring(11, 19);
-    // console.log((new Date(seconds * 1000)).toISOString());
-    // console.log((new Date(seconds * 1000)).toISOString().substring(11, 19));
     if (process.progress >= 0) {
       var progress = Math.round(process.progress * 100);
       formatted += ' (' + progress + '%)';
@@ -30,7 +27,6 @@ Drupal.Nodejs.callbacks.nodejsBackgroundProcess = {
   updateSkew: function (time) {
     jsTime = (new Date()).getTime() / 1000;
     Drupal.settings.ultimate_cron.skew = jsTime - time;
-    console.log("skew = " + Drupal.settings.ultimate_cron.skew);
   },
 
   callback: function (message) {
@@ -45,7 +41,6 @@ Drupal.Nodejs.callbacks.nodejsBackgroundProcess = {
 
     var row = 'row-' + name;
 
-    console.log(action);
     switch (action) {
       case 'locked':
         this.updateSkew(message.data.timestamp);
