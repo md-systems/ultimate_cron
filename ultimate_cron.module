@@ -178,6 +178,10 @@ function ultimate_cron_permission() {
 function ultimate_cron_cronapi() {
   $items = array();
 
+  $items['ultimate_cron_poorman'] = array(
+    'description' => t('Poorman\'s Cron'),
+    'rules' => array('* * * * *'),
+  );
   $items['ultimate_cron_cleanup_log'] = array(
     'description' => t('Clean up old log entries'),
     'rules' => array('* * * * *'),
@@ -1071,36 +1075,10 @@ function ultimate_cron_trigger_poorman() {
     $time = floor($time / 60) * 60;
     // Don't attempt, if already run within last minute
     if ($last < $time) {
-      ultimate_cron_launch_poorman();
-    }
-  }
-}
-
-/**
- * Launch the poormans cron background process.
- */
-function ultimate_cron_launch_poorman() {
-  $handle = 'ultimate_cron_poorman';
-  if ($process = BackgroundProcess::loadByHandle($handle)) {
-    if ($process->reDispatch()) {
-      return;
-    }
-    if ($process->getStatus() == BACKGROUND_PROCESS_STATUS_RUNNING && $process->getStartTime() + 120 < time()) {
-      $process->log(t('Stale poorman launcher ... shutting it down'))->unlock();
-      $process = NULL;
-    }
-  }
-  if (!$process) {
-    try {
-      $process = BackgroundProcess::lock($handle)
-                   ->setServiceHost('ultimate_cron_poorman')
-                   ->setCallback('_ultimate_cron_poorman')
-                   ->keepAlive()
-                   ->call();
-    }
-    catch (Exception $e) {
-      // Poorman couldn't start :-(
-      watchdog('ultimate_cron', "Could not launch Poormans cron: !message", array('!message' => (string)$e), WATCHDOG_ERROR);
+      $process = BackgroundProcess::loadByHandle('ultimate_cron_poorman');
+      if (!$process || $process->getStatus() != BACKGROUND_PROCESS_STATUS_RUNNING) {
+        ultimate_cron_trigger_cron_job('ultimate_cron_poorman');
+      }
     }
   }
 }
@@ -1109,13 +1087,12 @@ function ultimate_cron_launch_poorman() {
  * The actual poorman function
  * @return type
  */
-function _ultimate_cron_poorman() {
+function ultimate_cron_poorman() {
   $process = BackgroundProcess::currentProcess();
   if (!variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN)) {
     $process->keepAlive(FALSE);
     return;
   }
-
 
   // Derive current minute
   $time = time();
@@ -1124,12 +1101,23 @@ function _ultimate_cron_poorman() {
   // Run the cron
   ultimate_cron_cron_run(TRUE);
 
-  $process->setServiceHost('ultimate_cron_poorman');
-
   // Wait until end of "current" minute
   $wait = $time + 60 - time();
   if ($wait > 0 && $wait <= 60) {
     sleep($wait);
   }
+
+  // Reload settings
+  $hook = ultimate_cron_get_hook('ultimate_cron_poorman', TRUE);
+  unset($hook['background_process']);
+  $keepalive = $hook['enabled'] ? TRUE : FALSE;
+  if ($keepalive) {
+    if ($hook['service group']) {
+      $process->setServiceGroup($hook['service group']);
+    }
+    // Relaunch with new hook settings and skip catch up!
+    $process->setCallback($process->callback, array($hook, TRUE));
+  }
+  $process->keepAlive($keepalive);
 }
 
