@@ -347,6 +347,10 @@ function ultimate_cron_view_page($module = NULL) {
 
       // Setup process
       $process = $hook['background_process'];
+      if ($process) {
+        $name = preg_replace('/^uc:/', '', $process->getHandle());
+        drupal_add_js(array('ultimate_cron' => array('processes' => array($name => $process))), 'setting');
+      }
       $service_host = !$process || !$process->getServiceHost() ? t('N/A') : $process->getServiceHost();
 
       // Setup log
@@ -374,7 +378,7 @@ function ultimate_cron_view_page($module = NULL) {
         if ($process->getStatus() == BACKGROUND_PROCESS_STATUS_RUNNING) {
           $log['end_time'] = microtime(TRUE);
           $progress = $process->getProgress();
-          $percentage = $progress >= 0 ? sprintf(" (%02d%%)", $progress * 100) : '';
+          $percentage = $progress >= 0 ? sprintf(" (%3d%%)", $progress * 100) : '';
         }
         else {
           $log['end_time'] = NULL;
@@ -536,7 +540,7 @@ function ultimate_cron_function_log_page($name) {
     $duration = time() - $process->getStartTime();
     $duration = gmdate('H:i:s', (int)$duration);
     if ($process->getProgress() > 0) {
-      $duration .= sprintf(" (%02d%%)", $process->getProgress() * 100);
+      $duration .= sprintf(" (%3d%%)", $process->getProgress() * 100);
     }
     $data[0]['data'] = format_date((int)$process->getStartTime(), 'custom', 'Y-m-d H:i:s');
     $data[1]['data'] = t('N/A');

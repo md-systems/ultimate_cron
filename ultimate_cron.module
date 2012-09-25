@@ -332,7 +332,7 @@ function ultimate_cron_background_process_message_alter($message) {
 
   $message->data->ultimate_cron['start_time'] = format_date((int)$message->data->background_process->getStartTime(), 'custom', 'Y-m-d H:i:s');
   if ($message->data->background_process->getProgress() >= 0) {
-    $message->data->ultimate_cron['progress'] = gmdate('H:i:s', (int)(microtime(TRUE) - $message->data->background_process->getStartTime())) . sprintf(" (%02d%%)", $message->data->background_process->getProgress() * 100);
+    $message->data->ultimate_cron['progress'] = gmdate('H:i:s', (int)(microtime(TRUE) - $message->data->background_process->getStartTime())) . sprintf(" (%3d%%)", $message->data->background_process->getProgress() * 100);
   }
   $message->data->ultimate_cron['unlockURL'] = url('background-process/unlock/' . $message->data->background_process->getPID(), array('query' => drupal_get_destination()));
 }
