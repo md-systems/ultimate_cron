@@ -607,8 +607,11 @@ function ultimate_cron_run_hook_cli($hook, $skip_catch_up = FALSE) {
 function ultimate_cron_trigger_cron_job($name, $skip_catch_up = FALSE) {
   $hooks = ultimate_cron_get_hooks();
   try {
-    $process = ultimate_cron_run_hook($hooks[$name], $skip_catch_up);
-    return TRUE;
+    if ($hooks[$name]['enabled']) {
+      $process = ultimate_cron_run_hook($hooks[$name], $skip_catch_up);
+      return TRUE;
+    }
+    return FALSE;
   }
   catch (Exception $e) {
     return FALSE;
@@ -1088,7 +1091,7 @@ function ultimate_cron_trigger_poorman() {
  * The actual poorman function
  * @return type
  */
-function ultimate_cron_poorman() {
+function ultimate_cron_poorman($hook) {
   $process = BackgroundProcess::currentProcess();
   if (!variable_get('ultimate_cron_poorman', ULTIMATE_CRON_POORMAN)) {
     $process->keepAlive(FALSE);

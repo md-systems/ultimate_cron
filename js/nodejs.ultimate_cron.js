@@ -1,27 +1,33 @@
 (function ($) {
 
-Drupal.settings.ultimate_cron = Drupal.settings.ultimate_cron || {};
-Drupal.settings.ultimate_cron.processes = Drupal.settings.ultimate_cron.processes || {};
-Drupal.settings.ultimate_cron.skew = Drupal.settings.ultimate_cron.skew || 0;
-Drupal.settings.ultimate_cron.secondCounterStart = (new Date()).getTime() / 1000;
-Drupal.settings.ultimate_cron.secondCounter = 0;
 
-setInterval(function() {
-  var time = (new Date()).getTime() / 1000;
-  Drupal.settings.ultimate_cron.secondCounter = Math.round(time - Drupal.settings.ultimate_cron.secondCounterStart);
-  $.each(Drupal.settings.ultimate_cron.processes, function (name, process) {
-    if (process.exec_status == 2) {
-    var row = 'row-' + name;
-    var seconds = Math.round(((new Date()).getTime() / 1000) - process.start_time - Drupal.settings.ultimate_cron.skew);
-    var formatted = (new Date(seconds * 1000)).toISOString().substring(11, 19);
-    if (process.progress >= 0) {
-      var progress = Math.round(process.progress * 100);
-      formatted += ' (' + progress + '%)';
-    }
-    $('tr.' + row + ' td.ultimate-cron-admin-status-running').closest('tr.' + row).find('td.ultimate-cron-admin-end').html(formatted);
-    }
-  });
-}, 1000);
+$(function() {
+  Drupal.settings.ultimate_cron = Drupal.settings.ultimate_cron || {};
+  Drupal.settings.ultimate_cron.processes = Drupal.settings.ultimate_cron.processes || {};
+  Drupal.settings.ultimate_cron.skew = 0;
+  Drupal.settings.ultimate_cron.secondCounterStart = (new Date()).getTime() / 1000;
+  Drupal.settings.ultimate_cron.secondCounter = 0;
+
+  // Setup progress counter
+  setInterval(function() {
+    var time = (new Date()).getTime() / 1000;
+    Drupal.settings.ultimate_cron.secondCounter = Math.round(time - Drupal.settings.ultimate_cron.secondCounterStart);
+    $.each(Drupal.settings.ultimate_cron.processes, function (name, process) {
+      if (process.exec_status == 2) {
+      var row = 'row-' + name;
+      var seconds = Math.round(((new Date()).getTime() / 1000) - process.start_time - Drupal.settings.ultimate_cron.skew);
+      seconds = seconds < 0 ? 0 : seconds;
+      var formatted = (new Date(seconds * 1000)).toISOString().substring(11, 19);
+      if (process.progress >= 0) {
+        var progress = Math.round(process.progress * 100);
+        formatted += ' (' + progress + '%)';
+      }
+      $('tr.' + row + ' td.ultimate-cron-admin-status-running').closest('tr.' + row).find('td.ultimate-cron-admin-end').html(formatted);
+      }
+    });
+  }, 1000);
+});
+
 
 Drupal.Nodejs.callbacks.nodejsBackgroundProcess = {
   updateSkew: function (time) {
@@ -116,6 +122,7 @@ Drupal.Nodejs.callbacks.nodejsUltimateCron = {
         $('tr.' + row + ' td.ultimate-cron-admin-status').html('<span>' + log.severity + '</span>');
         $('tr.' + row + ' td.ultimate-cron-admin-status').attr('title', log.msg ? log.msg : Drupal.t('No errors'));
         $('tr.' + row + ' td.ultimate-cron-admin-start').html(log.formatted.start_time);
+        $('tr.' + row + ' td.ultimate-cron-admin-start').attr('title', Drupal.t('Previous run started @ !timestamp', {'!timestamp': log.formatted.start_time}));
         $('tr.' + row + ' td.ultimate-cron-admin-end').html(log.formatted.duration);
         $('tr.' + row + ' td.ultimate-cron-admin-end').attr('title', Drupal.t('Previous run finished @ !timestamp', {'!timestamp': log.formatted.end_time}));
         var link = $('tr.' + row + ' td.ultimate-cron-admin-unlock a');
