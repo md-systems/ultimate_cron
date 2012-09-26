@@ -282,6 +282,13 @@ function ultimate_cron_view_page($module = NULL) {
   drupal_add_css(drupal_get_path('module', 'ultimate_cron') . '/css/ultimate_cron.admin.css');
   drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/jquery.tablesorter.js');
   drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.js');
+  drupal_add_js(array(
+    'ultimate_cron' => array(
+      'processes' => new stdClass(),
+      'skew' => 0,
+      'secondCounter' => 0,
+    ),
+  ), 'setting');
 
   if (module_exists('nodejs')) {
     nodejs_send_content_channel_token('background_process');
@@ -660,14 +667,17 @@ function ultimate_cron_service_enable($name, $enabled) {
 /**
  */
 function ultimate_cron_service_process_status() {
+  $processes = array();
   $query = db_select('background_process', 'b', array('target' => 'background_process'))
     ->fields('b')
     ->condition('handle', 'uc:%', 'LIKE');
-  $processes = $query->execute()->fetchAllAssoc('handle', PDO::FETCH_OBJ);
-  foreach ($processes as $process) {
-    BackgroundProcess::create($process)->sendMessage('ultimateCronStatus');
+  foreach ($query->execute()->fetchAllAssoc('handle', PDO::FETCH_OBJ) as $process) {
+    $process = BackgroundProcess::create($process);
+    $name = preg_replace('/^uc:/', '', $process->getHandle());
+    $processes[$name] = $process;
+    $process->sendMessage('ultimateCronStatus');
   }
-  return drupal_json_encode(array('processes' => $processes));
+  return drupal_json_output(array('processes' => $processes));
 }
 
 /**

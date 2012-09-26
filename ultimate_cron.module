@@ -144,7 +144,7 @@ function ultimate_cron_menu() {
     'title' => 'Cron job process status',
     'description' => 'Cron job process status',
     'page callback' => 'ultimate_cron_service_process_status',
-    'delivery callback' => 'ajax_deliver',
+    #'delivery callback' => 'ajax_deliver',
     'access arguments' => array('administer ultimate cron'),
     'access arguments' => array('administer ultimate cron'),
     'file' => 'ultimate_cron.admin.inc',
@@ -258,6 +258,7 @@ function ultimate_cron_background_process_shutdown_callback($hook, $process) {
   $object->formatted['severity'] = $object->severity < 0 ? 'success' : ($object->severity >= WATCHDOG_NOTICE ? 'info' : ($object->severity >= WATCHDOG_WARNING ? 'warning' : 'error'));
   $object->formatted['severity'] = $object->msg && ($object->formatted['severity'] == 'success') ? 'info' : $object->formatted['severity'];
   $object->formatted['executeURL'] = url('admin/ultimate-cron/service/start/' . $object->name, array('query' => drupal_get_destination()));
+  $object->formatted['msg'] = strip_tags(html_entity_decode($object->msg, ENT_QUOTES));
   if (module_exists('nodejs')) {
     $message = (object) array(
       'channel' => 'ultimate_cron',
@@ -348,6 +349,17 @@ function ultimate_cron_background_process_message_alter($message) {
   $message->data->ultimate_cron['unlockURL'] = url('background-process/unlock/' . $message->data->background_process->getPID(), array('query' => drupal_get_destination()));
 }
 
+function ultimate_cron_theme($existing, $type, $theme, $path) {
+  $items = array();
+  $items['ultimate_cron_overview_table_row'] = array(
+    'render element' => 'element',
+  );
+  return $items;
+}
+
+function theme_ultimate_cron_overview_table_row($element) {
+  var_dump($element);
+}
 
 // ---------- CALLBACK FUNCTIONS ----------
 
@@ -379,57 +391,52 @@ function ultimate_cron_cron_run($return = FALSE) {
 
   // Get schedule.
   $schedule = ultimate_cron_get_schedule($hooks);
-  $scheduled = count($schedule);
 
-  drupal_set_message(t('%jobs jobs scheduled for launch', array('%jobs' => $scheduled)));
+  drupal_set_message(t('%jobs jobs scheduled for launch', array('%jobs' => count($schedule))));
 
   // Start the jobs. Keep launching jobs until X seconds into the request.
   set_time_limit(120);
   $time = time();
   $expire = $time + variable_get('ultimate_cron_launch_window', ULTIMATE_CRON_LAUNCH_WINDOW);
   $running = array();
-  $launched = 0;
+  $launched = array();
+  $failed = array();
   $finished = FALSE;
 
   // Try to launch jobs within the given time frame
   while (!$finished && time() < $expire) {
     // Launch jobs.
     reset($schedule);
+    $chunk = 10;
     while ((list($name, $hook) = each($schedule)) && time() < $expire) {
       if ($hook['background_process']) {
         // Already running, don't launch
         unset($schedule[$name]);
+        $running[$name] = TRUE;
         continue;
       }
+      $process = NULL;
       try {
         $process = ultimate_cron_run_hook($hook);
-        $running[$process->handle] = $process;
+        $launched[$name] = $process;
+        unset($failed[$name]);
         unset($schedule[$name]);
         $launched++;
         drupal_set_message(t('Launched !name', array('!name' => $name)));
       }
       catch (Exception $e) {
+        #error_log((string) $e);
         // Could not launch? ... let's retry
+        #unset($schedule[$name]);
+        $failed[$name] = $process;
+      }
+      if ($chunk-- < 0) {
+        $chunk = 10;
+        sleep(1);
       }
     }
 
     $finished = empty($schedule);
-    sleep(1);
-  }
-
-  // Wait for processes to start
-  while ($running && time() < $expire) {
-    $handles = db_select('background_process', 'bp', array('target' => 'background_process'))
-              ->fields('bp', array('handle', 'pid'))
-              ->condition('bp.handle', array_keys($running), 'IN')
-              ->condition('bp.exec_status', BACKGROUND_PROCESS_STATUS_LOCKED)
-              ->execute()
-              ->fetchAllKeyed(0, 0);
-    foreach ($running as $handle => $process) {
-      if (!in_array($handle, $handles)) {
-        unset($running[$handle]);
-      }
-    }
     sleep(1);
   }
 
@@ -438,25 +445,18 @@ function ultimate_cron_cron_run($return = FALSE) {
 
   $time = time() - $time;
 
-  foreach ($running as $handle => $process) {
-    watchdog('ultimate_cron', 'Failed to launch !handle', array('!handle' => $handle), WATCHDOG_ERROR);
-  }
-
-  $running = count($running);
-
-  drupal_set_message(t('%jobs jobs launched in %time seconds', array('%jobs' => $launched - $running, '%time' => $time)));
+  drupal_set_message(t('%jobs jobs launched in %time seconds', array('%jobs' => count($launched), '%time' => $time)));
 
   if ($running) {
-    drupal_set_message(t('%jobs jobs failed to launch within %seconds seconds', array(
-      '%jobs' => $running,
-      '%seconds' => $time,
-    )), 'error');
-    watchdog('ultimate_cron', '%jobs jobs failed to launch within %seconds seconds', array(
-      '%jobs' => $running,
-      '%seconds' => $time,
-    ), WATCHDOG_WARNING);
+    drupal_set_message(t('%jobs jobs were already running', array('%jobs' => count($running))));
   }
 
+  if ($failed) {
+    drupal_set_message(t('%jobs jobs failed to launch within %seconds seconds', array(
+      '%jobs' => count($failed),
+      '%seconds' => $time,
+    )), 'error');
+  }
 
   // Release the lock
   lock_release('cron');
@@ -617,7 +617,7 @@ function ultimate_cron_run_hook_cli($hook, $skip_catch_up = FALSE) {
 function ultimate_cron_trigger_cron_job($name, $skip_catch_up = FALSE) {
   $hooks = ultimate_cron_get_hooks();
   try {
-    if ($hooks[$name]['enabled']) {
+    if (ultimate_cron_hook_should_run($hooks[$name])) {
       $process = ultimate_cron_run_hook($hooks[$name], $skip_catch_up);
       return TRUE;
     }
