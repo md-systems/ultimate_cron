@@ -583,7 +583,7 @@ function ultimate_cron_run_hook($hook, $skip_catch_up = FALSE) {
     $process->setCallback('_ultimate_cron_run_hook', array($hook, $skip_catch_up));
     $process->setShutdownCallback('ultimate_cron_background_process_shutdown_callback', array($hook));
     $process->storeResult(FALSE);
-    $process->call();
+    $process->dispatch();
     return $process;
   }
   catch (Exception $e) {
