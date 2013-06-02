@@ -349,7 +349,7 @@ function ultimate_cron_update_7107(&$context) {
 }
 
 /**
- * Add service host to log.
+ * Rename columns and indices to 2.x style.
  */
 function ultimate_cron_update_7200(&$context) {
   db_change_field('ultimate_cron_log', 'exec_status', 'severity', array(
@@ -359,4 +359,22 @@ function ultimate_cron_update_7200(&$context) {
     'not null' => FALSE,
     'default' => NULL,
   ));
+  db_drop_index('ultimate_cron_log', 'idx_last');
+  db_drop_index('ultimate_cron_log', 'idx_count');
+  db_change_field('ultimate_cron_log', 'start_stamp', 'start_time', array(
+    'description' => 'Timestamp of execution start',
+    'type' => 'float',
+    'size' => 'big',
+    'not null' => TRUE,
+    'default' => 0
+  ));
+  db_change_field('ultimate_cron_log', 'end_stamp', 'end_time', array(
+    'description' => 'Timestamp of execution start',
+    'type' => 'float',
+    'size' => 'big',
+    'not null' => TRUE,
+    'default' => 0
+  ));
+  db_add_index('ultimate_cron_log', 'idx_last', array('name', 'start_time'));
+  db_add_index('ultimate_cron_log', 'idx_count', array('name', 'end_time'));
 }
