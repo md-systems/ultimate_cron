@@ -155,3 +155,208 @@ function ultimate_cron_requirements($phase) {
   }
 }
 
+/**
+ * Major version upgrade of Drupal
+ */
+function ultimate_cron_update_7000(&$context) {
+  $context['sandbox']['major_version_upgrade'] = array();
+}
+
+/**
+ * Move messages to log table.
+ */
+function ultimate_cron_update_7101(&$context) {
+  if (empty($context['sandbox']['major_version_upgrade'][7101])) {
+    // This udate is already part of latest 6.x
+    return;
+  }
+  $schema_version = (int)(db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
+  if ($schema_version >= 7000) {
+    // Old hook_update_N was 7000
+    return;
+  }
+  db_add_field('ultimate_cron_log', 'msg', array(
+    'description' => 'Message',
+    'type' => 'text',
+    'not null' => FALSE,
+  ));
+  db_query("UPDATE {ultimate_cron_log} l JOIN {ultimate_cron_log_message} m ON l.lid = m.lid SET l.msg = m.msg");
+  db_drop_table('ultimate_cron_log_message');
+}
+
+/**
+ * Convert polling latenct from microseconds to miliseconds.
+ */
+function ultimate_cron_update_7102(&$context) {
+  if (empty($context['sandbox']['major_version_upgrade'][7102])) {
+    // This udate is already part of latest 6.x
+    return;
+  }
+  $schema_version = (int)(db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
+  if ($schema_version >= 7001) {
+    // Old hook_update_N was 7001
+    return;
+  }
+  // Convert polling latency from microseconds to miliseconds.
+  $polling_latency = variable_get('ultimate_cron_queue_polling_latency', NULL);
+  if ($polling_latency) {
+    $polling_latency /= 1000;
+    variable_set('ultimate_cron_queue_polling_latency', $polling_latency);
+  }
+}
+
+/**
+ * Merge ultimate_cron_function and ultimate_cron_configuration into ultimate_cron
+ */
+function ultimate_cron_update_7103(&$context) {
+  if (empty($context['sandbox']['major_version_upgrade'][7103])) {
+    // This udate is already part of latest 6.x
+    return;
+  }
+  $schema_version = (int)(db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
+  if ($schema_version >= 7002) {
+    // Old hook_update_N was 7002
+    return;
+  }
+  $schema = ultimate_cron_schema();
+  db_create_table('ultimate_cron', $schema['ultimate_cron']);
+  db_query("INSERT INTO {ultimate_cron} SELECT f.fid, f.function, c.configuration AS settings FROM ultimate_cron_function f LEFT JOIN {ultimate_cron_configuration} c ON f.fid = c.fid");
+  db_drop_table('ultimate_cron_function');
+  db_drop_table('ultimate_cron_configuration');
+}
+
+/**
+ * Switch from fid to function name in ultimate_cron_log
+ */
+function ultimate_cron_update_7104(&$context) {
+  if (empty($context['sandbox']['major_version_upgrade'][7104])) {
+    // This udate is already part of latest 6.x
+    return;
+  }
+  $schema_version = (int)(db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
+  if ($schema_version >= 7003) {
+    // Old hook_update_N was 7003
+    return;
+  }
+  db_add_field('ultimate_cron_log', 'function', array(
+        'description' => 'Function name',
+        'type' => 'varchar',
+        'length' => 127,
+        'not null' => TRUE,
+        'initial' => 'function',
+      ));
+  $fids = db_select('ultimate_cron_log', 'u')->fields('u', array('fid'))->distinct()->execute();
+  while ($fid = $fids->fetchObject()) {
+    $function = db_select('ultimate_cron', 'u')->fields('u', array('function'))->condition('fid', $fid->fid, '=')->execute()->fetchObject();
+    db_update('ultimate_cron_log')->fields(array('function' => $function->function))->condition('fid', $fid->fid, '=')->execute();
+  }
+  db_drop_field('ultimate_cron_log', 'fid');
+  db_drop_index('ultimate_cron_log', 'idx_last');
+  db_drop_index('ultimate_cron_log', 'idx_count');
+  db_add_index('ultimate_cron_log', 'idx_last', array('function', 'start'));
+  db_add_index('ultimate_cron_log', 'idx_count', array('function', 'end'));
+}
+
+/**
+ * Add missing index to database
+ */
+function ultimate_cron_update_7105(&$context) {
+  if (empty($context['sandbox']['major_version_upgrade'][7105])) {
+    // This udate is already part of latest 6.x
+    return;
+  }
+  $items = db_select('ultimate_cron')
+             ->fields('ultimate_cron', array('fid', 'function'))
+             ->orderBy('fid', 'ASC')
+             ->execute()
+             ->fetchAllAssoc('fid', PDO::FETCH_ASSOC);
+  $fids = array();
+  $keep = array();
+  foreach ($items as $item) {
+    if (isset($keep[$item['function']])) {
+      $fids[] = $keep[$item['function']];
+    }
+    $keep[$item['function']] = $item['fid'];
+  }
+  if ($fids) {
+    db_delete('ultimate_cron')
+      ->condition('fid', $fids)
+      ->execute();
+  }
+  db_add_unique_key('ultimate_cron', 'uniq_function', array('function'));
+}
+
+/**
+ * Change schema to SQL 99 compliance
+ */
+function ultimate_cron_update_7106(&$context) {
+  if (empty($context['sandbox']['major_version_upgrade'][7106])) {
+    // This udate is already part of latest 6.x
+    return;
+  }
+  db_drop_unique_key('ultimate_cron', 'idx_function');
+  db_change_field('ultimate_cron', 'function', 'name', array(
+    'description' => 'Function name',
+    'type' => 'varchar',
+    'length' => 127,
+    'not null' => TRUE,
+  ));
+  db_add_unique_key('ultimate_cron', 'idx_name', array('name'));
+  
+  db_change_field('ultimate_cron_log', 'function', 'name', array(
+    'description' => 'Function name',
+    'type' => 'varchar',
+    'length' => 127,
+    'not null' => TRUE,
+  ));
+  db_change_field('ultimate_cron_log', 'start', 'start_stamp', array(
+    'description' => 'Timstamp of execution start',
+    'type' => 'float',
+    'size' => 'big',
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+  db_change_field('ultimate_cron_log', 'end', 'end_stamp', array(
+    'description' => 'Timstamp of execution end',
+    'type' => 'float',
+    'size' => 'big',
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+  db_change_field('ultimate_cron_log', 'status', 'exec_status', array(
+    'description' => 'Status of the execution',
+    'type' => 'int',
+    'size' => 'normal',
+    'not null' => FALSE,
+    'default' => NULL,
+  ));
+}
+
+/**
+ * Add service host to log.
+ */
+function ultimate_cron_update_7107(&$context) {
+  if (empty($context['sandbox']['major_version_upgrade'][7107])) {
+    // This udate is already part of latest 6.x
+    return;
+  }
+  db_add_field('ultimate_cron_log', 'service_host', array(
+    'description' => 'Service host',
+    'type' => 'varchar',
+    'length' => 127,
+    'not null' => TRUE,
+  ));
+}
+
+/**
+ * Add service host to log.
+ */
+function ultimate_cron_update_7200(&$context) {
+  db_change_field('ultimate_cron_log', 'exec_status', 'severity', array(
+    'description' => 'Status of the execution',
+    'type' => 'int',
+    'size' => 'normal',
+    'not null' => FALSE,
+    'default' => NULL,
+  ));
+}
