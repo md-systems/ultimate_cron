@@ -352,13 +352,7 @@ function ultimate_cron_update_7107(&$context) {
  * Rename columns and indices to 2.x style.
  */
 function ultimate_cron_update_7200(&$context) {
-  db_change_field('ultimate_cron_log', 'exec_status', 'severity', array(
-    'description' => 'Status of the execution',
-    'type' => 'int',
-    'size' => 'normal',
-    'not null' => FALSE,
-    'default' => NULL,
-  ));
+  db_drop_field('ultimate_cron_log', 'exec_status');
   db_drop_index('ultimate_cron_log', 'idx_last');
   db_drop_index('ultimate_cron_log', 'idx_count');
   db_change_field('ultimate_cron_log', 'start_stamp', 'start_time', array(
