@@ -57,6 +57,8 @@ define('ULTIMATE_CRON_POORMAN', FALSE);
  */
 define('ULTIMATE_CRON_LAUNCH_WINDOW', 55);
 
+define('ULTIMATE_CRON_DEFAULT_SCHEDULER', 'crontab');
+
 // ---------- HOOKS ----------
 
 module_load_include('nagios.inc', 'ultimate_cron');
@@ -996,12 +998,20 @@ function ultimate_cron_get_module_jobs($module) {
       'description' => isset($item['title']) ? $item['title'] : $name,
       'module' => $module,
       'file path' => drupal_get_path('module', $module),
-      'rules' => array(variable_get('ultimate_cron_rule', ULTIMATE_CRON_RULE)),
+      'scheduler' => variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER),
+      'scheduler_settings' => array(),
+      #'rules' => array(variable_get('ultimate_cron_rule', ULTIMATE_CRON_RULE)),
       'callback arguments' => array(),
       'callback' => $name,
-      'service group' => variable_get('ultimate_cron_service_group', ULTIMATE_CRON_SERVICE_GROUP),
       'enabled' => TRUE,
     );
+    // Ensure we use the proper scheduler settings.
+    if (
+      !empty($item['scheduler_settings']['scheduler']) &&
+      $item['scheduler_settings']['scheduler'] != $item['scheduler']
+    ) {
+      $item['scheduler_settings'] = array('scheduler' => $item['scheduler']);
+    }
   }
   return $items;
 }
@@ -1036,6 +1046,8 @@ function ultimate_cron_get_jobs($reset = FALSE) {
       $object = $jobs[$name];
       $object->{$export['export type string']} = t('Overridden');
       $object->export_type = EXPORT_IN_CODE | EXPORT_IN_DATABASE;
+      $job['title'] = $object->title;
+      $job['description'] = $object->description;
       $job['ctools object'] = $object;
     }
     else {
@@ -1323,7 +1335,42 @@ class UltimateCronPlugin {
     $this->title = $plugin['title'];
     $this->description = $plugin['description'];
     $this->name = $name;
-    $this->key = 'ultimate_cron_plugin_' . $name . '_settings';
+    $this->key = 'ultimate_cron_plugin_' . $plugin['plugin type'] . '_' . $name . '_settings';
+  }
+
+  /**
+   * Default settings.
+   */
+  public function defaultSettings() {
+    return variable_get($this->key, array());
+  }
+
+  /**
+   * Get/set current settings.
+   */
+  public function currentSettings($settings = NULL) {
+    if (isset($settings)) {
+      $this->settings = $settings;
+    }
+    return $this->settings + $this->defaultSettings();
+  }
+
+  /**
+   * Settings form.
+   */
+  public function settingsForm(&$form, &$form_state) {
+  }
+
+  /**
+   * Settings form validate handler.
+   */
+  public function settingsFormValidate(&$form, &$form_state) {
+  }
+
+  /**
+   * Settings form submit handler.
+   */
+  public function settingsFormSubmit(&$form, &$form_state) {
   }
 }
 
@@ -1342,3 +1389,55 @@ function ultimate_cron_default_ultimate_cron_job() {
   return $jobs;
 }
 */
+
+/**
+ * Return blank values for all keys in an array.
+ *
+ * @param array $array
+ *   Array to generate blank values from.
+ *
+ * @return array
+ *   Array with same keys as input, but with blank values (empty string).
+ */
+function ultimate_cron_blank_values($array) {
+  return $array ? array_combine(
+    array_keys($array),
+    array_fill(0, count($array), '')
+  ) : array();
+}
+
+/**
+ * Process fallback form parameters.
+ *
+ * @param array $elements
+ *   Elements to process.
+ * @param array $defaults
+ *   Default values to add to description.
+ * @param boolean $remove_non_fallbacks
+ *   If TRUE, non fallback elements will be removed.
+ */
+function ultimate_cron_fallbackalize(&$elements, $defaults, $remove_non_fallbacks = FALSE) {
+  if (empty($elements)) {
+    return;
+  }
+  foreach (element_children($elements) as $child) {
+    $element = &$elements[$child];
+    ultimate_cron_fallbackalize($element, $defaults, $remove_non_fallbacks);
+    if (!empty($element['#fallback'])) {
+      if (!$remove_non_fallbacks) {
+        if (!empty($element['#use_fallback_value'])) {
+          $element['#default_value'] = $defaults[$child];
+        }
+        else {
+          $element['#description'] .= ' ' . t('(Blank = @default)', array('@default' => $defaults[$child]));
+        }
+      }
+      elseif (!empty($element['#fallback_required'])) {
+        $element['#required'] = TRUE;
+      }
+    }
+    elseif ($remove_non_fallbacks) {
+      unset($elements[$child]);
+    }
+  }
+}
