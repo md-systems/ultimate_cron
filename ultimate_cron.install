@@ -1,7 +1,6 @@
 <?php
 /**
  * @file
- *
  * Installation file for Ultimate Cron
  */
 
@@ -11,25 +10,28 @@
 function ultimate_cron_schema() {
   $schema = array();
 
-  $schema['ultimate_cron'] = array(
-    'description' => 'Cron job function list',
+  $schema['ultimate_cron_job'] = array(
+    'description' => 'Cron jobs',
     'export' => array(
+      'admin_title' => 'title',
+      'admin_description' => 'description',
       'key' => 'name',
-      'key name' => 'Name',
-      'primary key' => 'fid',
-      'identifier' => 'name',
-      'default hook' => 'default_ultimate_cron_function',
-      'save callback' => 'ultimate_cron_crud_save',
+      'primary key' => 'jid',
+      'identifier' => 'job',
+      'load callback' => 'ultimate_cron_job_load_export_ui',
+      'load all callback' => 'ultimate_cron_job_load_all_export_ui',
       'api' => array(
         'owner' => 'ultimate_cron',
-        'api' => 'default_ultimate_cron_functions',
-        'minimum_version' => 1,
-        'current_version' => 1,
+        'api' => 'ultimate_cron',
+        'minimum_version' => 3,
+        'current_version' => 3,
       ),
+      'in_code_only' => TRUE,
+      #'export_type' => EXPORT_IN_CODE,
     ),
     'fields' => array(
-      'fid' => array(
-        'description' => 'Function ID',
+      'jid' => array(
+        'description' => 'Job ID',
         'type' => 'serial',
         'size' => 'normal',
         'not null' => TRUE,
@@ -41,6 +43,17 @@ function ultimate_cron_schema() {
         'length' => 127,
         'not null' => TRUE,
       ),
+      'title' => array(
+        'description' => 'Title',
+        'type' => 'varchar',
+        'length' => 127,
+        'not null' => TRUE,
+      ),
+      'description' => array(
+        'description' => 'Description',
+        'type' => 'text',
+        'not null' => TRUE,
+      ),
       'settings' => array(
         'description' => 'Settings',
         'type' => 'text',
@@ -48,14 +61,14 @@ function ultimate_cron_schema() {
         'not null' => FALSE,
       ),
     ),
-    'primary key' => array('fid'),
+    'primary key' => array('jid'),
     'unique keys' => array(
-      'uniq_name' => array('name')
+      'machine_name' => array('name')
     ),
   );
 
   $schema['ultimate_cron_log'] = array(
-    'description' => t('Logs'),
+    'description' => 'Logs',
     'fields' => array(
       'lid' => array(
         'description' => 'Log ID',
@@ -105,8 +118,14 @@ function ultimate_cron_schema() {
     ),
     'primary key' => array('lid'),
     'indexes' => array(
-       'idx_last' => array('name', 'start_time'),
-       'idx_count' => array('name', 'end_time'),
+      'idx_last' => array(
+        'name',
+        'start_time'
+      ),
+      'idx_count' => array(
+        'name',
+        'end_time'
+      ),
     ),
   );
 
@@ -117,7 +136,7 @@ function ultimate_cron_schema() {
  * Implements hook_enable().
  */
 function ultimate_cron_enable() {
-  // Disable built-in poor mans cron
+  // Disable built-in poor mans cron.
   variable_set('cron_safe_threshold', 0);
 }
 
@@ -145,6 +164,7 @@ function ultimate_cron_requirements($phase) {
   switch ($phase) {
     case 'install':
       return $response;
+
     case 'runtime':
       $response['title'] = 'Ultimate Cron';
       $response['value'] = 'OK';
@@ -156,7 +176,7 @@ function ultimate_cron_requirements($phase) {
 }
 
 /**
- * Major version upgrade of Drupal
+ * Major version upgrade of Drupal.
  */
 function ultimate_cron_update_7000(&$context) {
   $context['sandbox']['major_version_upgrade'] = array();
@@ -170,7 +190,7 @@ function ultimate_cron_update_7101(&$context) {
     // This udate is already part of latest 6.x
     return;
   }
-  $schema_version = (int)(db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
+  $schema_version = (int) (db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
   if ($schema_version >= 7000) {
     // Old hook_update_N was 7000
     return;
@@ -192,7 +212,7 @@ function ultimate_cron_update_7102(&$context) {
     // This udate is already part of latest 6.x
     return;
   }
-  $schema_version = (int)(db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
+  $schema_version = (int) (db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
   if ($schema_version >= 7001) {
     // Old hook_update_N was 7001
     return;
@@ -206,14 +226,14 @@ function ultimate_cron_update_7102(&$context) {
 }
 
 /**
- * Merge ultimate_cron_function and ultimate_cron_configuration into ultimate_cron
+ * Merge ultimate_cron_function and ultimate_cron_configuration into ultimate_cron.
  */
 function ultimate_cron_update_7103(&$context) {
   if (empty($context['sandbox']['major_version_upgrade'][7103])) {
     // This udate is already part of latest 6.x
     return;
   }
-  $schema_version = (int)(db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
+  $schema_version = (int) (db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
   if ($schema_version >= 7002) {
     // Old hook_update_N was 7002
     return;
@@ -226,14 +246,14 @@ function ultimate_cron_update_7103(&$context) {
 }
 
 /**
- * Switch from fid to function name in ultimate_cron_log
+ * Switch from fid to function name in ultimate_cron_log.
  */
 function ultimate_cron_update_7104(&$context) {
   if (empty($context['sandbox']['major_version_upgrade'][7104])) {
     // This udate is already part of latest 6.x
     return;
   }
-  $schema_version = (int)(db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
+  $schema_version = (int) (db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
   if ($schema_version >= 7003) {
     // Old hook_update_N was 7003
     return;
@@ -258,7 +278,7 @@ function ultimate_cron_update_7104(&$context) {
 }
 
 /**
- * Add missing index to database
+ * Add missing index to database.
  */
 function ultimate_cron_update_7105(&$context) {
   if (empty($context['sandbox']['major_version_upgrade'][7105])) {
@@ -287,7 +307,7 @@ function ultimate_cron_update_7105(&$context) {
 }
 
 /**
- * Change schema to SQL 99 compliance
+ * Change schema to SQL 99 compliance.
  */
 function ultimate_cron_update_7106(&$context) {
   if (empty($context['sandbox']['major_version_upgrade'][7106])) {
@@ -302,7 +322,7 @@ function ultimate_cron_update_7106(&$context) {
     'not null' => TRUE,
   ));
   db_add_unique_key('ultimate_cron', 'idx_name', array('name'));
-  
+
   db_change_field('ultimate_cron_log', 'function', 'name', array(
     'description' => 'Function name',
     'type' => 'varchar',
@@ -351,7 +371,11 @@ function ultimate_cron_update_7107(&$context) {
 /**
  * Rename columns and indices to 2.x style.
  */
-function ultimate_cron_update_7200(&$context) {
+function ultimate_cron_update_7200() {
+  drupal_install_schema('ultimate_cron_job');
+  // @todo Copy data from old table before dropping it ...
+  db_drop_table('ultimate_cron');
+
   db_drop_field('ultimate_cron_log', 'exec_status');
   db_drop_index('ultimate_cron_log', 'idx_last');
   db_drop_index('ultimate_cron_log', 'idx_count');

@@ -17,9 +17,10 @@ function ultimate_cron_settings_form() {
     '#collapsed' => FALSE,
     '#tree' => FALSE,
   );
-  $service_groups = $options = background_process_get_service_groups();
-  foreach ($options as $key => &$value) {
-    $value = (empty($value['description']) ? $key : $value['description']) . ' (' . join(',', $value['hosts']) . ')';
+  $service_groups = background_process_service_group_load_all();
+  $options = array();
+  foreach ($service_groups as $name => $service_group) {
+    $options[$name] = $service_group->title;
   }
   $form['general']['ultimate_cron_service_group'] = array(
     '#type' => 'select',
@@ -120,16 +121,161 @@ function ultimate_cron_settings_form() {
 }
 
 /**
+ * Main launcher settings form.
+ */
+function ultimate_cron_launchers_form() {
+  $form = array();
+  $items = array();
+  foreach (ultimate_cron_launcher_load_all() as $name => $launcher) {
+    $items[] = l($launcher->title, 'admin/config/system/cron/launchers/' . $name);
+  }
+  $form['installed'] = array(
+    '#markup' => theme('item_list', array(
+      'title' => 'Launchers installed',
+      'items' => $items
+    ))
+  );
+  return $form;
+}
+
+/**
+ * Settings form for launchers.
+ */
+function ultimate_cron_launcher_settings($form, &$form_state, $name) {
+  $launcher = ultimate_cron_launcher_load($name);
+
+  $form['description'] = array(
+    '#markup' => $launcher->description,
+  );
+
+  $form_state['values'] = isset($form_state['values']) ? $form_state['values'] : array();
+  if (!isset($form_state['values']['launcher_settings'])) {
+    $form_state['values']['launcher_settings'] = array();
+  }
+  $defaults = $launcher->defaultSettings();
+  $form_state['values']['launcher_settings'] += $defaults;
+  $launcher->settingsForm($form, $form_state);
+  if (!empty($form['launcher_settings']['no_settings'])) {
+    return $form;
+  }
+  $form['launcher_settings']['#tree'] = TRUE;
+  $form['launcher'] = array(
+    '#type' => 'value',
+    '#value' => $name,
+  );
+  $form = system_settings_form($form);
+  $form['#validate'] = empty($form['#validate']) ? array() : $form['#validate'];
+  $form['#submit'] = empty($form['#submit']) ? array() : $form['#submit'];
+  array_unshift($form['#validate'], 'ultimate_cron_launcher_settings_validate');
+  array_unshift($form['#submit'], 'ultimate_cron_launcher_settings_submit');
+  return $form;
+}
+
+/**
+ * Validate handler for launcher settings.
+ */
+function ultimate_cron_launcher_settings_validate($form, &$form_state) {
+  $launcher = ultimate_cron_launcher_load($form_state['values']['launcher']);
+  $launcher->settingsFormValidate($form, $form_state);
+}
+
+/**
+ * Submit handler for launcher settings.
+ */
+function ultimate_cron_launcher_settings_submit($form, &$form_state) {
+  $launcher = ultimate_cron_launcher_load($form_state['values']['launcher']);
+  $launcher->settingsFormSubmit($form, $form_state);
+
+  // Since this is a system_settings_form() we need to move the submitted data
+  // around a little.
+  $form_state['values'][$launcher->key] = $form_state['values']['launcher_settings'];
+  unset($form_state['values']['launcher']);
+  unset($form_state['values']['launcher_settings']);
+}
+
+/**
+ * Main launcher settings form.
+ */
+function ultimate_cron_schedulers_form() {
+  $form = array();
+  $items = array();
+  foreach (ultimate_cron_scheduler_load_all() as $name => $scheduler) {
+    $items[] = l($scheduler->title, 'admin/config/system/cron/scheduler/' . $name);
+  }
+  $form['installed'] = array(
+    '#markup' => theme('item_list', array(
+      'title' => 'Schedulers installed',
+      'items' => $items
+    ))
+  );
+  return $form;
+}
+
+/**
+ * Settings form for launchers.
+ */
+function ultimate_cron_scheduler_settings($form, &$form_state, $name) {
+  $scheduler = ultimate_cron_scheduler_load($name);
+
+  $form['description'] = array(
+    '#markup' => $scheduler->description,
+  );
+
+  $form_state['values'] = isset($form_state['values']) ? $form_state['values'] : array();
+  if (!isset($form_state['values']['scheduler_settings'])) {
+    $form_state['values']['scheduler_settings'] = array();
+  }
+  $defaults = $scheduler->defaultSettings();
+  $form_state['values']['scheduler_settings'] += $defaults;
+  $scheduler->settingsForm($form, $form_state);
+  if (!empty($form['scheduler_settings']['no_settings'])) {
+    return $form;
+  }
+  $form['scheduler_settings']['#tree'] = TRUE;
+  $form['scheduler'] = array(
+    '#type' => 'value',
+    '#value' => $name,
+  );
+  $form = system_settings_form($form);
+  $form['#validate'] = empty($form['#validate']) ? array() : $form['#validate'];
+  $form['#submit'] = empty($form['#submit']) ? array() : $form['#submit'];
+  array_unshift($form['#validate'], 'ultimate_cron_scheduler_settings_validate');
+  array_unshift($form['#submit'], 'ultimate_cron_scheduler_settings_submit');
+  return $form;
+}
+
+/**
+ * Validate handler for scheduler settings.
+ */
+function ultimate_cron_scheduler_settings_validate($form, &$form_state) {
+  $scheduler = ultimate_cron_scheduler_load($form_state['values']['scheduler']);
+  $scheduler->settingsFormValidate($form, $form_state);
+}
+
+/**
+ * Submit handler for scheduler settings.
+ */
+function ultimate_cron_scheduler_settings_submit($form, &$form_state) {
+  $scheduler = ultimate_cron_scheduler_load($form_state['values']['scheduler']);
+  $scheduler->settingsFormSubmit($form, $form_state);
+
+  // Since this is a system_settings_form() we need to move the submitted data
+  // around a little.
+  $form_state['values'][$scheduler->key] = $form_state['values']['scheduler_settings'];
+  unset($form_state['values']['scheduler']);
+  unset($form_state['values']['scheduler_settings']);
+}
+/**
  * Job settings form.
  */
 function ultimate_cron_function_settings_form($form, &$form_state, $name) {
   $hooks = ultimate_cron_get_hooks();
-  if (!isset($hooks[(string)$name])) {
+  if (!isset($hooks[(string) $name])) {
     drupal_not_found();
     exit;
   }
 
-  // Load settings
+  // Load settings.
   $hook = $hooks[$name];
   $settings = $hook['settings'];
   $settings += array(
@@ -146,7 +292,7 @@ function ultimate_cron_function_settings_form($form, &$form_state, $name) {
   $form = array();
   $advanced_help_enabled = module_exists('advanced_help');
 
-   // General settings -----------------------------------
+   // General settings -----------------------------------.
   $form['name'] = array(
     '#type' => 'value',
     '#value' => $name,
@@ -207,10 +353,12 @@ function ultimate_cron_function_settings_form($form, &$form_state, $name) {
     );
   }
 
-  $service_groups = $options = background_process_get_service_groups();
-  foreach ($options as $key => &$value) {
-    $value = (empty($value['description']) ? $key : $value['description']) . ' (' . join(',', $value['hosts']) . ')';
+  $service_groups = background_process_service_group_load_all();
+  $options = array();
+  foreach ($service_groups as $name => $service_group) {
+    $options[$name] = $service_group->title;
   }
+
   $options += array(
     NULL => 'Ultimate Cron service group (' . join(',', $service_groups[variable_get('ultimate_cron_service_group', ULTIMATE_CRON_SERVICE_GROUP)]['hosts']) . ')');
   $form['general']['service group'] = array(
@@ -277,24 +425,12 @@ function ultimate_cron_function_settings_form_submit($form, &$form_state) {
 /**
  * Page overviewing cron jobs.
  */
-function ultimate_cron_view_page($module = NULL) {
+function ultimate_cron_jobs_page($status = NULL) {
+
   require_once 'CronRule.class.php';
   drupal_add_css(drupal_get_path('module', 'ultimate_cron') . '/css/ultimate_cron.admin.css');
-  drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/jquery.tablesorter.js');
-  drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.js');
-  drupal_add_js(array(
-    'ultimate_cron' => array(
-      'processes' => new stdClass(),
-      'skew' => 0,
-      'secondCounter' => 0,
-    ),
-  ), 'setting');
-
-  if (module_exists('nodejs')) {
-    nodejs_send_content_channel_token('background_process');
-    nodejs_send_content_channel_token('ultimate_cron');
-    drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/nodejs.ultimate_cron.js', array('type' => 'file'));
-  }
+  // drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/jquery.tablesorter.js');
+  // drupal_add_js(drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.js');
 
   module_load_install('ultimate_cron');
   $requirements = ultimate_cron_requirements('runtime');
@@ -303,35 +439,13 @@ function ultimate_cron_view_page($module = NULL) {
     drupal_set_message($requirements['ultimate_cron']['description'], 'error');
   }
 
-  // Get hooks and their data
-  $hooks = ultimate_cron_get_hooks();
-
-  $modules = array();
-  foreach ($hooks as $name => &$hook) {
-    if (!$module || $module == $hook['module']) {
-      $hook['log'] = ultimate_cron_get_last_log_entry($name);
-    }
-    else {
-      unset($hook[$name]);
-    }
-  }
+  // Get jobs and their data.
+  $jobs = ultimate_cron_get_jobs();
 
   $output = '';
-  $path = isset($_GET['q']) ? $_GET['q'] : '<front>';
 
-  $links = array(
-    '<a href="#show-error" id="ultimate-cron-show-error" class="ultimate-cron-admin-status ultimate-cron-admin-status-error">' . t('Errors') . '</a>',
-    '<a href="#show-warning" id="ultimate-cron-show-warning" class="ultimate-cron-admin-status ultimate-cron-admin-status-warning">' . t('Warnings') . '</a>',
-    '<a href="#show-info" id="ultimate-cron-show-info" class="ultimate-cron-admin-status ultimate-cron-admin-status-info">' . t('Info') . '</a>',
-    '<a href="#show-success" id="ultimate-cron-show-success" class="ultimate-cron-admin-status ultimate-cron-admin-status-success">' . t('Success') . '</a>',
-    '<a href="#show-running" id="ultimate-cron-show-running" class="ultimate-cron-admin-status ultimate-cron-admin-status-running">' . t('Running') . '</a>',
-    '<a href="#show-all" id="ultimate-cron-show-all">' . t('All') . '</a>',
-  );
-  $output .= theme('item_list', array('items' => $links, 'attributes' => array('class' => 'tabs secondary')));
-  $output .= '<div class="clearfix"></div>';
-
-  $headers = array('', t('Module'), t('Description'), t('Rules'), t('Start'), t('Duration'), t('Status'), array('colspan' => 3, 'data' => ''), l(t('Run all'), 'admin/reports/status/run-cron', array('query' => drupal_get_destination())));
-  $rows = array();
+  $headers = array(t('Module'), t('Description'), t('Rules'), t('Start'), t('Duration'), t('Status'), t('Operations'));
+  $rows = array(array(), array());
 
   $overview = array();
   $overview['running'] = 0;
@@ -340,139 +454,172 @@ function ultimate_cron_view_page($module = NULL) {
   $overview['warning'] = 0;
   $overview['error'] = 0;
 
-    foreach ($hooks as $name => $hook) {
-      $module = $hook['module'];
-      // Setup settings
-      $rules = $hook['rules'];
-      $cron = new CronRule();
-      $parsed_rules = array();
-      foreach ($rules as $rule) {
-        $cron->rule = $rule;
-        $cron->offset = $hook['original weight'];
-        $parsed_rules[] = $cron->parseRule();
-      }
+  foreach ($jobs as $name => $job) {
+    $log = ultimate_cron_get_last_log_entry($name);
+    $log += array(
+      'msg' => '',
+      'severity' => -1,
+      'start_time' => NULL,
+      'end_time' => NULL,
+    );
 
-      // Setup process
-      $process = $hook['background_process'];
-      if ($process) {
-        $name = preg_replace('/^uc:/', '', $process->getHandle());
-        drupal_add_js(array('ultimate_cron' => array('processes' => array($name => $process))), 'setting');
-      }
-      $service_host = !$process || !$process->getServiceHost() ? t('N/A') : $process->getServiceHost();
+    // Setup process.
+    $process = BackgroundProcess::loadByHandle('uc:' . $name);
+    $service_host = $process && $process->getServiceHost() ? $process->getServiceHost() : t('N/A');
 
-      // Setup log
-      $log = $hook['log'];
-      if (!$log) {
-        $log = array(
-          'msg' => '',
-          'severity' => -1,
-          'start_time' => NULL,
-          'end_time' => NULL,
-        );
-      }
-      $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= WATCHDOG_NOTICE ? 'info' : ($log['severity'] >= WATCHDOG_WARNING ? 'warning' : 'error'));
-      $css_status = !empty($process) ? 'running' : $severity_type;
-      $css_status = $log['msg'] && ($css_status == 'success') ? 'info' : $css_status;
+    $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= WATCHDOG_NOTICE ? 'info' : ($log['severity'] >= WATCHDOG_WARNING ? 'warning' : 'error'));
+    $css_status = !empty($process) ? 'running' : $severity_type;
+    $css_status = $log['msg'] && ($css_status == 'success') ? 'info' : $css_status;
 
-      $short_msg = $log['severity'];
-      $msg = !empty($log['msg']) ? $log['msg'] : t('No errors');
-      $percentage = '';
-      if ($process) {
-        $overview['running']++;
-        $log['previous_start_time'] = $log['start_time'];
-        $log['previous_end_time'] = $log['end_time'];
-        $log['start_time'] = $process->getStartTime();
-        if ($process->getStatus() == BACKGROUND_PROCESS_STATUS_RUNNING) {
-          $log['end_time'] = microtime(TRUE);
-          $progress = $process->getProgress();
-          $percentage = $progress >= 0 ? sprintf(" (%3d%%)", $progress * 100) : '';
-        }
-        else {
-          $log['end_time'] = NULL;
-        }
-      }
+//    'style' => ($status && $status != 'all' && ($css_status != $status) ? 'display: none' : 
+    if ($status && $status != 'all' && ($css_status != $status)) {
+      continue;
+    }
 
-      $overview[$severity_type]++;
+    // Setup settings.
+    $cron = new CronRule();
+    $parsed_rules = array();
+    foreach ($job['rules'] as $rule) {
+      $cron->rule = $rule;
+      $cron->offset = 0;
+      $parsed_rules[] = $cron->parseRule();
+    }
 
-      $link_configure = '';
-      if (!empty($hook['configure'])) {
-        $link_configure = _ultimate_cron_l('Settings', $hook['configure']);
-      }
-
-      $link_unlock = '';
-      if ($process) {
-        $link_unlock = _ultimate_cron_l('Unlock', 'background-process/unlock/' . $process->pid);
-      }
-
-      $link_settings = _ultimate_cron_l('Schedule', 'admin/config/system/cron/settings/' . $name);
-      $link_execute = _ultimate_cron_l('Run', 'admin/ultimate-cron/service/start/' . $name);
-      $link_log = _ultimate_cron_l('Log', 'admin/reports/cron/' . $name);
-
-      $enable = empty($hook['enabled']);
-      $link_toggle = _ultimate_cron_l($enable ? 'Enable' : 'Disable', 'admin/ultimate-cron/service/' . ($enable ? 'enable' : 'disable') . '/' . $name);
-
-      $data = array(
-        array('class' => $enable ? 'ultimate-cron-admin-enable' : 'ultimate-cron-admin-disable'),
-        array('class' => 'ultimate-cron-admin-module'),
-        array('class' => 'ultimate-cron-admin-function'),
-        array('class' => 'ultimate-cron-admin-rules'),
-        array('class' => 'ultimate-cron-admin-start'),
-        array('class' => 'ultimate-cron-admin-end'),
-        array('class' => 'ultimate-cron-admin-status ultimate-cron-admin-status-' . $css_status),
-        array('class' => 'ultimate-cron-admin-settings'),
-        array('class' => 'ultimate-cron-admin-configure'),
-        array('class' => 'ultimate-cron-admin-log'),
-        array('class' => $process ? 'ultimate-cron-admin-unlock' : 'ultimate-cron-admin-execute'),
+    $operations = array();
+    $operations['schedule'] = array(
+      'title' => t('Schedule'),
+      'href' => 'admin/config/system/cron/settings/' . $name,
+      'query' => drupal_get_destination(),
+    );
+    if (!empty($job['configure'])) {
+      $operations['configure'] = array(
+        'title' => t('Configure'),
+        'href' => $job['configure'],
+        'query' => drupal_get_destination(),
       );
-      $data[0]['data'] = $link_toggle;
-      $data[0]['title'] = $enable ? t('Enable') : t('Disable');
-      $data[1]['data'] = ultimate_cron_module_name($module);
-      $data[1]['title'] = $hook['callback'];
-      $data[2]['data'] = $hook['description'];
-      $data[2]['title'] = $name;
-      $data[3]['data'] = join("<br/>", $rules);
-      $data[3]['title'] = join("\n", $parsed_rules);
-      $data[4]['data'] = $log['start_time'] ? format_date((int)$log['start_time'], 'custom', 'Y-m-d H:i:s') : t('Never');
-      $data[5]['data'] = $log['end_time'] ? gmdate('H:i:s', (int)($log['end_time'] - $log['start_time'])) . $percentage : ($process ? t('Starting') : t('N/A'));
-      $finish = !empty($log['previous_end_time']) ? $log['previous_end_time'] : $log['end_time'];
-      $data[5]['title'] = t('Previous run finished @ !timestamp', array(
-        '!timestamp' => $finish ? format_date((int)$finish, 'custom', 'Y-m-d H:i:s') : t('N/A')
-      ));
-      if (!empty($log['previous_start_time'])) {
-        $data[4]['title'] = t('Previous run started @ !timestamp', array(
-          '!timestamp' => format_date((int)$log['previous_start_time'], 'custom', 'Y-m-d H:i:s'),
-        ));
-        $data[5]['title'] .= ' - ' . t('Run time: !duration', array(
-          '!duration' => gmdate('H:i:s', (int)($log['previous_end_time'] - $log['previous_start_time'])),
-        ));
-      }
-      if ($process) {
-        $data[6]['data'] = '<span>' . t('Running') . '</span>';
-        $data[6]['title'] = t('Running on @host', array('@host' => $service_host));
-      }
-      else {
-        $data[6]['data'] = '<span>' . $short_msg . '</span>';
-        $data[6]['title'] = strip_tags(html_entity_decode($msg, ENT_QUOTES));
-      }
-      $data[7]['data'] = $link_settings;
-      $data[7]['title'] = t('Schedule');
-      $data[8]['data'] = $link_configure;
-      $data[8]['title'] = $link_configure ? t('Settings') : '';
-      $data[9]['data'] = $link_log;
-      $data[9]['title'] = t('Log');
-      $data[10]['data'] = ($process ? $link_unlock : $link_execute);
-      $data[10]['title'] = ($process ? t('Unlock') : t('Run'));
-
-      $rows[] = array(
-        'class' => array('row-' . $hook['name']),
-        'data' => $data,
+    }
+    if ($process) {
+      $operations['unlock'] = array(
+        'title' => t('Unlock'),
+        'href' => 'admin/background-process/unlock/' . $process->pid,
+        'query' => drupal_get_destination(),
+      );
+    }
+    else {
+      $operations['run'] = array(
+        'title' => t('Run'),
+        'href' => 'admin/ultimate-cron/service/enable/' . $name,
+        'query' => drupal_get_destination(),
+      );
+    }
+    if (empty($job['enabled'])) {
+      $operations['enable'] = array(
+        'title' => t('Enable'),
+        'href' => 'admin/ultimate-cron/service/enable',
+        'query' => drupal_get_destination(),
+      );
+    }
+    else {
+      $operations['disable'] = array(
+        'title' => t('Disable'),
+        'href' => 'admin/ultimate-cron/service/disable',
+        'query' => drupal_get_destination(),
       );
     }
 
+    $short_msg = $log['severity'];
+    $msg = !empty($log['msg']) ? $log['msg'] : t('No errors');
+    $percentage = '';
+    if ($process) {
+      $overview['running']++;
+      $log['previous_start_time'] = $log['start_time'];
+      $log['previous_end_time'] = $log['end_time'];
+      $log['start_time'] = $process->getStartTime();
+      if ($process->getStatus() == BACKGROUND_PROCESS_STATUS_RUNNING) {
+        $log['end_time'] = microtime(TRUE);
+        $progress = $process->getProgress();
+        $percentage = $progress >= 0 ? sprintf(" (%3d%%)", $progress * 100) : '';
+      }
+      else {
+        $log['end_time'] = NULL;
+      }
+    }
+
+    $overview[$severity_type]++;
+
+    $data = array(
+      array('class' => 'ultimate-cron-admin-module'),
+      array('class' => 'ultimate-cron-admin-function'),
+      array('class' => 'ultimate-cron-admin-rules'),
+      array('class' => 'ultimate-cron-admin-start'),
+      array('class' => 'ultimate-cron-admin-end'),
+      array('class' => 'ultimate-cron-admin-status ultimate-cron-admin-status-' . $css_status),
+      theme('links__ctools_dropbutton', array(
+        'links' => $operations,
+        'attributes' => array('class' => array('links', 'inline'))
+      )),
+    );
+    $data[0] += array(
+      'data' => ultimate_cron_module_name($job['module']),
+      'title' => $job['callback'],
+    );
+    $data[1] += array(
+      'data' => $job['description'],
+      'title' => $name,
+    );
+    $data[2] += array(
+      'data' => join("<br/>", $job['rules']),
+      'title' => join("\n", $parsed_rules),
+    );
+    $data[3] += array(
+      'data' => $log['start_time'] ? format_date((int) $log['start_time'], 'custom', 'Y-m-d H:i:s') : t('Never'),
+    );
+    $finish = !empty($log['previous_end_time']) ? $log['previous_end_time'] : $log['end_time'];
+    $data[4] += array(
+      'data' => $log['end_time'] ? gmdate('H:i:s', (int) ($log['end_time'] - $log['start_time'])) . $percentage : ($process ? t('Starting') : t('N/A')),
+      'title' => t('Previous run finished @ !timestamp', array(
+        '!timestamp' => $finish ? format_date((int) $finish, 'custom', 'Y-m-d H:i:s') : t('N/A'))
+      )
+    );
+
+    if ($process) {
+      $data[5] += array(
+        'data' => '<span>' . t('Running') . '</span>',
+        'title' => t('Running on @host', array('@host' => $service_host)),
+      );
+    }
+    else {
+      $data[5] += array(
+        'data' => '<span>' . $short_msg . '</span>',
+        'title' => strip_tags(html_entity_decode($msg, ENT_QUOTES)),
+      );
+    }
+
+    $rows[(int) $job['enabled']][] = array(
+      'class' => array('row-' . $name),
+      'data' => $data,
+    );
+  }
+
+  if ($status != 'all') {
+    $msg = 'There are currently no @enabled cron jobs with status %status.';
+  }
+  else {
+    $msg = 'There are currently no @enabled cron jobs.';
+  }
+
   $output .= theme('table', array(
     'header' => $headers,
-    'rows' => $rows,
-    'attributes' => array('id' => 'ultimate-cron-view')
+    'rows' => $rows[1],
+    'attributes' => array('id' => 'ctools-export-ui-list-items'),
+    'empty' => t($msg, array('@enabled' => t('enabled'), '%status' => $status)),
+  ));
+
+  $output .= theme('table', array(
+    'header' => $headers,
+    'rows' => $rows[0],
+    'attributes' => array('id' => 'ctools-export-ui-list-items'),
+    'empty' => t($msg, array('@enabled' => t('disabled'), '%status' => $status)),
   ));
 
   if ($overview['running']) {
@@ -484,8 +631,8 @@ function ultimate_cron_view_page($module = NULL) {
   }
   if ($overview['warning']) {
     drupal_set_message(format_plural($overview['warning'],
-                        '@jobs job had warnings during it\'s last run', 
-                        '@jobs jobs had warnings during their last run', 
+                        '@jobs job had warnings during it\'s last run',
+                        '@jobs jobs had warnings during their last run',
                         array('@jobs' => $overview['warning'])
                       ), 'warning');
   }
