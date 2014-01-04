@@ -18,4 +18,10 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     #return;
     #return;
   }
+
+  function build_operations($item) {
+    $allowed_operations = parent::build_operations($item);
+    unset($allowed_operations['clone']);
+    return $allowed_operations;
+  }
 }
