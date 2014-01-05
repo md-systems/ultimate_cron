@@ -35,8 +35,9 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   }
 
   public function settingsFormSubmit(&$form, &$form_state) {
-    $rules = explode(',', $form_state['values']['settings']['scheduler_settings']['rules']);
-    $rules = array_map('trim', $rules);
-    $form_state['values']['settings']['scheduler_settings']['rules'] = $rules;
+    if (!empty($form_state['values']['settings']['scheduler_settings']['rules'])) {
+      $rules = explode(',', $form_state['values']['settings']['scheduler_settings']['rules']);
+      $form_state['values']['settings']['scheduler_settings']['rules'] = array_map('trim', $rules);
+    }
   }
 }

@@ -57,7 +57,7 @@ define('ULTIMATE_CRON_POORMAN', FALSE);
  */
 define('ULTIMATE_CRON_LAUNCH_WINDOW', 55);
 
-define('ULTIMATE_CRON_DEFAULT_SCHEDULER', 'crontab');
+define('ULTIMATE_CRON_DEFAULT_SCHEDULER', 'simple');
 
 // ---------- HOOKS ----------
 
@@ -113,10 +113,6 @@ function ultimate_cron_ctools_plugin_type() {
 }
 
 function ultimate_cron_ctools_plugin_instance($name, $plugin) {
-  #$class_file = $plugin['path'] . '/' . $name . '.class.php';
-  #if (file_exists($class_file)) {
-    #include_once($class_file);
-  #}
   $class = ctools_plugin_get_class($plugin, 'handler');
   return $class ? new $class($name, $plugin) : FALSE;
 }
@@ -125,6 +121,9 @@ function ultimate_cron_ctools_plugin_instance($name, $plugin) {
  * Load callback for launchers.
  */
 function ultimate_cron_launcher_load($name) {
+  $launchers = ultimate_cron_launcher_load_all();
+  return $launcher[$name];
+
   ctools_include('plugins');
   if ($name && $plugin = ctools_get_plugins('ultimate_cron', 'launcher', $name)) {
     return ultimate_cron_ctools_plugin_instance($name, $plugin);
@@ -151,8 +150,12 @@ function ultimate_cron_launcher_load_all() {
  * Load callback for schedulers.
  */
 function ultimate_cron_scheduler_load($name) {
+  $schedulers = ultimate_cron_scheduler_load_all();
+  return $schedulers[$name];
+
   ctools_include('plugins');
   if ($name && $plugin = ctools_get_plugins('ultimate_cron', 'scheduler', $name)) {
+    print "TRYING";
     return ultimate_cron_ctools_plugin_instance($name, $plugin);
   }
   return FALSE;
@@ -1237,7 +1240,7 @@ function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
 
     $jobs[$name]->hook = $job;
     $results[$name] = $jobs[$name];
-
+    $results[$name]->active_settings = $jobs[$name]->getSettings();
   }
 
   return $results;
