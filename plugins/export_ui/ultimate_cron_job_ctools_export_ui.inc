@@ -55,7 +55,7 @@ function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
   $schedulers = ultimate_cron_scheduler_load_all();
   $options = array();
   $options[0] = t('Default (@default)', array(
-    '@default' => variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER)
+    '@default' => $schedulers[$job->hook['scheduler']]->title,
   ));
   foreach ($schedulers as $name => $scheduler) {
     $options[$name] = $scheduler->title;
@@ -74,7 +74,7 @@ function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
   );
 
   if (empty($form_state['values']['settings']['scheduler'])) {
-    $scheduler = $schedulers[variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER)];
+    $scheduler = $schedulers[$job->hook['scheduler']];
   }
   else {
     $scheduler = $schedulers[$job->settings['scheduler']];

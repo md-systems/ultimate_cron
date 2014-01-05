@@ -112,13 +112,22 @@ function ultimate_cron_ctools_plugin_type() {
   );
 }
 
+function ultimate_cron_ctools_plugin_instance($name, $plugin) {
+  #$class_file = $plugin['path'] . '/' . $name . '.class.php';
+  #if (file_exists($class_file)) {
+    #include_once($class_file);
+  #}
+  $class = ctools_plugin_get_class($plugin, 'handler');
+  return $class ? new $class($name, $plugin) : FALSE;
+}
+
 /**
  * Load callback for launchers.
  */
 function ultimate_cron_launcher_load($name) {
   ctools_include('plugins');
   if ($name && $plugin = ctools_get_plugins('ultimate_cron', 'launcher', $name)) {
-    return new $plugin['handler']['class']($name, $plugin);
+    return ultimate_cron_ctools_plugin_instance($name, $plugin);
   }
   return FALSE;
 }
@@ -131,7 +140,9 @@ function ultimate_cron_launcher_load_all() {
   $plugins = ctools_get_plugins('ultimate_cron', 'launcher');
   $launchers = array();
   foreach ($plugins as $name => $plugin) {
-    $launchers[$name] = new $plugin['handler']['class']($name, $plugin);
+    if ($object = ultimate_cron_ctools_plugin_instance($name, $plugin)) {
+      $launchers[$name] = $object;
+    }
   }
   return $launchers;
 }
@@ -142,7 +153,7 @@ function ultimate_cron_launcher_load_all() {
 function ultimate_cron_scheduler_load($name) {
   ctools_include('plugins');
   if ($name && $plugin = ctools_get_plugins('ultimate_cron', 'scheduler', $name)) {
-    return new $plugin['handler']['class']($name, $plugin);
+    return ultimate_cron_ctools_plugin_instance($name, $plugin);
   }
   return FALSE;
 }
@@ -155,7 +166,9 @@ function ultimate_cron_scheduler_load_all() {
   $plugins = ctools_get_plugins('ultimate_cron', 'scheduler');
   $schedulers = array();
   foreach ($plugins as $name => $plugin) {
-    $schedulers[$name] = new $plugin['handler']['class']($name, $plugin);
+    if ($object = ultimate_cron_ctools_plugin_instance($name, $plugin)) {
+      $schedulers[$name] = $object;
+    }
   }
   return $schedulers;
 }
@@ -417,11 +430,7 @@ function ultimate_cron_cronapi() {
       'title' => t('Queue: !name', array('!name' => $queue_name)),
       'callback' => 'ultimate_cron_queue_cron',
       'callback arguments' => array($queue_name),
-      'scheduler' => 'crontab',
-      'scheduler_settings' => array(
-        'rules' => array('* * * * *'),
-        'queue lease time' => variable_get('ultimate_cron_queue_lease_time', ULTIMATE_CRON_QUEUE_LEASE_TIME),
-      ),
+      'scheduler' => 'queue',
     );
   }
   return $items;
@@ -1216,7 +1225,7 @@ function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
     }
     else {
       $jobs[$name]->{$export['export type string']} = t('Overridden');
-      $jobs[$name]->export_type = EXPORT_IN_CODE | EXPORT_IN_DATABASE;      
+      $jobs[$name]->export_type = EXPORT_IN_CODE | EXPORT_IN_DATABASE;
     }
     $job += array(
       'scheduler' => 0,
@@ -1228,6 +1237,7 @@ function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
 
     $jobs[$name]->hook = $job;
     $results[$name] = $jobs[$name];
+
   }
 
   return $results;
@@ -1417,13 +1427,7 @@ class UltimateCronLauncher extends UltimateCronPlugin {
 
 class UltimateCronJob {
   function getSettings() {
-    $scheduler_name = !empty($this->settings['scheduler']) ? $this->settings['scheduler'] : variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER);
-    $scheduler = ultimate_cron_scheduler_load($scheduler_name);
-    $settings = array(
-      'scheduler' => $scheduler_name,
-      'scheduler_settings' => $this->settings['scheduler_settings'] + $scheduler->defaultSettings(),
-    );
-    return $settings;
+    return $this->settings['scheduler_settings'] + $this->hook['scheduler_settings'];
   }
 }
 
