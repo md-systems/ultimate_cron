@@ -20,6 +20,8 @@ function ultimate_cron_schema() {
       'identifier' => 'job',
       'load callback' => 'ultimate_cron_job_load_export_ui',
       'load all callback' => 'ultimate_cron_job_load_all_export_ui',
+      'object' => 'UltimateCronJob',
+      #'create callback' => 'ultimate_cron_job_create_export_ui',
       'api' => array(
         'owner' => 'ultimate_cron',
         'api' => 'ultimate_cron',
@@ -27,7 +29,6 @@ function ultimate_cron_schema() {
         'current_version' => 3,
       ),
       'in_code_only' => TRUE,
-      #'export_type' => EXPORT_IN_CODE,
     ),
     'fields' => array(
       'jid' => array(
@@ -42,23 +43,30 @@ function ultimate_cron_schema() {
         'type' => 'varchar',
         'length' => 127,
         'not null' => TRUE,
+        'default' => '',
       ),
       'title' => array(
         'description' => 'Title',
         'type' => 'varchar',
         'length' => 127,
         'not null' => TRUE,
+        'default' => '',
       ),
       'description' => array(
         'description' => 'Description',
         'type' => 'text',
         'not null' => TRUE,
+        'default' => '',
       ),
       'settings' => array(
         'description' => 'Settings',
         'type' => 'text',
         'serialize' => TRUE,
         'not null' => FALSE,
+        'object default' => array(
+          'scheduler' => 0,
+          'scheduler_settings' => array(),
+        ),
       ),
     ),
     'primary key' => array('jid'),

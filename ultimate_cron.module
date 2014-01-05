@@ -420,8 +420,8 @@ function ultimate_cron_cronapi() {
       'scheduler' => 'crontab',
       'scheduler_settings' => array(
         'rules' => array('* * * * *'),
+        'queue lease time' => variable_get('ultimate_cron_queue_lease_time', ULTIMATE_CRON_QUEUE_LEASE_TIME),
       ),
-      'queue lease time' => variable_get('ultimate_cron_queue_lease_time', ULTIMATE_CRON_QUEUE_LEASE_TIME),
     );
   }
   return $items;
@@ -966,11 +966,17 @@ function ultimate_cron_get_module_jobs($module) {
     }
     foreach ($items as $name => &$item) {
       $rules = module_invoke($module, 'cronapi', 'rule', $name);
-      $rules = is_array($rules) ? $rules : ($rules ? array($rules) : array());
+      $rules = $rules ? $rules : array();
 
       $settings = (array) module_invoke($module, 'cronapi', 'settings', $name);
       if (empty($settings['rules']) && $rules) {
         $settings['rules'] = $rules;
+      }
+
+      if (!empty($settings['rules'])) {
+        $settings['scheduler'] = 'crontab';
+        $settings['scheduler_settings'] = array('rules' => $settings['rules']);
+        unset($settings['rules']);
       }
 
       $settings += array(
@@ -998,8 +1004,8 @@ function ultimate_cron_get_module_jobs($module) {
       'description' => isset($item['title']) ? $item['title'] : $name,
       'module' => $module,
       'file path' => drupal_get_path('module', $module),
-      'scheduler' => variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER),
-      'scheduler_settings' => array(),
+      #'scheduler' => variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER),
+      #'scheduler_settings' => array(),
       #'rules' => array(variable_get('ultimate_cron_rule', ULTIMATE_CRON_RULE)),
       'callback arguments' => array(),
       'callback' => $name,
@@ -1010,7 +1016,7 @@ function ultimate_cron_get_module_jobs($module) {
       !empty($item['scheduler_settings']['scheduler']) &&
       $item['scheduler_settings']['scheduler'] != $item['scheduler']
     ) {
-      $item['scheduler_settings'] = array('scheduler' => $item['scheduler']);
+      #$item['scheduler_settings'] = array('scheduler' => $item['scheduler']);
     }
   }
   return $items;
@@ -1027,11 +1033,12 @@ function ultimate_cron_get_jobs($reset = FALSE) {
   if (!$reset && isset($hooks)) {
     return $hooks;
   }
+  /*
   $jobs = ultimate_cron_job_load_all($reset);
-
   $schema = ctools_export_get_schema('ultimate_cron_job');
   $export = $schema['export'];
   $status = variable_get($export['status'], array());
+  */
 
   $items = array();
   // Generate list of jobs.
@@ -1039,7 +1046,7 @@ function ultimate_cron_get_jobs($reset = FALSE) {
   foreach ($modules as $module) {
     $items += ultimate_cron_get_module_jobs($module);
   }
-
+/*
   foreach ($items as $name => &$job) {
     if (!empty($jobs[$name])) {
       $job += $jobs[$name]->settings;
@@ -1062,7 +1069,7 @@ function ultimate_cron_get_jobs($reset = FALSE) {
       $job['ctools object'] = $object;
     }
   }
-
+*/
   // Allow other to manipulate the hook list.
   drupal_alter('cron', $items);
 
@@ -1188,13 +1195,41 @@ function ultimate_cron_job_load_export_ui($name) {
 }
 
 function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
+  $jobs = ultimate_cron_job_load_all($reset);
+  $schema = ctools_export_get_schema('ultimate_cron_job');
+  $export = $schema['export'];
+  $status = variable_get($export['status'], array());
+
   $results = array();
   foreach (ultimate_cron_get_jobs($reset) as $name => $job) {
-    $result = $job['ctools object'];
-    $result->title = $job['title'];
-    $result->description = $job['description'];
-    $results[$name] = $result;
+    if (!isset($jobs[$name])) {
+      $jobs[$name] = ctools_export_crud_new('ultimate_cron_job');
+      $jobs[$name]->name = $name;
+      $jobs[$name]->title = $job['title'];
+      $jobs[$name]->description = $job['description'];
+      $jobs[$name]->table = 'ultimate_cron_job';
+      $jobs[$name]->export_type = EXPORT_IN_CODE;
+      $jobs[$name]->{$export['export type string']} = t('Default');
+      if (isset($status[$jobs[$name]->{$export['key']}])) {
+        $jobs[$name]->disabled = $status[$jobs[$name]->{$export['key']}];
+      }
+    }
+    else {
+      $jobs[$name]->{$export['export type string']} = t('Overridden');
+      $jobs[$name]->export_type = EXPORT_IN_CODE | EXPORT_IN_DATABASE;      
+    }
+    $job += array(
+      'scheduler' => 0,
+      'scheduler_settings' => array(),
+    );
+    $job['scheduler'] = !empty($job['scheduler']) ? $job['scheduler'] : variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER);
+    $scheduler = ultimate_cron_scheduler_load($job['scheduler']);
+    $job['scheduler_settings'] += $scheduler->defaultSettings();
+
+    $jobs[$name]->hook = $job;
+    $results[$name] = $jobs[$name];
   }
+
   return $results;
 }
 
@@ -1380,6 +1415,18 @@ class UltimateCronScheduler extends UltimateCronPlugin {
 class UltimateCronLauncher extends UltimateCronPlugin {
 }
 
+class UltimateCronJob {
+  function getSettings() {
+    $scheduler_name = !empty($this->settings['scheduler']) ? $this->settings['scheduler'] : variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER);
+    $scheduler = ultimate_cron_scheduler_load($scheduler_name);
+    $settings = array(
+      'scheduler' => $scheduler_name,
+      'scheduler_settings' => $this->settings['scheduler_settings'] + $scheduler->defaultSettings(),
+    );
+    return $settings;
+  }
+}
+
 /*
 function ultimate_cron_default_ultimate_cron_job() {
   $jobs = array();
@@ -1400,10 +1447,18 @@ function ultimate_cron_default_ultimate_cron_job() {
  *   Array with same keys as input, but with blank values (empty string).
  */
 function ultimate_cron_blank_values($array) {
-  return $array ? array_combine(
-    array_keys($array),
-    array_fill(0, count($array), '')
-  ) : array();
+  $result = array();
+  foreach ($array as $key => $value) {
+    switch (gettype($value)) {
+      case 'array':
+        $result[$key] = array();
+        break;
+
+      default:
+        $result[$key] = '';
+    }
+  }
+  return $result;
 }
 
 /**

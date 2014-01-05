@@ -87,7 +87,8 @@ function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
 
 
   // Ensure that we at least have some default values.
-  $defaults = $scheduler->defaultSettings();
+  $defaults = $job->hook['scheduler_settings'];
+  $form_state['default_values']['settings']['scheduler_settings'] = $defaults;
   $form_state['values']['settings']['scheduler_settings'] += ultimate_cron_blank_values($defaults);
 
   $form['settings'] = array(
@@ -122,7 +123,7 @@ function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
   );
 
   $scheduler->settingsForm($form, $form_state);
-  ultimate_cron_fallbackalize($form['settings']['scheduler_settings'], $defaults, FALSE);
+  ultimate_cron_fallbackalize($form['settings']['scheduler_settings'], $form_state['default_values']['settings']['scheduler_settings'], FALSE);
 }
 
 /**
