@@ -10,27 +10,6 @@ $plugin = array(
 
   'handler' => array(
     'class' => 'UltimateCronDefaultLauncher',
+    'parent' => 'UltimateCronLauncher',
   ),
 );
-
-/**
- * Pseudo round-robin balancer plugin class.
- */
-class UltimateCronDefaultLauncher extends UltimateCronLauncher {
-  public function launch() {
-  }
-
-  /**
-   * Default settings.
-   */
-  public function defaultSettings() {
-    return array(
-    );
-  }
-
-  /**
-   * Settings form for HTTP dispatcher.
-   */
-  public function settingsForm(&$form, &$form_state) {
-  }
-}

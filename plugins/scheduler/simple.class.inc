@@ -28,27 +28,30 @@ class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
   }
 
   /**
+   * Label for settings.
+   */
+  public function settingsLabel($name, $value) {
+    switch ($name) {
+      case 'rules':
+        return isset($value[0]) ? format_interval($this->presets[$value[0]]) : $value;
+    }
+    return parent::settingsLabel($name, $value);
+  }
+
+  /**
    * Settings form for the crontab scheduler.
    */
   public function settingsForm(&$form, &$form_state) {
     $rule = reset($form_state['values']['settings']['scheduler_settings']['rules']);
-    $default_rule = reset($form_state['default_values']['settings']['scheduler_settings']['rules']);
-    $form_state['default_values']['settings']['scheduler_settings']['rules'] = format_interval($this->presets[$default_rule]);
-
-    $options = array();
-    $options[0] = t('Default (@default)', array(
-      '@default' => format_interval($this->presets[$default_rule]),
-    ));
 
     $intervals = drupal_map_assoc($this->presets, 'format_interval');
-    $options += array_combine(array_keys($this->presets), $intervals);
-
+    $options = array_combine(array_keys($this->presets), $intervals);
 
     $form['settings']['scheduler_settings']['rules'] = array(
       '#type' => 'select',
       '#title' => t('Run cron every'),
       '#default_value' => $rule,
-      '#description' => t('Time in seconds to keep lock on claimed item'),
+      '#description' => t('Select the interval you wish cron to run on.'),
       '#options' => $options,
       '#fallback' => TRUE,
       '#fallback_required' => TRUE,

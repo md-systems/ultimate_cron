@@ -152,7 +152,7 @@ function ultimate_cron_launcher_settings($form, &$form_state, $name) {
   if (!isset($form_state['values']['launcher_settings'])) {
     $form_state['values']['launcher_settings'] = array();
   }
-  $defaults = $launcher->defaultSettings();
+  $defaults = $launcher->getDefaultSettings();
   $form_state['values']['launcher_settings'] += $defaults;
   $launcher->settingsForm($form, $form_state);
   if (!empty($form['launcher_settings']['no_settings'])) {
@@ -221,21 +221,30 @@ function ultimate_cron_scheduler_settings($form, &$form_state, $name) {
     '#markup' => $scheduler->description,
   );
 
-  $form_state['values'] = isset($form_state['values']) ? $form_state['values'] : array();
-  if (!isset($form_state['values']['scheduler_settings'])) {
-    $form_state['values']['scheduler_settings'] = array();
+  // Sanitize input values.
+  if (!isset($form_state['values'])) {
+    $form_state['values'] = array();
   }
-  $defaults = $scheduler->defaultSettings();
-  $form_state['values']['scheduler_settings'] += $defaults;
+  if (!isset($form_state['values']['settings'])) {
+    $form_state['values']['settings'] = array();
+  }
+  $form_state['values']['settings'] += array(
+    'scheduler_settings' => $scheduler->getDefaultSettings(),
+  );
+
+  $form_state['default_values']['settings']['scheduler_settings'] = $form_state['values']['settings']['scheduler_settings'];
+
   $scheduler->settingsForm($form, $form_state);
   if (!empty($form['scheduler_settings']['no_settings'])) {
     return $form;
   }
-  $form['scheduler_settings']['#tree'] = TRUE;
-  $form['scheduler'] = array(
+  $form['settings']['#tree'] = TRUE;
+  $form['settings']['scheduler_settings']['#tree'] = TRUE;
+  $form['settings']['scheduler'] = array(
     '#type' => 'value',
     '#value' => $name,
   );
+  $scheduler->fallbackalize($form['settings']['scheduler_settings'], $form_state['default_values']['settings']['scheduler_settings'], TRUE);
   $form = system_settings_form($form);
   $form['#validate'] = empty($form['#validate']) ? array() : $form['#validate'];
   $form['#submit'] = empty($form['#submit']) ? array() : $form['#submit'];
@@ -248,7 +257,7 @@ function ultimate_cron_scheduler_settings($form, &$form_state, $name) {
  * Validate handler for scheduler settings.
  */
 function ultimate_cron_scheduler_settings_validate($form, &$form_state) {
-  $scheduler = ultimate_cron_scheduler_load($form_state['values']['scheduler']);
+  $scheduler = ultimate_cron_scheduler_load($form_state['values']['settings']['scheduler']);
   $scheduler->settingsFormValidate($form, $form_state);
 }
 
@@ -256,14 +265,14 @@ function ultimate_cron_scheduler_settings_validate($form, &$form_state) {
  * Submit handler for scheduler settings.
  */
 function ultimate_cron_scheduler_settings_submit($form, &$form_state) {
-  $scheduler = ultimate_cron_scheduler_load($form_state['values']['scheduler']);
+  $scheduler = ultimate_cron_scheduler_load($form_state['values']['settings']['scheduler']);
   $scheduler->settingsFormSubmit($form, $form_state);
 
   // Since this is a system_settings_form() we need to move the submitted data
   // around a little.
-  $form_state['values'][$scheduler->key] = $form_state['values']['scheduler_settings'];
-  unset($form_state['values']['scheduler']);
-  unset($form_state['values']['scheduler_settings']);
+  $form_state['values'][$scheduler->key] = $form_state['values']['settings']['scheduler_settings'];
+  unset($form_state['values']['settings']['scheduler']);
+  unset($form_state['values']['settings']['scheduler_settings']);
 }
 /**
  * Job settings form.

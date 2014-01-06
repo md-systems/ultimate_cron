@@ -270,33 +270,6 @@ function ultimate_cron_menu() {
     );
   }
 
-/*
-  $weight = 0;
-  foreach (array(
-    'error' => 'Errors',
-    'warning' => 'Warnings',
-    'info' => 'Info',
-    'success' => 'Success',
-    'running' => 'Running',
-  ) as $status => $title) {
-    $items['admin/config/system/cron/jobs/' . $status] = array(
-      'title' => $title,
-      'description' => 'View and manage cron table',
-      'page callback' => 'ultimate_cron_jobs_page',
-      'page arguments' => array(5),
-      'access arguments' => array('administer ultimate cron'),
-      'module' => 'ultimate_cron',
-      'file' => 'ultimate_cron.admin.inc',
-      'weight' => $weight++,
-      'type' => MENU_LOCAL_TASK,
-    );
-  }
-  $items['admin/config/system/cron/jobs/all'] = array(
-    'title' => 'All',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => $weight++,
-  );
-*/
   $items['admin/ultimate-cron/service/start/%'] = array(
     'type' => MENU_CALLBACK,
     'title' => 'Run cron job',
@@ -343,6 +316,7 @@ function ultimate_cron_menu() {
  * page the ultimate_cron cron handler is run.
  */
 function ultimate_cron_menu_alter(&$items) {
+  // Relocate ctools export ui to main tab.
   $items['admin/config/system/cron'] = $items['admin/config/system/cron/jobs'];
   $items['admin/config/system/cron/jobs'] = array(
     'title' => 'Jobs',
@@ -350,21 +324,7 @@ function ultimate_cron_menu_alter(&$items) {
     'weight' => 20,
   );
   unset($items['admin/config/system/cron']['type']);
-  /*
-  $items['admin/config/system/cron'] = array(
-    'title' => 'Cron',
-    'description' => 'View and manage cron table',
-    'page callback' => 'ultimate_cron_jobs_page',
-    'access arguments' => array('administer ultimate cron'),
-    'module' => 'ultimate_cron',
-    'file' => 'ultimate_cron.admin.inc',
-  );
-  $items['admin/config/system/cron/jobs'] = array(
-    'title' => 'Jobs',
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'weight' => 20,
-  );
-  */
+
   $steal = &$items['admin/reports/status/run-cron'];
   $steal['page callback'] = 'ultimate_cron_service_start';
   $steal['page arguments'] = array();
@@ -433,7 +393,11 @@ function ultimate_cron_cronapi() {
       'title' => t('Queue: !name', array('!name' => $queue_name)),
       'callback' => 'ultimate_cron_queue_cron',
       'callback arguments' => array($queue_name),
-      'scheduler' => 'queue',
+      'scheduler' => 'simple',
+      'scheduler_settings' => array(
+        'rules' => array('* * * * *'),
+      ),
+      'tags' => array('queue'),
     );
   }
   return $items;
@@ -1022,6 +986,7 @@ function ultimate_cron_get_module_jobs($module) {
       'callback arguments' => array(),
       'callback' => $name,
       'enabled' => TRUE,
+      'tags' => array(),
     );
     // Ensure we use the proper scheduler settings.
     if (
@@ -1032,6 +997,26 @@ function ultimate_cron_get_module_jobs($module) {
     }
   }
   return $items;
+}
+
+function ultimate_cron_form_ctools_export_ui_edit_item_form_alter(&$form, &$form_state) {
+  $job = $form_state['item'];
+  if ($job->table != 'ultimate_cron_job') {
+    return;
+  }
+  if (!in_array('queue', $job->hook['tags'])) {
+    return;
+  }
+
+  if (!isset($form_state['values']['settings']['scheduler_settings']['queue_lease_time'])) {
+    $form_state['values']['settings']['scheduler_settings']['queue_lease_time'] = !empty($job->settings['scheduler_settings']['queue_lease_time']) ? $job->settings['scheduler_settings']['queue_lease_time'] : '';
+  }
+  $form['settings']['scheduler_settings']['queue_lease_time'] = array(
+    '#title' => t('Queue lease time'),
+    '#type' => 'textfield',
+    '#default_value' => $form_state['values']['settings']['scheduler_settings']['queue_lease_time'],
+    '#description' => t('Time in seconds to keep lock on claimed item') . ' ' . t('(Blank = @default)', array('@default' => variable_get('ultimate_cron_queue_lease_time', ULTIMATE_CRON_QUEUE_LEASE_TIME))),
+  );
 }
 
 /**
@@ -1236,7 +1221,7 @@ function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
     );
     $job['scheduler'] = !empty($job['scheduler']) ? $job['scheduler'] : variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER);
     $scheduler = ultimate_cron_scheduler_load($job['scheduler']);
-    $job['scheduler_settings'] += $scheduler->defaultSettings();
+    $job['scheduler_settings'] += $scheduler->getDefaultSettings();
 
     $jobs[$name]->hook = $job;
     $results[$name] = $jobs[$name];
@@ -1387,10 +1372,25 @@ class UltimateCronPlugin {
   }
 
   /**
+   * Get default settings.
+   */
+  public function getDefaultSettings() {
+    return variable_get($this->key, array()) + $this->defaultSettings();
+  }
+
+  /**
    * Default settings.
    */
   public function defaultSettings() {
-    return variable_get($this->key, array());
+    return array();
+  }
+
+  public function settingsFormValue($name, $value) {
+    return $value;
+  }
+
+  public function settingsLabel($name, $value) {
+    return $value;
   }
 
   /**
@@ -1400,7 +1400,7 @@ class UltimateCronPlugin {
     if (isset($settings)) {
       $this->settings = $settings;
     }
-    return $this->settings + $this->defaultSettings();
+    return $this->settings + $this->getDefaultSettings();
   }
 
   /**
@@ -1420,12 +1420,58 @@ class UltimateCronPlugin {
    */
   public function settingsFormSubmit(&$form, &$form_state) {
   }
+
+/**
+ * Process fallback form parameters.
+ *
+ * @param array $elements
+ *   Elements to process.
+ * @param array $defaults
+ *   Default values to add to description.
+ * @param boolean $remove_non_fallbacks
+ *   If TRUE, non fallback elements will be removed.
+ */
+  function fallbackalize(&$elements, $defaults, $remove_non_fallbacks = FALSE) {
+    if (empty($elements)) {
+      return;
+    }
+    foreach (element_children($elements) as $child) {
+      $element = &$elements[$child];
+      $this->fallbackalize($element, $defaults, $remove_non_fallbacks);
+
+      if (!empty($element['#fallback'])) {
+        if (!$remove_non_fallbacks) {
+          if (!empty($element['#use_fallback_value'])) {
+            $element['#default_value'] = $this->settingsFormValue($child, $defaults[$child]);
+          }
+          else {
+            if ($element['#type'] == 'select' && empty($element['#multiple'])) {
+              $element['#options'] = array(
+                '0' => t('Default (@default)', array('@default' => $this->settingsLabel($child, $defaults[$child]))),
+              ) + $element['#options'];
+            }
+            else {
+              $element['#description'] .= ' ' . t('(Blank = @default)', array('@default' => $this->settingsLabel($child, $defaults[$child])));
+            }
+          }
+        }
+        elseif (!empty($element['#fallback_required'])) {
+          $element['#required'] = TRUE;
+        }
+      }
+      elseif ($remove_non_fallbacks) {
+        unset($elements[$child]);
+      }
+    }
+  }
 }
 
-class UltimateCronScheduler extends UltimateCronPlugin {
+abstract class UltimateCronScheduler extends UltimateCronPlugin {
+  abstract public function schedule($job);
 }
 
-class UltimateCronLauncher extends UltimateCronPlugin {
+abstract class UltimateCronLauncher extends UltimateCronPlugin {
+  abstract public function launch($job);
 }
 
 class UltimateCronJob {
@@ -1466,40 +1512,4 @@ function ultimate_cron_blank_values($array) {
     }
   }
   return $result;
-}
-
-/**
- * Process fallback form parameters.
- *
- * @param array $elements
- *   Elements to process.
- * @param array $defaults
- *   Default values to add to description.
- * @param boolean $remove_non_fallbacks
- *   If TRUE, non fallback elements will be removed.
- */
-function ultimate_cron_fallbackalize(&$elements, $defaults, $remove_non_fallbacks = FALSE) {
-  if (empty($elements)) {
-    return;
-  }
-  foreach (element_children($elements) as $child) {
-    $element = &$elements[$child];
-    ultimate_cron_fallbackalize($element, $defaults, $remove_non_fallbacks);
-    if (!empty($element['#fallback'])) {
-      if (!$remove_non_fallbacks) {
-        if (!empty($element['#use_fallback_value'])) {
-          $element['#default_value'] = $defaults[$child];
-        }
-        else {
-          $element['#description'] .= ' ' . t('(Blank = @default)', array('@default' => $defaults[$child]));
-        }
-      }
-      elseif (!empty($element['#fallback_required'])) {
-        $element['#required'] = TRUE;
-      }
-    }
-    elseif ($remove_non_fallbacks) {
-      unset($elements[$child]);
-    }
-  }
 }

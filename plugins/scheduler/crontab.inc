@@ -10,5 +10,6 @@ $plugin = array(
 
   'handler' => array(
     'class' => 'UltimateCronCrontabScheduler',
+    'parent' => 'UltimateCronScheduler',
   ),
 );

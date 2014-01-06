@@ -18,11 +18,32 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   }
 
   /**
+   * Label for settings.
+   */
+  public function settingsLabel($name, $value) {
+    switch ($name) {
+      case 'rules':
+        return $value ? implode(', ', $value) : '';
+    }
+    return parent::settingsLabel($name, $value);
+  }
+
+  /**
+   * Form value for settings.
+   */
+  public function settingsFormValue($name, $value) {
+    switch ($name) {
+      case 'rules':
+        return $value ? implode(',', $value) : '';
+    }
+    return parent::settingsFormValue($name, $value);
+  }
+
+  /**
    * Settings form for the crontab scheduler.
    */
   public function settingsForm(&$form, &$form_state) {
-    $rules = implode(',', $form_state['values']['settings']['scheduler_settings']['rules']);
-    $form_state['default_values']['settings']['scheduler_settings']['rules'] = implode(',', $form_state['default_values']['settings']['scheduler_settings']['rules']);
+    $rules = $this->settingsFormValue('rules', $form_state['values']['settings']['scheduler_settings']['rules']);
     $form['settings']['scheduler_settings']['rules'] = array(
       '#title' => t("Rules"),
       '#type' => 'textfield',
@@ -34,10 +55,17 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
     );
   }
 
+  /**
+   * Submit handler.
+   */
   public function settingsFormSubmit(&$form, &$form_state) {
     if (!empty($form_state['values']['settings']['scheduler_settings']['rules'])) {
       $rules = explode(',', $form_state['values']['settings']['scheduler_settings']['rules']);
       $form_state['values']['settings']['scheduler_settings']['rules'] = array_map('trim', $rules);
     }
+  }
+
+  public function schedule($job) {
+    
   }
 }

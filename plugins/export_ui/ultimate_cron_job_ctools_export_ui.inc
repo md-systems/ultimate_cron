@@ -68,26 +68,34 @@ function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
   if (!isset($form_state['values']['settings'])) {
     $form_state['values']['settings'] = array();
   }
-  $form_state['values']['settings'] += array(
-    'scheduler' => 0,
-    'scheduler_settings' => !empty($job->settings['scheduler_settings']) ? $job->settings['scheduler_settings'] : array(),
-  );
+  $form_state['values']['settings'] += $job->settings;
 
+  // Find scheduler selected on this page.
+  // If "0" (meaning default) use the one defined in the hook.
   if (empty($form_state['values']['settings']['scheduler'])) {
     $scheduler = $schedulers[$job->hook['scheduler']];
   }
   else {
-    $scheduler = $schedulers[$job->settings['scheduler']];
+    $scheduler = $schedulers[$form_state['values']['settings']['scheduler']];
+  }
+
+  // If this is the scheduler defined in the hook, we use those default values.
+  if ($job->hook['scheduler'] == $scheduler->name) {
+    $defaults = $job->hook['scheduler_settings'];
+  }
+  else {
+    $defaults = $scheduler->getDefaultSettings();
   }
 
   // If this is an AJAX scheduler change, let's set the original values.
-  if (!empty($form_state['triggering_element']) && $form_state['triggering_element']['#name'] == 'scheduler') {
-    $form_state['values']['settings']['scheduler_settings'] = $job->settings['scheduler_settings'];
+  if (!empty($form_state['triggering_element']) && $form_state['triggering_element']['#name'] == 'settings[scheduler]') {
+    $original_scheduler = $job->settings['scheduler'] ? $job->settings['scheduler'] : $job->hook['scheduler'];  
+    // If this is original scheduler, use the original values.
+    $form_state['values']['settings']['scheduler_settings'] = $original_scheduler == $scheduler->name ? $job->settings['scheduler_settings'] : array();
   }
 
 
   // Ensure that we at least have some default values.
-  $defaults = $job->hook['scheduler_settings'];
   $form_state['default_values']['settings']['scheduler_settings'] = $defaults;
   $form_state['values']['settings']['scheduler_settings'] += ultimate_cron_blank_values($defaults);
 
@@ -123,7 +131,12 @@ function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
   );
 
   $scheduler->settingsForm($form, $form_state);
-  ultimate_cron_fallbackalize($form['settings']['scheduler_settings'], $form_state['default_values']['settings']['scheduler_settings'], FALSE);
+  $scheduler->fallbackalize($form['settings']['scheduler_settings'], $form_state['default_values']['settings']['scheduler_settings'], FALSE);
+
+  // What the hell?
+  // Why do we need to reset 'input'? Why is it used for the form fields
+  // instead of 'values'?
+  $form_state['input'] = $form_state['values'];
 }
 
 /**
@@ -137,10 +150,11 @@ function ultimate_cron_job_scheduler_settings_ajax($form, &$form_state) {
  * Validate submission of the preset edit form.
  */
 function ultimate_cron_job_ctools_export_ui_form_validate(&$form, &$form_state) {
+  $job = $form_state['item'];
   if (!isset($form_state['values']['settings']['scheduler_settings'])) {
     $form_state['values']['settings']['scheduler_settings'] = array();
   }
-  $scheduler = !empty($form_state['values']['settings']['scheduler']) ? $form_state['values']['settings']['scheduler'] : variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER);
+  $scheduler = !empty($form_state['values']['settings']['scheduler']) ? $form_state['values']['settings']['scheduler'] : $job->hook['scheduler'];
   $scheduler = ultimate_cron_scheduler_load($scheduler);
   $scheduler->settingsFormValidate($form, $form_state);
 }
@@ -152,7 +166,9 @@ function ultimate_cron_job_ctools_export_ui_form_validate(&$form, &$form_state) 
  * $form_state['values'] to $form_state['item'].
  */
 function ultimate_cron_job_ctools_export_ui_form_submit(&$form, &$form_state) {
-  $scheduler = !empty($form_state['values']['settings']['scheduler']) ? $form_state['values']['settings']['scheduler'] : variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER);
+  $job = $form_state['item'];
+  $scheduler = !empty($form_state['values']['settings']['scheduler']) ? $form_state['values']['settings']['scheduler'] : $job->hook['scheduler'];
+
   $scheduler = ultimate_cron_scheduler_load($scheduler);
   $scheduler->settingsFormSubmit($form, $form_state);
   foreach ($form_state['values']['settings']['scheduler_settings'] as $key => $value) {
