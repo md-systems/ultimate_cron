@@ -659,6 +659,7 @@ function ultimate_cron_queue_cron($job, $arguments) {
     $queue->deleteItem($item);
     $items++;
   }
+  sleep(2);
   drupal_set_message(t('Processed @items items', array('@items' => $items)));
 
   return;
@@ -1391,13 +1392,21 @@ class UltimateCronPlugin {
     $this->description = $plugin['description'];
     $this->name = $name;
     $this->key = 'ultimate_cron_plugin_' . $plugin['plugin type'] . '_' . $name . '_settings';
+    $this->settings = variable_get($this->key, array());
   }
 
   /**
    * Get default settings.
    */
-  public function getDefaultSettings() {
-    return variable_get($this->key, array()) + $this->defaultSettings();
+  public function getDefaultSettings($job = NULL) {
+    $type = $this->plugin['plugin type'];
+    if ($job && $job->hook[$type] == $this->name) {
+      $hook_settings = $job->hook[$type . '_settings'];
+    }
+    else {
+      $hook_settings = array();
+    }
+    return $this->settings + $hook_settings + $this->defaultSettings();
   }
 
   /**
@@ -1413,16 +1422,6 @@ class UltimateCronPlugin {
 
   public function settingsLabel($name, $value) {
     return $value;
-  }
-
-  /**
-   * Get/set current settings.
-   */
-  public function currentSettings($settings = NULL) {
-    if (isset($settings)) {
-      $this->settings = $settings;
-    }
-    return $this->settings + $this->getDefaultSettings();
   }
 
   /**
@@ -1507,11 +1506,10 @@ class UltimateCronJob {
   }
 
   function getSchedulerSettings() {
-    return $this->settings['scheduler_settings'] + $this->hook['scheduler_settings'];
+    return $this->settings['scheduler_settings'] + $this->getScheduler()->getDefaultSettings($this);
   }
 
   function getScheduledLabel() {
-    dpm($this);
     return $this->getScheduler()->getScheduledLabel($this->getSchedulerSettings());
   }
 
@@ -1625,7 +1623,7 @@ function ultimate_cron_run_scheduled() {
       $job->launch();
     }
   }
-  return 'TEST';
+  drupal_goto('admin/config/system/cron');
 }
 
 class UltimateCronLog {
@@ -1649,7 +1647,6 @@ class UltimateCronLog {
   function save() {
     $keys = $this->lid ? array('lid') : array();
     drupal_write_record('ultimate_cron_log', $this, $keys);
-    dpm($this, "WRITTEN");
   }
 
   static function findLatest($name) {

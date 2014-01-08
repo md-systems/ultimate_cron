@@ -51,6 +51,8 @@ $plugin = array(
 function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
   $job = $form_state['item'];
 
+  dpm($job);
+
   $form['info']['name'] = array_merge($form['info']['name'], array(
     '#type' => 'value',
   ));
@@ -89,12 +91,7 @@ function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
   }
 
   // If this is the scheduler defined in the hook, we use those default values.
-  if ($job->hook['scheduler'] == $scheduler->name) {
-    $defaults = $job->hook['scheduler_settings'];
-  }
-  else {
-    $defaults = $scheduler->getDefaultSettings();
-  }
+  $defaults = $scheduler->getDefaultSettings($job);
 
   // If this is an AJAX scheduler change, let's set the original values.
   if (!empty($form_state['triggering_element']) && $form_state['triggering_element']['#name'] == 'settings[scheduler]') {
