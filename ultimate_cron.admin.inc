@@ -200,7 +200,7 @@ function ultimate_cron_schedulers_form() {
   $form = array();
   $items = array();
   foreach (ultimate_cron_scheduler_load_all() as $name => $scheduler) {
-    $items[] = l($scheduler->title, 'admin/config/system/cron/scheduler/' . $name);
+    $items[] = l($scheduler->title, 'admin/config/system/cron/schedulers/' . $name);
   }
   $form['installed'] = array(
     '#markup' => theme('item_list', array(
@@ -776,6 +776,8 @@ function ultimate_cron_function_log_page($name) {
  *   Output to page
  */
 function ultimate_cron_service_start($name = NULL) {
+  dpm("HERE");
+  return 'AND HERE';
   if (!isset($name)) {
     $dest = NULL;
     if (empty($_GET['destination'])) {

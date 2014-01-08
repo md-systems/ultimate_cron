@@ -13,7 +13,7 @@ class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
     '0 * * * *' => 3600,
     '0 */3 * * *' => 10800,
     '0 */6 * * *' => 21600,
-    '* */12 * * *' => 43200,
+    '0 */12 * * *' => 43200,
     '0 0 * * *' => 86400,
     '0 0 * * 0' => 604800,
   );
@@ -36,6 +36,10 @@ class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
         return isset($value[0]) ? format_interval($this->presets[$value[0]]) : $value;
     }
     return parent::settingsLabel($name, $value);
+  }
+
+  public function getScheduledLabel($settings) {
+    return isset($settings['rules'][0]) ? t('Every @interval', array('@interval' =>format_interval($this->presets[$settings['rules'][0]]))) : t('N/A');
   }
 
   /**

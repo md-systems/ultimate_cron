@@ -5,11 +5,11 @@
  */
 
 $plugin = array(
-  'title' => t('Ultimate Cron'),
-  'description' => t('Ultimate Cron launcher.'),
+  'title' => t('Serial'),
+  'description' => t('Serial launcher.'),
 
   'handler' => array(
-    'class' => 'UltimateCronDefaultLauncher',
+    'class' => 'UltimateCronSerialLauncher',
     'parent' => 'UltimateCronLauncher',
   ),
 );

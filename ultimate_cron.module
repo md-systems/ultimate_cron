@@ -58,6 +58,7 @@ define('ULTIMATE_CRON_POORMAN', FALSE);
 define('ULTIMATE_CRON_LAUNCH_WINDOW', 55);
 
 define('ULTIMATE_CRON_DEFAULT_SCHEDULER', 'simple');
+define('ULTIMATE_CRON_DEFAULT_LAUNCHER', 'serial');
 
 // ---------- HOOKS ----------
 
@@ -122,7 +123,7 @@ function ultimate_cron_ctools_plugin_instance($name, $plugin) {
  */
 function ultimate_cron_launcher_load($name) {
   $launchers = ultimate_cron_launcher_load_all();
-  return $launcher[$name];
+  return $launchers[$name];
 
   ctools_include('plugins');
   if ($name && $plugin = ctools_get_plugins('ultimate_cron', 'launcher', $name)) {
@@ -155,7 +156,6 @@ function ultimate_cron_scheduler_load($name) {
 
   ctools_include('plugins');
   if ($name && $plugin = ctools_get_plugins('ultimate_cron', 'scheduler', $name)) {
-    print "TRYING";
     return ultimate_cron_ctools_plugin_instance($name, $plugin);
   }
   return FALSE;
@@ -368,7 +368,7 @@ function ultimate_cron_permission() {
  */
 function ultimate_cron_cronapi() {
   $items = array();
-
+/*
   $items['ultimate_cron_poorman'] = array(
     'title' => t('Poorman\'s Cron'),
     'scheduler' => 'crontab',
@@ -384,20 +384,21 @@ function ultimate_cron_cronapi() {
       'rules' => array('* * * * *'),
     ),
   );
-
+*/
   // Grab the defined cron queues.
   $queues = _ultimate_cron_get_queues();
 
-  foreach (array_keys($queues) as $queue_name) {
-    $items['queue_' . $queue_name] = array(
-      'title' => t('Queue: !name', array('!name' => $queue_name)),
+  foreach ($queues as $name => $info) {
+    $items['queue_' . $name] = array(
+      'title' => t('Queue: !name', array('!name' => $name)),
       'callback' => 'ultimate_cron_queue_cron',
-      'callback arguments' => array($queue_name),
+      'callback_arguments' => array('queue_name' => $name),
       'scheduler' => 'simple',
       'scheduler_settings' => array(
         'rules' => array('* * * * *'),
       ),
       'tags' => array('queue'),
+      'module' => $info['module'],
     );
   }
   return $items;
@@ -643,15 +644,17 @@ function ultimate_cron_cron_run($return = FALSE) {
 /**
  * Process a cron queue.
  */
-function ultimate_cron_queue_cron($hook, $queue_name) {
+function ultimate_cron_queue_cron($job, $arguments) {
   $queues = _ultimate_cron_get_queues();
-  $info = $queues[$queue_name];
+  $info = $queues[$arguments['queue_name']];
 
   $function = $info['worker callback'];
   $end = $_SERVER['REQUEST_TIME'] + (isset($info['time']) ? $info['time'] : 15);
-  $queue = DrupalQueue::get($queue_name);
+  $queue = DrupalQueue::get($arguments['queue_name']);
   $items = 0;
-  while (time() < $end && $item = $queue->claimItem($hook['queue lease time'])) {;
+  $settings = $job->getSchedulerSettings();
+
+  while (time() < $end && $item = $queue->claimItem($settings['queue_lease_time'])) {;
     $function($item->data);
     $queue->deleteItem($item);
     $items++;
@@ -689,7 +692,15 @@ function _ultimate_cron_variable_set($name, $value) {
 function _ultimate_cron_get_queues() {
   static $queues = NULL;
   if (!isset($queues)) {
-    $queues = module_invoke_all('cron_queue_info');
+    $queues = array();
+    foreach (module_implements('cron_queue_info') as $module) {
+      $items = module_invoke($module, 'cron_queue_info');
+      foreach ($items as &$item) {
+        $item['module'] = $module;
+      }
+      $queues += $items;
+    }
+    // $queues = module_invoke_all('cron_queue_info');
     drupal_alter('cron_queue_info', $queues);
   }
   return $queues;
@@ -930,9 +941,10 @@ function ultimate_cron_get_job($name, $reset = FALSE) {
 function ultimate_cron_get_module_jobs($module) {
   $items = module_invoke($module, 'cronapi', NULL);
 
+  $items = $items ? $items : array();
+
   if (!is_array($items)) {
     // API Version 1.x
-    $items = array();
     $list = module_invoke($module, 'cronapi', 'list');
     if (!$list) {
       $list = array();
@@ -941,6 +953,7 @@ function ultimate_cron_get_module_jobs($module) {
       $items[$name] = array('title' => $title);
     }
     foreach ($items as $name => &$item) {
+      $item['api_version'] = 1;
       $rules = module_invoke($module, 'cronapi', 'rule', $name);
       $rules = $rules ? $rules : array();
 
@@ -983,10 +996,11 @@ function ultimate_cron_get_module_jobs($module) {
       #'scheduler' => variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER),
       #'scheduler_settings' => array(),
       #'rules' => array(variable_get('ultimate_cron_rule', ULTIMATE_CRON_RULE)),
-      'callback arguments' => array(),
+      'callback_arguments' => array(),
       'callback' => $name,
       'enabled' => TRUE,
       'tags' => array(),
+      'api_version' => 2,
     );
     // Ensure we use the proper scheduler settings.
     if (
@@ -1218,14 +1232,22 @@ function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
     $job += array(
       'scheduler' => 0,
       'scheduler_settings' => array(),
+      'launcher' => 0,
+      'launcher_settings' => array(),
     );
     $job['scheduler'] = !empty($job['scheduler']) ? $job['scheduler'] : variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER);
     $scheduler = ultimate_cron_scheduler_load($job['scheduler']);
+    $job['scheduler_settings'] += array('scheduler' => $job['scheduler']);
     $job['scheduler_settings'] += $scheduler->getDefaultSettings();
+
+    $job['launcher'] = !empty($job['launcher']) ? $job['launcher'] : variable_get('ultimate_cron_default_launcher', ULTIMATE_CRON_DEFAULT_LAUNCHER);
+    $launcher = ultimate_cron_launcher_load($job['launcher']);
+    $job['launcher_settings'] += array('launcher' => $job['launcher']);
+    $job['launcher_settings'] += $launcher->getDefaultSettings();
 
     $jobs[$name]->hook = $job;
     $results[$name] = $jobs[$name];
-    $results[$name]->active_settings = $jobs[$name]->getSettings();
+    #$results[$name]->active_settings = $jobs[$name]->getSettings();
   }
 
   return $results;
@@ -1475,8 +1497,89 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
 }
 
 class UltimateCronJob {
-  function getSettings() {
+  function getScheduler() {
+    if (!empty($this->settings['scheduler'])) {
+      return ultimate_cron_scheduler_load($this->settings['scheduler']);
+    }
+    else {
+      return ultimate_cron_scheduler_load($this->hook['scheduler']);
+    }
+  }
+
+  function getSchedulerSettings() {
     return $this->settings['scheduler_settings'] + $this->hook['scheduler_settings'];
+  }
+
+  function getScheduledLabel() {
+    dpm($this);
+    return $this->getScheduler()->getScheduledLabel($this->getSchedulerSettings());
+  }
+
+  function getLauncher() {
+    if (!empty($this->settings['launcher'])) {
+      return ultimate_cron_launcher_load($this->settings['launcher']);
+    }
+    else {
+      return ultimate_cron_launcher_load($this->hook['launcher']);
+    }
+  }
+
+  function getLauncherSettings() {
+    return $this->settings['launcher_settings'] + $this->hook['launcher_settings'];
+  }
+
+  function getLatestLogEntry() {
+    return UltimateCronLog::findLatest($this->name);
+  }
+
+  function getLastRan() {
+    $log = UltimateCronLog::findLatest($this->name);
+    return $log ? $log->start_time : 0;
+    #$log = ultimate_cron_get_last_log_entry($this->name);
+    #return $log ? $log['start_time'] : 0;
+  }
+
+  function schedule() {
+    $scheduler = $this->getScheduler();
+    return $scheduler->schedule($this);
+  }
+
+  function launch() {
+    $launcher = $this->getLauncher();
+    return $launcher->launch($this);
+  }
+
+  function run() {
+    dpm($this);
+    $lock_key = "uc:" . $this->name;
+    if (!lock_acquire($lock_key)) {
+      drupal_set_message("Could not acquire log for %name. Already running?", array(
+        '%name' => $this->name
+      ));
+    }
+    switch ($this->hook['api_version']) {
+      case 1:
+        // $args = array($hook);
+        // $args = array_merge($args, $this->hook['callback_arguments']);
+        break;
+
+      case 2:
+        call_user_func_array($this->hook['callback'], array(
+          $this, $this->hook['callback_arguments']
+        ));
+        break;
+    }
+    lock_release($lock_key);
+  }
+
+  function createLogEntry() {
+    $log = new UltimateCronLog($this->name);
+    $log->create();
+    return $log;
+  }
+
+  function getModuleName() {
+    return ultimate_cron_module_name($this->hook['module']);
   }
 }
 
@@ -1512,4 +1615,51 @@ function ultimate_cron_blank_values($array) {
     }
   }
   return $result;
+}
+
+function ultimate_cron_run_scheduled() {
+  ctools_include('export');
+  $jobs = ctools_export_crud_load_all('ultimate_cron_job');
+  foreach ($jobs as $name => $job) {
+    if ($job->schedule()) {
+      $job->launch();
+    }
+  }
+  return 'TEST';
+}
+
+class UltimateCronLog {
+  public $name;
+
+  function __construct($name) {
+    $this->name = $name;
+  }
+
+  function create() {
+    $this->lid = NULL;
+    $this->start_time = microtime(TRUE);
+    $this->end_time = 0;
+    $this->scheduler_message = '';
+    $this->launcher_message = '';
+    $this->messages = '';
+    $this->severity = -1;
+    $this->save();
+  }
+
+  function save() {
+    $keys = $this->lid ? array('lid') : array();
+    drupal_write_record('ultimate_cron_log', $this, $keys);
+    dpm($this, "WRITTEN");
+  }
+
+  static function findLatest($name) {
+    $log = db_select('ultimate_cron_log', 'l')
+             ->fields('l')
+             ->condition('l.name', $name)
+             ->orderBy('l.start_time', 'DESC')
+             ->range(0, 1)
+             ->execute()
+             ->fetchObject('UltimateCronLog', array($name));
+    return $log;
+  }
 }

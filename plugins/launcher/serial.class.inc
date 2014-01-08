@@ -7,8 +7,19 @@
 /**
  * Ultimate Cron launcher plugin class.
  */
-class UltimateCronDefaultLauncher extends UltimateCronLauncher {
+class UltimateCronSerialLauncher extends UltimateCronLauncher {
   public function launch($job) {
+    // Log start
+    $log = $job->createLogEntry();
+
+    // Run job
+    $job->run();
+
+    // Log finish
+    $log->end_time = microtime(TRUE);
+    $log->severity = 0;
+    dpm($log);
+    $log->save();
   }
 
   /**

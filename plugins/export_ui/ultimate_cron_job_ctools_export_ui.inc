@@ -10,18 +10,27 @@
 $plugin = array(
   'schema' => 'ultimate_cron_job',
   'menu' => array(
-    #'menu item' => 'cronjobs',
     'menu prefix' => 'admin/config/system/cron',
     'menu item' => 'jobs',
     'menu description' => 'Manage Ultimate Cron jobs',
-    /**/
     'items' => array(
       'list callback' => array(
         'type' => MENU_LOCAL_TASK,
         'weight' => 5,
       ),
+      'run_scheduled' => array(
+        'path' => 'run_scheduled',
+        'title' => 'Run scheduled jobs',
+        'page callback' => 'ultimate_cron_run_scheduled',
+        'page arguments' => array(),
+        'access callback' => TRUE,
+        'access arguments' => array(),
+        'module' => 'ultimate_cron',
+        'file path' => drupal_get_path('module', 'ultimate_cron'),
+        'file' => 'ultimate_cron.module',
+        'type' => MENU_LOCAL_ACTION,
+      ),
     ),
-    /**/
   ),
   'handler' => array(
     'class' => 'ultimate_cron_job_ctools_export_ui',

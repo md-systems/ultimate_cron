@@ -56,7 +56,6 @@ function ultimate_cron_schema() {
         'description' => 'Description',
         'type' => 'text',
         'not null' => TRUE,
-        'default' => '',
       ),
       'settings' => array(
         'description' => 'Settings',
@@ -104,12 +103,20 @@ function ultimate_cron_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      'service_host' => array(
-        'description' => 'Service host',
-        'type' => 'varchar',
-        'length' => 127,
-        'not null' => TRUE,
-        'default' => '',
+      'scheduler_message' => array(
+        'description' => 'Scheduler message',
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
+      'launcher_message' => array(
+        'description' => 'Launcher message',
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
+      'messages' => array(
+        'description' => 'Messages',
+        'type' => 'text',
+        'not null' => FALSE,
       ),
       'severity' => array(
         'description' => 'Max severity level of the execution',
@@ -117,11 +124,6 @@ function ultimate_cron_schema() {
         'size' => 'normal',
         'not null' => FALSE,
         'default' => -1,
-      ),
-      'msg' => array(
-        'description' => 'Message',
-        'type' => 'text',
-        'not null' => FALSE,
       ),
     ),
     'primary key' => array('lid'),
