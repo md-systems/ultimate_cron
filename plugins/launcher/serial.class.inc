@@ -9,30 +9,28 @@
  */
 class UltimateCronSerialLauncher extends UltimateCronLauncher {
   public function launch($job) {
-    // Log start
+    // Log start.
     $log = $job->createLogEntry();
+    ultimate_cron_catch_messages($log);
 
-    // Run job
-    $job->run();
+    drupal_register_shutdown_function(array(get_class($this), 'catchErrors'), $job, $log);
+    // Run job.
+    try {
+      $job->run();
+    }
+    catch (Exception $e) {
+      watchdog('ultimate_cron', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);
+    }
 
-    // Log finish
-    $log->end_time = microtime(TRUE);
-    $log->severity = 0;
-    dpm($log);
-    $log->save();
+    // Log finish.
+    $log->finish();
+    ultimate_cron_uncatch_messages($log);
   }
 
-  /**
-   * Default settings.
-   */
-  public function defaultSettings() {
-    return array(
-    );
-  }
-
-  /**
-   * Settings form Ultimate Cron launcher.
-   */
-  public function settingsForm(&$form, &$form_state) {
+  function catchErrors($job, $log) {
+    if (!$log->finished) {
+      $log->finish();
+      ultimate_cron_uncatch_messages($log);
+    }
   }
 }

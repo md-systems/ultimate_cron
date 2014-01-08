@@ -1628,6 +1628,7 @@ function ultimate_cron_run_scheduled() {
 
 class UltimateCronLog {
   public $name;
+  public $finished = FALSE;
 
   function __construct($name) {
     $this->name = $name;
@@ -1649,6 +1650,14 @@ class UltimateCronLog {
     drupal_write_record('ultimate_cron_log', $this, $keys);
   }
 
+  function finish() {
+    if (!$this->finished) {
+      $this->end_time = microtime(TRUE);
+      $this->finished = TRUE;
+      $this->save();
+    }
+  }
+
   static function findLatest($name) {
     $log = db_select('ultimate_cron_log', 'l')
              ->fields('l')
@@ -1659,4 +1668,28 @@ class UltimateCronLog {
              ->fetchObject('UltimateCronLog', array($name));
     return $log;
   }
+
+  function watchdog(array $log_entry) {
+    $this->messages .= t($log_entry['message'], $log_entry['variables']) . "\n";
+    if ($this->severity < 0 || $this->severity > $log_entry['severity']) {
+      $this->severity = $log_entry['severity'];
+    }
+  }
+}
+
+function ultimate_cron_watchdog(array $log_entry) {
+  $logs = &drupal_static('ultimate_cron_catch_messages', array());
+  foreach ($logs as $log) {
+    $log->watchdog($log_entry);
+  }
+}
+
+function ultimate_cron_catch_messages(UltimateCronLog $log) {
+  $logs = &drupal_static('ultimate_cron_catch_messages', array());
+  $logs[$log->lid] = $log;
+}
+
+function ultimate_cron_uncatch_messages(UltimateCronLog $log) {
+  $logs = &drupal_static('ultimate_cron_catch_messages', array());
+  unset($logs[$log->lid]);
 }
