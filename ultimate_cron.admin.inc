@@ -61,21 +61,30 @@ function ultimate_cron_launcher_settings($form, &$form_state, $name) {
     '#markup' => $launcher->description,
   );
 
-  $form_state['values'] = isset($form_state['values']) ? $form_state['values'] : array();
-  if (!isset($form_state['values']['launcher_settings'])) {
-    $form_state['values']['launcher_settings'] = array();
+  // Sanitize input values.
+  if (!isset($form_state['values'])) {
+    $form_state['values'] = array();
   }
-  $defaults = $launcher->getDefaultSettings();
-  $form_state['values']['launcher_settings'] += $defaults;
+  if (!isset($form_state['values']['settings'])) {
+    $form_state['values']['settings'] = array();
+  }
+  $form_state['values']['settings'] += array(
+    'launcher_settings' => $launcher->getDefaultSettings(),
+  );
+
+  $form_state['default_values']['settings']['launcher_settings'] = $form_state['values']['settings']['launcher_settings'];
+
   $launcher->settingsForm($form, $form_state);
   if (!empty($form['launcher_settings']['no_settings'])) {
     return $form;
   }
-  $form['launcher_settings']['#tree'] = TRUE;
-  $form['launcher'] = array(
+  $form['settings']['#tree'] = TRUE;
+  $form['settings']['launcher_settings']['#tree'] = TRUE;
+  $form['settings']['launcher'] = array(
     '#type' => 'value',
     '#value' => $name,
   );
+  $launcher->fallbackalize($form['settings']['launcher_settings'], $form_state['default_values']['settings']['launcher_settings'], TRUE);
   $form = system_settings_form($form);
   $form['#validate'] = empty($form['#validate']) ? array() : $form['#validate'];
   $form['#submit'] = empty($form['#submit']) ? array() : $form['#submit'];
@@ -88,7 +97,7 @@ function ultimate_cron_launcher_settings($form, &$form_state, $name) {
  * Validate handler for launcher settings.
  */
 function ultimate_cron_launcher_settings_validate($form, &$form_state) {
-  $launcher = ultimate_cron_launcher_load($form_state['values']['launcher']);
+  $launcher = ultimate_cron_launcher_load($form_state['values']['settings']['launcher']);
   $launcher->settingsFormValidate($form, $form_state);
 }
 
@@ -96,14 +105,14 @@ function ultimate_cron_launcher_settings_validate($form, &$form_state) {
  * Submit handler for launcher settings.
  */
 function ultimate_cron_launcher_settings_submit($form, &$form_state) {
-  $launcher = ultimate_cron_launcher_load($form_state['values']['launcher']);
+  $launcher = ultimate_cron_launcher_load($form_state['values']['settings']['launcher']);
   $launcher->settingsFormSubmit($form, $form_state);
 
   // Since this is a system_settings_form() we need to move the submitted data
   // around a little.
-  $form_state['values'][$launcher->key] = $form_state['values']['launcher_settings'];
-  unset($form_state['values']['launcher']);
-  unset($form_state['values']['launcher_settings']);
+  $form_state['values'][$launcher->key] = $form_state['values']['settings']['launcher_settings'];
+  unset($form_state['values']['settings']['launcher']);
+  unset($form_state['values']['settings']['launcher_settings']);
 }
 
 /**

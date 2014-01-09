@@ -47,7 +47,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       '#weight' => -2,
     );
 
-    $jobs = ultimate_cron_get_jobs();
+    $jobs = ultimate_cron_get_hooks();
     $modules = array();
     foreach ($jobs as $job) {
       $modules[$job['module']] = ultimate_cron_module_name($job['module']);

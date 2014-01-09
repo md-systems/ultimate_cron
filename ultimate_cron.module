@@ -140,6 +140,99 @@ function ultimate_cron_scheduler_load_all() {
 }
 
 /**
+ * Load callback for cron jobs.
+ *
+ * @param string $name
+ *   Name of job.
+ *
+ * @return object
+ *   Job object.
+ */
+function ultimate_cron_job_load($name) {
+  ctools_include('export');
+  $result = ctools_export_load_object('ultimate_cron_job', 'names', array($name));
+  if (isset($result[$name])) {
+    $result[$name]->settings = !empty($result[$name]->settings) ? $result[$name]->settings : array();
+    return $result[$name];
+  }
+  return FALSE;
+}
+
+
+/**
+ * Load all callback for cron jobs.
+ *
+ * @return array
+ *   Job objects.
+ */
+function ultimate_cron_job_load_all($reset = FALSE) {
+  ctools_include('export');
+  if ($reset) {
+    ctools_export_load_object_reset('ultimate_cron_job');
+  }
+  $results = ctools_export_load_object('ultimate_cron_job');
+  foreach ($results as $result) {
+    $result->settings = !empty($result->settings) ? $result->settings : array();
+  }
+  return $results;
+}
+
+function ultimate_cron_job_load_export_ui($name) {
+  $jobs = ultimate_cron_job_load_all_export_ui();
+  return $jobs[$name];
+}
+
+function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
+  $jobs = ultimate_cron_job_load_all($reset);
+  $schema = ctools_export_get_schema('ultimate_cron_job');
+  $export = $schema['export'];
+  $status = variable_get($export['status'], array());
+
+  $hooks = array();
+  foreach (ultimate_cron_get_hooks($reset) as $name => $job) {
+    if (!isset($jobs[$name])) {
+      $jobs[$name] = ctools_export_crud_new('ultimate_cron_job');
+      $jobs[$name]->name = $name;
+      $jobs[$name]->title = $job['title'];
+      $jobs[$name]->description = $job['description'];
+      $jobs[$name]->table = 'ultimate_cron_job';
+      $jobs[$name]->export_type = EXPORT_IN_CODE;
+      $jobs[$name]->{$export['export type string']} = t('Default');
+      if (isset($status[$jobs[$name]->{$export['key']}])) {
+        $jobs[$name]->disabled = $status[$jobs[$name]->{$export['key']}];
+      }
+    }
+    else {
+      $jobs[$name]->{$export['export type string']} = t('Overridden');
+      $jobs[$name]->export_type = EXPORT_IN_CODE | EXPORT_IN_DATABASE;
+    }
+    $job += array(
+      'scheduler' => 0,
+      'scheduler_settings' => array(),
+      'launcher' => 0,
+      'launcher_settings' => array(),
+    );
+    $job['scheduler'] = !empty($job['scheduler']) ? $job['scheduler'] : variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER);
+    $scheduler = ultimate_cron_scheduler_load($job['scheduler']);
+    $job['scheduler_settings'] += array('scheduler' => $job['scheduler']);
+    $job['scheduler_settings'] += $scheduler->getDefaultSettings();
+
+    $job['launcher'] = !empty($job['launcher']) ? $job['launcher'] : variable_get('ultimate_cron_default_launcher', ULTIMATE_CRON_DEFAULT_LAUNCHER);
+    $launcher = ultimate_cron_launcher_load($job['launcher']);
+    $job['launcher_settings'] += array('launcher' => $job['launcher']);
+    $job['launcher_settings'] += $launcher->getDefaultSettings();
+
+    $jobs[$name]->hook = $job;
+    $hooks[$name] = $jobs[$name];
+  }
+
+  return $hooks;
+}
+
+
+// ---------- HOOKS ----------
+
+/**
  * Implements hook_help().
  */
 function ultimate_cron_help($path, $arg) {
@@ -296,6 +389,18 @@ function ultimate_cron_menu_alter(&$items) {
 }
 
 /**
+ * Implements hook_permission().
+ */
+function ultimate_cron_permission() {
+  return array(
+    'administer ultimate cron' => array(
+      'title' => t('Administer Ultimate Cron'),
+      'description' => t('Lets you configure everything in Ultimate Cron')
+    )
+  );
+}
+
+/**
  * Implements hook_cron_queue_info().
  *
  * Used for code injection in order to hijack cron runs.
@@ -312,17 +417,6 @@ function ultimate_cron_cron_queue_info() {
   return array();
 }
 
-/**
- * Implements hook_permission().
- */
-function ultimate_cron_permission() {
-  return array(
-    'administer ultimate cron' => array(
-      'title' => t('Administer Ultimate Cron'),
-      'description' => t('Lets you configure everything in Ultimate Cron')
-    )
-  );
-}
 
 /**
  * Implements hook_cronapi().
@@ -499,8 +593,8 @@ function ultimate_cron_module_name($module) {
   return $info['name'] ? $info['name'] : $module;
 }
 
-function ultimate_cron_get_job($name, $reset = FALSE) {
-  $jobs = ultimate_cron_get_jobs($reset);
+function ultimate_cron_get_hook($name, $reset = FALSE) {
+  $jobs = ultimate_cron_get_hooks($reset);
   return $jobs[$name];
 }
 
@@ -513,7 +607,7 @@ function ultimate_cron_get_job($name, $reset = FALSE) {
  * @return array
  *   Job definitions.
  */
-function ultimate_cron_get_module_jobs($module) {
+function ultimate_cron_get_module_hooks($module) {
   $items = module_invoke($module, 'cronapi', NULL);
 
   $items = $items ? $items : array();
@@ -604,23 +698,23 @@ function ultimate_cron_form_ctools_export_ui_edit_item_form_alter(&$form, &$form
  * @return array
  *   List of jobs.
  */
-function ultimate_cron_get_jobs($reset = FALSE) {
-  static $hooks = NULL;
-  if (!$reset && isset($hooks)) {
-    return $hooks;
+function ultimate_cron_get_hooks($reset = FALSE) {
+  static $cache = NULL;
+  if (!$reset && isset($cache)) {
+    return $cache;
   }
 
-  $items = array();
+  $hooks = array();
   // Generate list of jobs.
   $modules = module_list();
   foreach ($modules as $module) {
-    $items += ultimate_cron_get_module_jobs($module);
+    $hooks += ultimate_cron_get_module_hooks($module);
   }
 
   // Allow other to manipulate the hook list.
-  drupal_alter('cron', $items);
+  drupal_alter('cron', $hooks);
 
-  return $items;
+  return $hooks;
 }
 
 // ---------- CRON RULE FUNCTIONS ----------
@@ -644,98 +738,6 @@ function ultimate_cron_validate_rule($rule) {
   }
 }
 
-// ---------- CRUD/DB FUNCTIONS ----------
-
-/**
- * Load callback for cron jobs.
- *
- * @param string $name
- *   Name of job.
- *
- * @return object
- *   Job object.
- */
-function ultimate_cron_job_load($name) {
-  ctools_include('export');
-  $result = ctools_export_load_object('ultimate_cron_job', 'names', array($name));
-  if (isset($result[$name])) {
-    $result[$name]->settings = !empty($result[$name]->settings) ? $result[$name]->settings : array();
-    return $result[$name];
-  }
-  return FALSE;
-}
-
-
-/**
- * Load all callback for cron jobs.
- *
- * @return array
- *   Job objects.
- */
-function ultimate_cron_job_load_all($reset = FALSE) {
-  ctools_include('export');
-  if ($reset) {
-    ctools_export_load_object_reset('ultimate_cron_job');
-  }
-  $results = ctools_export_load_object('ultimate_cron_job');
-  foreach ($results as $result) {
-    $result->settings = !empty($result->settings) ? $result->settings : array();
-  }
-  return $results;
-}
-
-function ultimate_cron_job_load_export_ui($name) {
-  $jobs = ultimate_cron_job_load_all_export_ui();
-  return $jobs[$name];
-}
-
-function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
-  $jobs = ultimate_cron_job_load_all($reset);
-  $schema = ctools_export_get_schema('ultimate_cron_job');
-  $export = $schema['export'];
-  $status = variable_get($export['status'], array());
-
-  $results = array();
-  foreach (ultimate_cron_get_jobs($reset) as $name => $job) {
-    if (!isset($jobs[$name])) {
-      $jobs[$name] = ctools_export_crud_new('ultimate_cron_job');
-      $jobs[$name]->name = $name;
-      $jobs[$name]->title = $job['title'];
-      $jobs[$name]->description = $job['description'];
-      $jobs[$name]->table = 'ultimate_cron_job';
-      $jobs[$name]->export_type = EXPORT_IN_CODE;
-      $jobs[$name]->{$export['export type string']} = t('Default');
-      if (isset($status[$jobs[$name]->{$export['key']}])) {
-        $jobs[$name]->disabled = $status[$jobs[$name]->{$export['key']}];
-      }
-    }
-    else {
-      $jobs[$name]->{$export['export type string']} = t('Overridden');
-      $jobs[$name]->export_type = EXPORT_IN_CODE | EXPORT_IN_DATABASE;
-    }
-    $job += array(
-      'scheduler' => 0,
-      'scheduler_settings' => array(),
-      'launcher' => 0,
-      'launcher_settings' => array(),
-    );
-    $job['scheduler'] = !empty($job['scheduler']) ? $job['scheduler'] : variable_get('ultimate_cron_default_scheduler', ULTIMATE_CRON_DEFAULT_SCHEDULER);
-    $scheduler = ultimate_cron_scheduler_load($job['scheduler']);
-    $job['scheduler_settings'] += array('scheduler' => $job['scheduler']);
-    $job['scheduler_settings'] += $scheduler->getDefaultSettings();
-
-    $job['launcher'] = !empty($job['launcher']) ? $job['launcher'] : variable_get('ultimate_cron_default_launcher', ULTIMATE_CRON_DEFAULT_LAUNCHER);
-    $launcher = ultimate_cron_launcher_load($job['launcher']);
-    $job['launcher_settings'] += array('launcher' => $job['launcher']);
-    $job['launcher_settings'] += $launcher->getDefaultSettings();
-
-    $jobs[$name]->hook = $job;
-    $results[$name] = $jobs[$name];
-    #$results[$name]->active_settings = $jobs[$name]->getSettings();
-  }
-
-  return $results;
-}
 
 /**
  * Return blank values for all keys in an array.
@@ -771,7 +773,7 @@ function ultimate_cron_run_scheduled() {
     }
   }
   drupal_alter('cron_schedule', $schedule);
-  
+
   foreach ($schedule as $name => $job) {
     $job->launch();
   }
