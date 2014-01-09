@@ -10,10 +10,8 @@
 class UltimateCronSerialLauncher extends UltimateCronLauncher {
   public function launch($job) {
     // Log start.
-    $log = $job->createLogEntry();
-    ultimate_cron_catch_messages($log);
+    $log = $job->startLog();
 
-    drupal_register_shutdown_function(array(get_class($this), 'catchErrors'), $job, $log);
     // Run job.
     try {
       $job->run();
@@ -24,13 +22,5 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
 
     // Log finish.
     $log->finish();
-    ultimate_cron_uncatch_messages($log);
-  }
-
-  function catchErrors($job, $log) {
-    if (!$log->finished) {
-      $log->finish();
-      ultimate_cron_uncatch_messages($log);
-    }
   }
 }

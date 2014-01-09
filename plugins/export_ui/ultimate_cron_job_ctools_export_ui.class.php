@@ -207,11 +207,12 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     // Started and duration.
     $log = $item->getLatestLogEntry();
+    $log = $log ? $log : new UltimateCronLog($name);
 
-    $start_time = $log && $log->start_time ? format_date((int) $log->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
+    $start_time = $log->start_time ? format_date((int) $log->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
     $this->rows[$name]['data'][] = array('data' => $start_time, 'class' => array('ctools-export-ui-last-start-time'));
 
-    $duration = $log && $log->end_time ? gmdate('H:i:s', (int) ($log->end_time - $log->start_time)) : t('N/A');
+    $duration = $log->end_time ? gmdate('H:i:s', (int) ($log->end_time - $log->start_time)) : t('N/A');
     $this->rows[$name]['data'][] = array('data' => $duration, 'class' => array('ctools-export-ui-duration'));
 
 
@@ -219,7 +220,29 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $this->rows[$name]['data'][] = array('data' => check_plain($item->{$schema['export']['export type string']}), 'class' => array('ctools-export-ui-storage'));
 
     // Status.
-    $this->rows[$name]['data'][] = array('data' => 'ERRORS', 'class' => array('ctools-export-ui-status'));
+    switch ($log->severity) {
+      case WATCHDOG_EMERGENCY:
+      case WATCHDOG_ALERT:
+      case WATCHDOG_CRITICAL:
+      case WATCHDOG_ERROR:
+        $file = 'message-16-error.png';
+        break;
+      case WATCHDOG_WARNING:
+      case WATCHDOG_NOTICE:
+        $file = 'message-16-warning.png';
+        break;
+      case WATCHDOG_INFO:
+      case WATCHDOG_DEBUG:
+        $file = 'message-16-info.png';
+        break;
+
+      default;
+        $file = 'message-16-ok.png';
+    }
+    $image = theme('image', array(
+      'path' => 'misc/' . $file,
+    ));
+    $this->rows[$name]['data'][] = array('data' => $image, 'class' => array('ctools-export-ui-status'));
 
     // Operations.
     $ops = theme('links__ctools_dropbutton', array('links' => $operations, 'attributes' => array('class' => array('links', 'inline'))));
