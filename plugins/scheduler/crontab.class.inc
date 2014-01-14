@@ -30,7 +30,6 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   }
 
   public function getScheduledLabel($job) {
-    $this->getOffset($job);
     $settings = $job->getSettings();
     return implode(', ', $settings[$this->type][$this->name]['rules']);
   }
@@ -107,8 +106,10 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
     return FALSE;
   }
 
+  /**
+   * Get a "unique" offset for a job.
+   */
   function getOffset($job) {
-    $sha = hexdec(substr(sha1($job->name), -2));
-    dpm($sha);
+    return hexdec(substr(sha1($job->name), -2));
   }
 }
