@@ -1,21 +1,49 @@
 <?php
 
 class UltimateCronDatabaseLogger extends UltimateCronLogger {
-  function cleanup($job) {
-
+  function defaultSettings() {
+    return array(
+      'logs_expire' => 86400 * 14,
+    );
   }
 
-  function finish() {
-    if (!$this->log_entry->finished) {
-      $this->log_entry->end_time = microtime(TRUE);
-      $this->log_entry->finished = TRUE;
-      $this->save();
+  function cleanup($job) {
+    $settings = $job->getSettings();
+    $logger_settings = $settings['logger'][$settings['logger']['name']];
+
+    // Is cleanup disabled?
+    if (!$logger_settings['logs_expire']) {
+      return;
+    }
+
+    // Chunked delete.
+    $count = 0;
+    do {
+      $lids = db_select('ultimate_cron_log', 'l')
+        ->fields('l', array('lid'))
+        ->condition('l.name', $job->name)
+        ->condition('l.start_time', microtime(TRUE) - $logger_settings['logs_expire'], '<')
+        ->range(0, 100)
+        ->execute()
+        ->fetchAll(PDO::FETCH_COLUMN);
+      if ($lids) {
+        $count += count($lids);
+        db_delete('ultimate_cron_log')
+          ->condition('lid', $lids, 'IN')
+          ->execute();
+      }
+    } while ($lids);
+    if ($count) {
+      watchdog('database_logger', '@count log entries removed for job @name', array(
+        '@count' => $count,
+        '@name' => $job->name,
+      ), WATCHDOG_INFO);
     }
   }
 
   function save() {
     $keys = $this->log_entry->lid ? array('lid') : array();
-    error_log("Saving: $this->log_entry->name - $this->log_entry->lid");
+    error_log("Saving: " . $this->log_entry->name . ' - ' . $this->log_entry->lid);
     drupal_write_record('ultimate_cron_log', $this->log_entry, $keys);
   }
 
@@ -41,9 +69,23 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
       $this->log_entry->message = '';
       $this->log_entry->severity = -1;
     }
-    $this->module = $job->hook['module'];
-    $this->name = $job->name;
+    $this->log_entry->module = $job->hook['module'];
+    $this->log_entry->name = $job->name;
     $this->finished = TRUE;
     return $this;
+  }
+
+  function settingsForm(&$form, &$form_state) {
+    $elements = &$form['settings'][$this->type][$this->name];
+    $values = &$form_state['values']['settings'][$this->type][$this->name];
+
+    $elements['logs_expire'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Log entry expiration'),
+      '#description' => t('Remove log entries older than X seconds. (0 = disabled)'),
+      '#default_value' => $values['logs_expire'],
+      '#fallback' => TRUE,
+      '#required' => TRUE,
+    );
   }
 }

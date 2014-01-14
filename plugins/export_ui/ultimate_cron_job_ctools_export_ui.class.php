@@ -23,7 +23,18 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
   function build_operations($item) {
     $allowed_operations = parent::build_operations($item);
     unset($allowed_operations['clone']);
+    // dpm($allowed_operations);
     return $allowed_operations;
+  }
+
+  function run_page($js, $input, $item) {
+    $item->launch();
+    if (!$js) {
+      drupal_goto(ctools_export_ui_plugin_base_path($this->plugin));
+    }
+    else {
+      return $this->list_page($js, $input);
+    }
   }
 
   /**

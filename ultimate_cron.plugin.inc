@@ -388,20 +388,39 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
 
   static public $logs = array();
 
-  function initialize($job) {
-    $log_entry->lid = NULL;
-    $log_entry->start_time = microtime(TRUE);
-    $log_entry->end_time = 0;
-    $log_entry->message = '';
-    $log_entry->severity = -1;
+  function __construct($name, $plugin) {
+    parent::__construct($name, $plugin);
+    $this->log_entry = new stdClass();
+    $this->log_entry->lid = NULL;
+    $this->log_entry->start_time = 0;
+    $this->log_entry->end_time = 0;
+    $this->log_entry->message = '';
+    $this->log_entry->severity = -1;
+  }
 
-    $log_entry->module = $job->hook['module'];
-    $log_entry->name = $job->name;
+  function initialize($job) {
+    $this->log_entry = new stdClass();
+    $this->log_entry->lid = NULL;
+    $this->log_entry->start_time = microtime(TRUE);
+    $this->log_entry->end_time = 0;
+    $this->log_entry->message = '';
+    $this->log_entry->severity = -1;
+
+    $this->log_entry->module = $job->hook['module'];
+    $this->log_entry->name = $job->name;
     $this->save();
   }
 
+  function finish() {
+    if (!$this->finished) {
+      $this->log_entry->end_time = microtime(TRUE);
+      $this->finished = TRUE;
+      $this->save();
+    }
+  }
+
   function watchdog(array $log_entry) {
-    $this->message .= t($log_entry['message'], $log_entry['variables']) . "\n";
+    $this->log_entry->message .= t($log_entry['message'], $log_entry['variables']) . "\n";
     if ($this->log_entry->severity < 0 || $this->log_entry->severity > $log_entry['severity']) {
       $this->log_entry->severity = $log_entry['severity'];
     }
@@ -423,7 +442,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   }
 
   public function catchMessagesShutdown() {
-    if ($this->log_entry->finished) {
+    if ($this->finished) {
       return;
     }
 
@@ -462,6 +481,13 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
       $this->watchdog($log_entry);
     }
     $this->finish();
+  }
+
+  static function cleanupLogs() {
+    $jobs = ultimate_cron_job_load_all_export_ui();
+    foreach ($jobs as $job) {
+      $job->getPlugin('logger')->cleanup($job);
+    }
   }
 }
 
