@@ -39,7 +39,16 @@ $plugin = array(
         'access callback' => TRUE,
         'access arguments' => array(),
         'type' => MENU_LOCAL_TASK,
-        'weight' => -2,
+      ),
+      'unlock' => array(
+        'path' => 'list/%ctools_export_ui/unlock',
+        'title' => 'Run',
+        'page callback' => 'ctools_export_ui_switcher_page',
+        'page arguments' => array('ultimate_cron_job_ctools_export_ui', 'unlock', 6),
+        'load arguments' => array('ultimate_cron_job_ctools_export_ui'),
+        'access callback' => TRUE,
+        'access arguments' => array(),
+        'type' => MENU_LOCAL_TASK,
       ),
     ),
   ),
@@ -47,7 +56,7 @@ $plugin = array(
   // Add our custom operations.
   'allowed operations' => array(
     'run'  => array('title' => t('Run'), 'ajax' => FALSE, 'token' => TRUE),
-    // 'unlock'  => array('title' => t('Unlock')),
+    'unlock'  => array('title' => t('Unlock'), 'ajax' => TRUE, 'token' => TRUE),
     // 'kill' => array('title' => t('Kill')),
     // 'logs' => array('title' => t('Logs')),
   ),

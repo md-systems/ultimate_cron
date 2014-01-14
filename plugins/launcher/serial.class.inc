@@ -79,16 +79,16 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     if ($max_execution_time && $max_execution_time < $settings['max_execution_time']) {
       set_time_limit($settings['max_execution_time']);
     }
-    $lock_expire = max($max_execution_time, $settings['max_execution_time']);
+    $lock_timeout = max($max_execution_time, $settings['max_execution_time']);
 
     // Find a free slot, try for 3 seconds.
     $lock = FALSE;
     $expire = microtime(TRUE) + 3;
     do {
       for ($slot = 1; $slot <= $settings['max_launch_threads']; $slot++) {
-        $lock_key = 'ultimate_cron_serial_launcher_' . $slot;
-        if (lock_may_be_available($lock_key)) {
-          if ($lock = lock_acquire($lock_key, $lock_expire)) {
+        $lock_name = 'ultimate_cron_serial_launcher_' . $slot;
+        if (lock_may_be_available($lock_name)) {
+          if ($lock = lock_acquire($lock_name, $lock_timeout)) {
             break 2;
           }
         }

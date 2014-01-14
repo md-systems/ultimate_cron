@@ -13,7 +13,7 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
    */
   public function defaultSettings() {
     return array(
-      'lock_expire' => 3600,
+      'lock_timeout' => 3600,
     );
   }
 
@@ -24,10 +24,10 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
-    $elements['lock_expire'] = array(
-      '#title' => t("Job lock expiration"),
+    $elements['lock_timeout'] = array(
+      '#title' => t("Job lock timeout"),
       '#type' => 'textfield',
-      '#default_value' => $values['lock_expire'],
+      '#default_value' => $values['lock_timeout'],
       '#description' => t('Number of seconds to keep lock on job.'),
       '#fallback' => TRUE,
       '#required' => TRUE,

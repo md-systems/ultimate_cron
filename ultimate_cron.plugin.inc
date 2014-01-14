@@ -377,6 +377,41 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
     }
   }
 
+  public function lockKey($job) {
+    return 'uc:' . $job->name;
+  }
+
+  public function lock($job, $timeout) {
+    return lock_acquire($this->lockKey($job), $timeout);
+  }
+
+  public function unlock($job) {
+    $lock_inc = variable_get('lock_inc', 'includes/lock.inc');
+    if ($lock_inc == 'includes/lock.inc') {
+      db_delete('semaphore')
+        ->condition('name', $this->lockKey($job))
+        ->execute();
+
+    }
+    elseif (preg_match('/\/memcache_storage\/includes\/lock.inc$/', $lock_inc)) {
+      MemcacheStorageAPI::delete($this->lockKey($job), 'semaphore');
+    }
+    elseif (preg_match('/\/memcache-lock.inc$/', $lock_inc)) {
+      dmemcache_delete($this->lockKey($job), 'semaphore');
+    }
+    else {
+      return FALSE;
+    }
+
+    global $locks;
+    unset($locks[$this->lockKey($job)]);
+    return TRUE;
+  }
+
+  public function isLocked($job) {
+    return !lock_may_be_available($this->lockKey($job));
+  }
+
 }
 
 abstract class UltimateCronLogger extends UltimateCronPlugin {
@@ -413,6 +448,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
 
   function finish() {
     if (!$this->finished) {
+      $this->unCatchMessages();
       $this->log_entry->end_time = microtime(TRUE);
       $this->finished = TRUE;
       $this->save();

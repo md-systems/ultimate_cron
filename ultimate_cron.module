@@ -477,7 +477,7 @@ function ultimate_cron_queue_cron($job, $arguments) {
     $queue->deleteItem($item);
     $items++;
   }
-  sleep(2);
+  sleep(30);
   #drupal_set_message(t('Processed @items items', array('@items' => $items)));
   watchdog($job->hook['module'], 'Processed @items items from queue @queue', array(
     '@items' => $items,

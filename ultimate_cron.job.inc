@@ -53,11 +53,23 @@ class UltimateCronJob {
     return $this->getPlugin('launcher')->launch($this);
   }
 
-  function run() {
+  function lock() {
     $settings = $this->getSettings();
-    // dpm($this);
-    $lock_key = "uc:" . $this->name;
-    if (!lock_acquire($lock_key, $settings['settings']['general']['lock_expire'])) {
+    return $this->getPlugin('launcher')->lock(
+      $this, $settings['settings']['general']['lock_timeout']
+    );
+  }
+
+  function unlock() {
+    return $this->getPlugin('launcher')->unlock($this);
+  }
+
+  function isLocked() {
+    return $this->getPlugin('launcher')->isLocked($this);
+  }
+
+  function run() {
+    if (!$this->lock()) {
       drupal_set_message("Could not acquire log for %name. Already running?", array(
         '%name' => $this->name
       ));
@@ -85,14 +97,14 @@ class UltimateCronJob {
           ));
       }
       $log->finish();
-      lock_release($lock_key);
+      $this->unlock();
     }
     catch (Exception $e) {
       watchdog('ultimate_cron', 'Error running @name: @error', array('@error' => $e->getMessage()), WATCHDOG_ERROR);
       if ($log) {
         $log->finish();
       }
-      lock_release($lock_key);
+      $this->unlock();
     }
   }
 

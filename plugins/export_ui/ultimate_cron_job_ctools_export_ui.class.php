@@ -24,11 +24,40 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $allowed_operations = parent::build_operations($item);
     unset($allowed_operations['clone']);
     // dpm($allowed_operations);
+    if ($item->isLocked()) {
+      unset($allowed_operations['run']);
+    }
+    else {
+      unset($allowed_operations['unlock']);
+    }
     return $allowed_operations;
   }
 
   function run_page($js, $input, $item) {
     $item->launch();
+    if (!$js) {
+      drupal_goto(ctools_export_ui_plugin_base_path($this->plugin));
+    }
+    else {
+      return $this->list_page($js, $input);
+    }
+  }
+
+  function unlock_page($js, $input, $item) {
+    $log = $item->getPlugin('logger')->loadLatest($item);
+    dpm($log);
+    if ($log->log_entry->lid && $log->log_entry->start_time && !$log->log_entry->end_time) {
+      $log->log_entry->finished = FALSE;
+      $log->catchMessages();
+      global $user;
+      watchdog('ultimate_cron', '@name manually unlocked by user @username (@uid)', array(
+        '@name' => $item->name,
+        '@username' => $user->name,
+        '@uid' => $user->uid,
+      ), WATCHDOG_WARNING);
+      $log->finish();
+      $item->unlock();
+    }
     if (!$js) {
       drupal_goto(ctools_export_ui_plugin_base_path($this->plugin));
     }
@@ -133,8 +162,8 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $header[] = array('data' => t('Scheduled'), 'class' => array('ctools-export-ui-scheduled'));
     $header[] = array('data' => t('Started'), 'class' => array('ctools-export-ui-last-start-time'));
     $header[] = array('data' => t('Duration'), 'class' => array('ctools-export-ui-duration'));
-    $header[] = array('data' => t('Storage'), 'class' => array('ctools-export-ui-storage'));
     $header[] = array('data' => t('Status'), 'class' => array('ctools-export-ui-status'));
+    $header[] = array('data' => t('Storage'), 'class' => array('ctools-export-ui-storage'));
     $header[] = array('data' => t('Operations'), 'class' => array('ctools-export-ui-operations'));
 
     return $header;
@@ -267,10 +296,6 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       )) : '',
     );
 
-
-    // Storage.
-    $this->rows[$name]['data'][] = array('data' => check_plain($item->{$schema['export']['export type string']}), 'class' => array('ctools-export-ui-storage'));
-
     // Status.
     if ($log->start_time && !$log->end_time) {
       $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
@@ -283,27 +308,30 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         case WATCHDOG_ERROR:
           $file = 'misc/message-16-error.png';
           break;
+
         case WATCHDOG_WARNING:
         case WATCHDOG_NOTICE:
           $file = 'misc/message-16-warning.png';
           break;
+
         case WATCHDOG_INFO:
         case WATCHDOG_DEBUG:
           $file = 'misc/message-16-info.png';
           break;
 
-        default;
+        default:
           $file = 'misc/message-16-ok.png';
       }
     }
-    $image = theme('image', array(
-      'path' => $file,
-    ));
+    $image = theme('image', array('path' => $file));
     $this->rows[$name]['data'][] = array(
       'data' => $image,
       'class' => array('ctools-export-ui-status'),
       'title' => $log->message ? $log->message : t('No info'),
     );
+
+    // Storage.
+    $this->rows[$name]['data'][] = array('data' => check_plain($item->{$schema['export']['export type string']}), 'class' => array('ctools-export-ui-storage'));
 
     // Operations.
     $ops = theme('links__ctools_dropbutton', array('links' => $operations, 'attributes' => array('class' => array('links', 'inline'))));
