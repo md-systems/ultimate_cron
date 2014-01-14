@@ -54,9 +54,9 @@ class UltimateCronJob {
   }
 
   function run() {
-    dpm($this);
+    $settings = $this->getSettings();
     $lock_key = "uc:" . $this->name;
-    if (!lock_acquire($lock_key)) {
+    if (!lock_acquire($lock_key, $settings['settings']['general']['lock_expire'])) {
       drupal_set_message("Could not acquire log for %name. Already running?", array(
         '%name' => $this->name
       ));
@@ -99,6 +99,13 @@ class UltimateCronJob {
   }
 
   function getModuleName() {
-    return ultimate_cron_module_name($this->hook['module']);
+    $info = ultimate_cron_get_module_info($this->hook['module']);
+    return $info && !empty($info['name']) ? $info['name'] : $this->hook['module'];
   }
+
+  function getModuleDescription() {
+    $info = ultimate_cron_get_module_info($this->hook['module']);
+    return $info && !empty($info['description']) ? $info['description'] : '';
+  }
+
 }

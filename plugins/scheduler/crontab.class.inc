@@ -38,6 +38,22 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   }
 
   /**
+   * Label for schedule.
+   */
+  public function getScheduledLabelVerbose($job) {
+    $settings = $job->getSettings();
+    $parsed = array();
+
+    include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
+    foreach ($settings[$this->type][$this->name]['rules'] as $rule); {
+      $cron = new CronRule($rule);
+      $cron->offset = $this->getOffset($job);
+      $parsed[] = $cron->parseRule();
+    }
+    return implode(', ', $parsed);
+  }
+
+  /**
    * Settings form for the crontab scheduler.
    */
   public function settingsForm(&$form, &$form_state) {
@@ -87,8 +103,9 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
 
     foreach ($scheduler_settings['rules'] as $rule) {
       $now = time();
-      $cron = new CronRule($rule, $now);
-      $cron_last_ran = $cron->getLastRan();
+      $cron = new CronRule($rule);
+      $cron->offset = $this->getOffset($job);
+      $cron_last_ran = $cron->getLastRan($now);
       $log = $job->getPlugin('logger')->loadLatest($job);
       $job_last_ran = $log->start_time;
       $msg = sprintf("Checking %s on %s < %s >= %s <= %s",

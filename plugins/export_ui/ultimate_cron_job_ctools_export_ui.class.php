@@ -50,7 +50,8 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $jobs = ultimate_cron_get_hooks();
     $modules = array();
     foreach ($jobs as $job) {
-      $modules[$job['module']] = ultimate_cron_module_name($job['module']);
+      $info = ultimate_cron_get_module_info($job['module']);
+      $modules[$job['module']] = $info && !empty($info['name']) ? $info['name'] : $job['module'];
     }
 
     $form['top row']['module'] = array(
@@ -197,25 +198,56 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $this->rows[$name]['class'] = !empty($item->disabled) ? array('ctools-export-ui-disabled') : array('ctools-export-ui-enabled');
 
     // Module.
-    $this->rows[$name]['data'][] = array('data' => check_plain($item->getModuleName()), 'class' => array('ctools-export-ui-module'));
+    $this->rows[$name]['data'][] = array(
+      'data' => check_plain($item->getModuleName()),
+      'class' => array('ctools-export-ui-module'),
+      'title' => check_plain($item->getModuleDescription()),
+    );
 
     // If we have an admin title, make it the first row.
     if (!empty($this->plugin['export']['admin_title'])) {
-      $this->rows[$name]['data'][] = array('data' => check_plain($item->{$this->plugin['export']['admin_title']}), 'class' => array('ctools-export-ui-title'));
+      $this->rows[$name]['data'][] = array(
+        'data' => check_plain($item->{$this->plugin['export']['admin_title']}),
+        'class' => array('ctools-export-ui-title'),
+        'title' => $item->name,
+      );
     }
 
     // Schedule settings.
     $label = $item->getPlugin('scheduler')->getScheduledLabel($item);
-    $this->rows[$name]['data'][] = array('data' => $label, 'class' => array('ctools-export-ui-scheduled'));
+    $verbose = $item->getPlugin('scheduler')->getScheduledLabelVerbose($item);
+    $this->rows[$name]['data'][] = array(
+      'data' => $label,
+      'class' => array('ctools-export-ui-scheduled'),
+      'title' => $verbose,
+    );
 
     // Started and duration.
     $log = $item->getPlugin('logger')->loadLatest($item);
-
     $start_time = $log->start_time ? format_date((int) $log->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
     $this->rows[$name]['data'][] = array('data' => $start_time, 'class' => array('ctools-export-ui-last-start-time'));
 
-    $duration = $log->end_time ? gmdate('H:i:s', (int) ($log->end_time - $log->start_time)) : t('N/A');
-    $this->rows[$name]['data'][] = array('data' => $duration, 'class' => array('ctools-export-ui-duration'));
+    $duration = (int) ($log->end_time - $log->start_time);
+    switch (TRUE) {
+      case $duration >= 86400:
+        $format = 'd H:i:s';
+        break;
+
+      case $duration >= 3600:
+        $format = 'H:i:s';
+        break;
+
+      default:
+        $format = 'i:s';
+    }
+    $duration = $log->end_time ? gmdate($format, $duration) : t('N/A');
+    $this->rows[$name]['data'][] = array(
+      'data' => $duration,
+      'class' => array('ctools-export-ui-duration'),
+      'title' => $log->end_time ? t('Previous run finished @ @end_time', array(
+        '@end_time' => format_date((int) $log->end_time, 'custom', 'Y-m-d H:i:s'),
+      )) : '',
+    );
 
 
     // Storage.
@@ -244,7 +276,11 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $image = theme('image', array(
       'path' => 'misc/' . $file,
     ));
-    $this->rows[$name]['data'][] = array('data' => $image, 'class' => array('ctools-export-ui-status'));
+    $this->rows[$name]['data'][] = array(
+      'data' => $image,
+      'class' => array('ctools-export-ui-status'),
+      'title' => $log->message ? $log->message : t('No info'),
+    );
 
     // Operations.
     $ops = theme('links__ctools_dropbutton', array('links' => $operations, 'attributes' => array('class' => array('links', 'inline'))));

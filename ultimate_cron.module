@@ -596,14 +596,14 @@ function _ultimate_cron_get_queues() {
 /**
  * Get module name.
  */
-function ultimate_cron_module_name($module) {
-  static $module_names = array();
-  if (!isset($module_names[$module])) {
+function ultimate_cron_get_module_info($module) {
+  static $module_info = array();
+  if (!isset($module_info[$module])) {
     $file = drupal_get_path('module', $module) . '/' . $module . '.info';
     $info = drupal_parse_info_file($file);
-    $module_names[$module] = $info['name'] ? $info['name'] : $module;
+    $module_info[$module] = $info ? $info : array();
   }
-  return $module_names[$module];
+  return $module_info[$module];
 }
 
 function ultimate_cron_get_hook($name, $reset = FALSE) {
