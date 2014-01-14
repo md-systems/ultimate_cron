@@ -3,12 +3,16 @@
 class UltimateCronDatabaseLogger extends UltimateCronLogger {
 
   function finish() {
-    $this->end_time = microtime(TRUE);
-    $this->save();
+    if (!$this->finished) {
+      $this->end_time = microtime(TRUE);
+      $this->finished = TRUE;
+      $this->save();
+    }
   }
 
   function save() {
     $keys = $this->lid ? array('lid') : array();
+    error_log("Saving: $this->name - $this->lid");
     drupal_write_record('ultimate_cron_log', $this, $keys);
   }
 
@@ -36,7 +40,7 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
     }
     $this->module = $job->hook['module'];
     $this->name = $job->name;
-    $this->finished = TRUE;      
+    $this->finished = TRUE;
     return $this;
   }
 }

@@ -234,7 +234,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     elseif ($log->start_time) {
       $duration = (int) (microtime(TRUE) - $log->start_time);
     }
-    // $duration = $log->end_time ? (int) ($log->end_time - $log->start_time) : (int) (microtime(TRUE) - $log->start_time);
+
     switch (TRUE) {
       case $duration >= 86400:
         $format = 'd H:i:s';

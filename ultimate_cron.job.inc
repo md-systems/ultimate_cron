@@ -63,6 +63,7 @@ class UltimateCronJob {
       ));
       return;
     }
+    $log = NULL;
     try {
       $log = $this->startLog();
       switch ($this->hook['api_version']) {
@@ -87,7 +88,10 @@ class UltimateCronJob {
       lock_release($lock_key);
     }
     catch (Exception $e) {
-      $log->finish();
+      watchdog('ultimate_cron', 'Error running @name: @error', array('@error' => $e->getMessage()), WATCHDOG_ERROR);
+      if ($log) {
+        $log->finish();
+      }
       lock_release($lock_key);
     }
   }
