@@ -808,6 +808,8 @@ function ultimate_cron_run_scheduled($return = FALSE) {
     $class::launchJobs($jobs);
   }
 
+  _ultimate_cron_variable_set('cron_last', time());
+
   if ($return) {
     drupal_goto('admin/config/system/cron');
   }
