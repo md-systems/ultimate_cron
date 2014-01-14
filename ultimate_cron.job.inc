@@ -76,8 +76,15 @@ class UltimateCronJob {
       return;
     }
     $log = NULL;
+    $php_self = NULL;
     try {
       $log = $this->startLog();
+
+      // Signal to whomever might be listening, that we're cron!
+      // @investigate Is this safe? (He asked knowingly ...)
+      $php_self = $_SERVER['PHP_SELF'] ? $_SERVER['PHP_SELF'] : '';
+      $_SERVER['PHP_SELF'] = 'cron.php';
+
       switch ($this->hook['api_version']) {
         case 1:
           // $args = array($hook);
@@ -96,11 +103,21 @@ class UltimateCronJob {
             '@api_version' => $this->hook['api_version'],
           ));
       }
+
+      // Restore state.
+      $_SERVER['PHP_SELF'] = $php_self;
+
       $log->finish();
       $this->unlock();
     }
     catch (Exception $e) {
+      // Restore state.
+      if (isset($php_self)) {
+        $_SERVER['PHP_SELF'] = $php_self;
+      }
+
       watchdog('ultimate_cron', 'Error running @name: @error', array('@error' => $e->getMessage()), WATCHDOG_ERROR);
+
       if ($log) {
         $log->finish();
       }

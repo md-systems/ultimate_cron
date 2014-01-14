@@ -257,6 +257,21 @@ function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
 // ---------- HOOKS ----------
 
 /**
+ * Implements hook_exit().
+ */
+function ultimate_cron_exit($dest = NULL) {
+  // Register our own Poormans Cron handler.
+  $callbacks = &drupal_register_shutdown_function();
+  array_unshift($callbacks, array('callback' => 'ultimate_cron_poorman', 'arguments' => array()));
+  // Reset internal array pointer just in case ...
+  reset($callbacks);
+}
+
+function ultimate_cron_poorman() {
+  error_log("POORMAN");
+}
+
+/**
  * Implements hook_help().
  */
 function ultimate_cron_help($path, $arg) {
