@@ -49,9 +49,9 @@ $plugin = array(
  * Form to edit the settings of an Ultimate Cron job.
  */
 function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
+  // dpm("HERE: " . rand(1,100));
   $job = $form_state['item'];
-
-  dpm($job);
+  // dpm($job);
 
   $form['info']['name'] = array_merge($form['info']['name'], array(
     '#type' => 'value',
@@ -62,82 +62,33 @@ function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
     '#value' => isset($job->jid) ? $job->jid : '',
   );
 
+  // Setup vertical tabs.
+  $form['settings_tabs'] = array(
+    '#type' => 'vertical_tabs',
+  );
+  $form['settings'] = array(
+    '#tree' => TRUE,
+  );
 
-  $schedulers = ultimate_cron_scheduler_load_all();
-  $options = array();
-  $options[0] = t('Default (@default)', array(
-    '@default' => $schedulers[$job->hook['scheduler']]->title,
-  ));
-  foreach ($schedulers as $name => $scheduler) {
-    $options[$name] = $scheduler->title;
+  // Base the form on the actual form data, in case of AJAX request.
+  if (isset($form_state['input'])) {
+    $form_state['values'] = $form_state['input'];
   }
 
   // Sanitize input values.
-  if (!isset($form_state['values'])) {
-    $form_state['values'] = array();
-  }
   if (!isset($form_state['values']['settings'])) {
     $form_state['values']['settings'] = array();
   }
   $form_state['values']['settings'] += $job->settings;
 
-  // Find scheduler selected on this page.
-  // If "0" (meaning default) use the one defined in the hook.
-  if (empty($form_state['values']['settings']['scheduler'])) {
-    $scheduler = $schedulers[$job->hook['scheduler']];
+  // Load settings for each plugin in its own vertical tab.
+  ctools_include('plugins');
+  $plugin_types = ctools_plugin_get_plugin_type_info();
+  foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+    $static = $info['defaults']['static'];
+    $class = $static['class'];
+    $class::jobSettingsForm($form, $form_state, $plugin_type, $job);
   }
-  else {
-    $scheduler = $schedulers[$form_state['values']['settings']['scheduler']];
-  }
-
-  // If this is the scheduler defined in the hook, we use those default values.
-  $defaults = $scheduler->getDefaultSettings($job);
-
-  // If this is an AJAX scheduler change, let's set the original values.
-  if (!empty($form_state['triggering_element']) && $form_state['triggering_element']['#name'] == 'settings[scheduler]') {
-    $original_scheduler = $job->settings['scheduler'] ? $job->settings['scheduler'] : $job->hook['scheduler'];  
-    // If this is original scheduler, use the original values.
-    $form_state['values']['settings']['scheduler_settings'] = $original_scheduler == $scheduler->name ? $job->settings['scheduler_settings'] : array();
-  }
-
-
-  // Ensure that we at least have some default values.
-  $form_state['default_values']['settings']['scheduler_settings'] = $defaults;
-  $form_state['values']['settings']['scheduler_settings'] += ultimate_cron_blank_values($defaults);
-
-  $form['settings'] = array(
-    '#tree' => TRUE
-  );
-  $form['settings']['scheduler'] = array(
-    '#type'          => 'select',
-    '#options'       => $options,
-    '#default_value' => $form_state['values']['settings']['scheduler'],
-    '#title'         => t('Scheduler'),
-    '#required'      => TRUE,
-    '#description'   => t('Scheduler for this job.'),
-    '#ajax' => array(
-      'callback' => 'ultimate_cron_job_scheduler_settings_ajax',
-      'wrapper' => 'scheduler-settings',
-      'method' => 'replace',
-      'effect' => 'fade',
-    ),
-  );
-
-  $form['settings']['scheduler_settings'] = array(
-    '#title' => t("@scheduler scheduler settings", array('@scheduler' => $scheduler->title)),
-    '#prefix' => '<div id="scheduler-settings">',
-    '#suffix' => '</div>',
-    '#type' => 'fieldset',
-    '#tree' => TRUE,
-    '#visible' => TRUE,
-  );
-  $form['settings']['scheduler_settings']['scheduler'] = array(
-    '#type' => 'value',
-    '#value' => $scheduler->name,
-  );
-
-  $scheduler->settingsForm($form, $form_state);
-  $scheduler->fallbackalize($form['settings']['scheduler_settings'], $form_state['default_values']['settings']['scheduler_settings'], FALSE);
 
   // What the hell?
   // Why do we need to reset 'input'? Why is it used for the form fields
@@ -146,10 +97,17 @@ function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
 }
 
 /**
- * Ajax callback for interchangable scheduler settings.
+ * Ajax callback for interchangable plugin settings.
  */
-function ultimate_cron_job_scheduler_settings_ajax($form, &$form_state) {
-  return $form['settings']['scheduler_settings'];
+function ultimate_cron_job_plugin_settings_ajax($form, &$form_state) {
+  $plugin_type = $form_state['triggering_element']['#parents'][count($form_state['triggering_element']['#parents']) - 2];
+  $name = $form_state['values']['settings'][$plugin_type]['name'];
+  if (empty($name)) {
+    $job = $form_state['item'];
+    $name = $job->hook[$plugin_type]['name'];
+  }
+
+  return $form['settings'][$plugin_type][$name];
 }
 
 /**
@@ -157,12 +115,26 @@ function ultimate_cron_job_scheduler_settings_ajax($form, &$form_state) {
  */
 function ultimate_cron_job_ctools_export_ui_form_validate(&$form, &$form_state) {
   $job = $form_state['item'];
-  if (!isset($form_state['values']['settings']['scheduler_settings'])) {
-    $form_state['values']['settings']['scheduler_settings'] = array();
+  ctools_include('plugins');
+  $plugin_types = ctools_plugin_get_plugin_type_info();
+
+  foreach ($form_state['values']['settings'] as $plugin_type => &$settings) {
+    $static = $plugin_types['ultimate_cron'][$plugin_type]['defaults']['static'];
+    $class = $static['class'];
+    if (empty($class::$multiple)) {
+      $name = !empty($form_state['values']['settings'][$plugin_type]['name']) ? $form_state['values']['settings'][$plugin_type]['name'] : $job->hook[$plugin_type]['name'];
+
+      $plugin = ultimate_cron_plugin_load($plugin_type, $name);
+      $plugin->settingsFormValidate($form, $form_state);
+
+    }
+    else {
+      $plugins = ultimate_cron_plugin_load_all($plugin_type);
+      foreach ($plugins as $name => $plugin) {
+        $plugin->settingsFormValidate($form, $form_state);
+      }
+    }
   }
-  $scheduler = !empty($form_state['values']['settings']['scheduler']) ? $form_state['values']['settings']['scheduler'] : $job->hook['scheduler'];
-  $scheduler = ultimate_cron_scheduler_load($scheduler);
-  $scheduler->settingsFormValidate($form, $form_state);
 }
 
 /**
@@ -172,6 +144,29 @@ function ultimate_cron_job_ctools_export_ui_form_validate(&$form, &$form_state) 
  * $form_state['values'] to $form_state['item'].
  */
 function ultimate_cron_job_ctools_export_ui_form_submit(&$form, &$form_state) {
+  dpm("Submit");
+  $job = $form_state['item'];
+  $plugin_types = ultimate_cron_ctools_plugin_type();
+
+  foreach ($form_state['values']['settings'] as $plugin_type => &$settings) {
+    if (empty($plugin_types[$plugin_type]['multiple'])) {
+      $name = !empty($form_state['values']['settings'][$plugin_type]['name']) ? $form_state['values']['settings'][$plugin_type]['name'] : $job->hook[$plugin_type]['name'];
+
+      $plugin = ultimate_cron_plugin_load($plugin_type, $name);
+      $plugin->settingsFormSubmit($form, $form_state);
+      $plugin->cleanForm($form, $form_state);
+    }
+    else {
+      $plugins = ultimate_cron_plugin_load_all($plugin_type);
+      foreach ($plugins as $name => $plugin) {
+        $plugin->settingsFormSubmit($form, $form_state);
+        // $plugin->cleanForm($form, $form_state);
+      }
+    }
+  }
+
+  // dpm($form_state['values']);
+  return;
   $job = $form_state['item'];
   $scheduler = !empty($form_state['values']['settings']['scheduler']) ? $form_state['values']['settings']['scheduler'] : $job->hook['scheduler'];
 

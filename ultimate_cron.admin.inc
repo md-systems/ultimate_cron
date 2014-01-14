@@ -5,197 +5,87 @@
  */
 
 /**
- * Settings form.
+ * Main plugin settings form.
  */
-function ultimate_cron_settings_form() {
-  $form = array();
-  $advanced_help = module_exists('advanced_help');
-
-  $form['queues'] = array(
-    '#title' => t('Queues'),
-    '#type' => 'fieldset',
-    '#collapsible' => TRUE,
-    '#collapsed' => FALSE,
-    '#tree' => FALSE,
-  );
-  $form['queues']['ultimate_cron_queue_lease_time'] = array(
-    '#title' => t('Queue lease time'),
-    '#type' => 'textfield',
-    '#default_value' => variable_get('ultimate_cron_queue_lease_time', ULTIMATE_CRON_QUEUE_LEASE_TIME),
-    '#description' => ($advanced_help ? theme('advanced_help_topic', array(
-                              'module' => 'ultimate_cron',
-                              'topic' => 'queue_lease_time',
-                              'type' => 'icon')
-                      ) : '') . t('Time in seconds to keep lock on claimed item'),
-  );
-
-  $form = system_settings_form($form);
+function ultimate_cron_plugin_form($form, &$form_state, $plugin_type) {
+  ctools_include('plugins');
+  $plugin_types = ctools_plugin_get_plugin_type_info();
+  $plugin_info = $plugin_types['ultimate_cron'][$plugin_type];
+  $static = $plugin_info['defaults']['static'];
+  $class = $static['class'];
+  $class::defaultSettingsForm($form, $form_state, $plugin_info);
   return $form;
 }
 
 /**
- * Main launcher settings form.
+ * Settings form for plugins.
  */
-function ultimate_cron_launchers_form() {
-  $form = array();
-  $items = array();
-  foreach (ultimate_cron_launcher_load_all() as $name => $launcher) {
-    $items[] = l($launcher->title, 'admin/config/system/cron/launchers/' . $name);
-  }
-  $form['installed'] = array(
-    '#markup' => theme('item_list', array(
-      'title' => 'Launchers installed',
-      'items' => $items
-    ))
-  );
-  return $form;
-}
-
-/**
- * Settings form for launchers.
- */
-function ultimate_cron_launcher_settings($form, &$form_state, $name) {
-  $launcher = ultimate_cron_launcher_load($name);
-
+function ultimate_cron_plugin_settings($form, &$form_state, $plugin_type, $name) {
+  $plugin = ultimate_cron_plugin_load($plugin_type, $name);
   $form['description'] = array(
-    '#markup' => $launcher->description,
+    '#markup' => $plugin->description,
   );
 
   // Sanitize input values.
-  if (!isset($form_state['values'])) {
-    $form_state['values'] = array();
+  if (!isset($form_state['values']['settings'][$plugin_type][$name])) {
+    $form_state['values']['settings'][$plugin_type][$name] = array();
   }
-  if (!isset($form_state['values']['settings'])) {
-    $form_state['values']['settings'] = array();
-  }
-  $form_state['values']['settings'] += array(
-    'launcher_settings' => $launcher->getDefaultSettings(),
-  );
+  $form_state['values']['settings'][$plugin_type][$name] += $plugin->getDefaultSettings();
+  $form_state['default_values']['settings'][$plugin_type][$name] = $form_state['values']['settings'][$plugin_type][$name];
 
-  $form_state['default_values']['settings']['launcher_settings'] = $form_state['values']['settings']['launcher_settings'];
-
-  $launcher->settingsForm($form, $form_state);
-  if (!empty($form['launcher_settings']['no_settings'])) {
-    return $form;
-  }
   $form['settings']['#tree'] = TRUE;
-  $form['settings']['launcher_settings']['#tree'] = TRUE;
-  $form['settings']['launcher'] = array(
+  $form['settings'][$plugin_type]['#tree'] = TRUE;
+  $form['plugin_type'] = array(
+    '#type' => 'value',
+    '#value' => $plugin_type,
+  );
+  $form['name'] = array(
     '#type' => 'value',
     '#value' => $name,
   );
-  $launcher->fallbackalize($form['settings']['launcher_settings'], $form_state['default_values']['settings']['launcher_settings'], TRUE);
-  $form = system_settings_form($form);
-  $form['#validate'] = empty($form['#validate']) ? array() : $form['#validate'];
-  $form['#submit'] = empty($form['#submit']) ? array() : $form['#submit'];
-  array_unshift($form['#validate'], 'ultimate_cron_launcher_settings_validate');
-  array_unshift($form['#submit'], 'ultimate_cron_launcher_settings_submit');
-  return $form;
-}
 
-/**
- * Validate handler for launcher settings.
- */
-function ultimate_cron_launcher_settings_validate($form, &$form_state) {
-  $launcher = ultimate_cron_launcher_load($form_state['values']['settings']['launcher']);
-  $launcher->settingsFormValidate($form, $form_state);
-}
+  $plugin->settingsForm($form, $form_state);
 
-/**
- * Submit handler for launcher settings.
- */
-function ultimate_cron_launcher_settings_submit($form, &$form_state) {
-  $launcher = ultimate_cron_launcher_load($form_state['values']['settings']['launcher']);
-  $launcher->settingsFormSubmit($form, $form_state);
-
-  // Since this is a system_settings_form() we need to move the submitted data
-  // around a little.
-  $form_state['values'][$launcher->key] = $form_state['values']['settings']['launcher_settings'];
-  unset($form_state['values']['settings']['launcher']);
-  unset($form_state['values']['settings']['launcher_settings']);
-}
-
-/**
- * Main launcher settings form.
- */
-function ultimate_cron_schedulers_form() {
-  $form = array();
-  $items = array();
-  foreach (ultimate_cron_scheduler_load_all() as $name => $scheduler) {
-    $items[] = l($scheduler->title, 'admin/config/system/cron/schedulers/' . $name);
-  }
-  $form['installed'] = array(
-    '#markup' => theme('item_list', array(
-      'title' => 'Schedulers installed',
-      'items' => $items
-    ))
-  );
-  return $form;
-}
-
-/**
- * Settings form for launchers.
- */
-function ultimate_cron_scheduler_settings($form, &$form_state, $name) {
-  $scheduler = ultimate_cron_scheduler_load($name);
-
-  $form['description'] = array(
-    '#markup' => $scheduler->description,
-  );
-
-  // Sanitize input values.
-  if (!isset($form_state['values'])) {
-    $form_state['values'] = array();
-  }
-  if (!isset($form_state['values']['settings'])) {
-    $form_state['values']['settings'] = array();
-  }
-  $form_state['values']['settings'] += array(
-    'scheduler_settings' => $scheduler->getDefaultSettings(),
-  );
-
-  $form_state['default_values']['settings']['scheduler_settings'] = $form_state['values']['settings']['scheduler_settings'];
-
-  $scheduler->settingsForm($form, $form_state);
-  if (!empty($form['scheduler_settings']['no_settings'])) {
+  if (!empty($form['settings'][$plugin_type][$name]['no_settings'])) {
     return $form;
   }
-  $form['settings']['#tree'] = TRUE;
-  $form['settings']['scheduler_settings']['#tree'] = TRUE;
-  $form['settings']['scheduler'] = array(
-    '#type' => 'value',
-    '#value' => $name,
-  );
-  $scheduler->fallbackalize($form['settings']['scheduler_settings'], $form_state['default_values']['settings']['scheduler_settings'], TRUE);
+
+  $plugin->fallbackalize($form['settings'][$plugin_type][$name], $form_state['default_values']['settings'][$plugin_type][$name], TRUE);
   $form = system_settings_form($form);
   $form['#validate'] = empty($form['#validate']) ? array() : $form['#validate'];
   $form['#submit'] = empty($form['#submit']) ? array() : $form['#submit'];
-  array_unshift($form['#validate'], 'ultimate_cron_scheduler_settings_validate');
-  array_unshift($form['#submit'], 'ultimate_cron_scheduler_settings_submit');
+  array_unshift($form['#validate'], 'ultimate_cron_plugin_settings_validate');
+  array_unshift($form['#submit'], 'ultimate_cron_plugin_settings_submit');
   return $form;
 }
 
 /**
- * Validate handler for scheduler settings.
+ * Validate handler for plugin settings.
  */
-function ultimate_cron_scheduler_settings_validate($form, &$form_state) {
-  $scheduler = ultimate_cron_scheduler_load($form_state['values']['settings']['scheduler']);
-  $scheduler->settingsFormValidate($form, $form_state);
+function ultimate_cron_plugin_settings_validate($form, &$form_state) {
+  $plugin_type = $form_state['values']['plugin_type'];
+  $name = $form_state['values']['name'];
+  $plugin = ultimate_cron_plugin_load($plugin_type, $name);
+  $plugin->settingsFormValidate($form, $form_state);
 }
 
 /**
- * Submit handler for scheduler settings.
+ * Submit handler for plugin settings.
  */
-function ultimate_cron_scheduler_settings_submit($form, &$form_state) {
-  $scheduler = ultimate_cron_scheduler_load($form_state['values']['settings']['scheduler']);
-  $scheduler->settingsFormSubmit($form, $form_state);
+function ultimate_cron_plugin_settings_submit($form, &$form_state) {
+  $plugin_type = $form_state['values']['plugin_type'];
+  $name = $form_state['values']['name'];
+  $plugin = ultimate_cron_plugin_load($plugin_type, $name);
+  $plugin->settingsFormSubmit($form, $form_state);
 
   // Since this is a system_settings_form() we need to move the submitted data
   // around a little.
-  $form_state['values'][$scheduler->key] = $form_state['values']['settings']['scheduler_settings'];
-  unset($form_state['values']['settings']['scheduler']);
-  unset($form_state['values']['settings']['scheduler_settings']);
+  $form_state['values'][$plugin->key] = $form_state['values']['settings'][$plugin_type][$name];
+  unset($form_state['values']['plugin_type']);
+  unset($form_state['values']['name']);
+  unset($form_state['values']['settings']);
 }
+
 
 /**
  * Job log page.

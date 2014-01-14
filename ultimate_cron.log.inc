@@ -1,6 +1,6 @@
 <?php
 
-class UltimateCronLog {
+class xxxUltimateCronLog {
   public $name;
   public $finished = FALSE;
   public $start_time = 0;

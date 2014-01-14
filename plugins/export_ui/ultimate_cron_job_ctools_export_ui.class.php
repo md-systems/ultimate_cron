@@ -203,11 +203,10 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     // Schedule settings.
     // $this->rows[$name]['data'][] = array('data' => '*/10+@ * * * *', 'class' => array('ctools-export-ui-scheduled'));
-    $this->rows[$name]['data'][] = array('data' => $item->getScheduledLabel(), 'class' => array('ctools-export-ui-scheduled'));
+    // $this->rows[$name]['data'][] = array('data' => $item->getScheduledLabel(), 'class' => array('ctools-export-ui-scheduled'));
 
     // Started and duration.
-    $log = $item->getLatestLogEntry();
-    $log = $log ? $log : new UltimateCronLog($name);
+    $log = $item->getLatestLog();
 
     $start_time = $log->start_time ? format_date((int) $log->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
     $this->rows[$name]['data'][] = array('data' => $start_time, 'class' => array('ctools-export-ui-last-start-time'));

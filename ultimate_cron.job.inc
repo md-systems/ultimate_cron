@@ -1,42 +1,67 @@
 <?php
 
 class UltimateCronJob {
-  function getScheduler() {
-    if (!empty($this->settings['scheduler'])) {
-      return ultimate_cron_scheduler_load($this->settings['scheduler']);
+  function getPlugin($plugin_type) {
+    if (!empty($this->settings[$plugin_type]['name'])) {
+      return ultimate_cron_plugin_load($plugin_type, $this->settings[$plugin_type]['name']);
     }
     else {
-      return ultimate_cron_scheduler_load($this->hook['scheduler']);
+      return ultimate_cron_plugin_load($plugin_type, $this->hook[$plugin_type]['name']);
     }
+  }
+
+  function getPluginSettings($plugin_type) {
+    ctools_include('plugins');
+    $plugin_types = ctools_plugin_get_plugin_type_info();
+    $plugin_info = $plugin_types['ultimate_cron'][$plugin_type];
+    $static = $plugin_info['defaults']['static'];
+    $class = $static['class'];
+
+    if (!$class::$multiple) {
+      $plugin_settings = $this->getPlugin($plugin_type)->getDefaultSettings($this);
+    }
+    else {
+      /*
+      $plugins = ultimate_cron_plugin_load_all($plugin_type);
+      $plugin_settings = array();
+      foreach ($plugins as $name => $plugin) {
+        $plugin_settings += $plugin->getDefaultSettings($this);
+      }
+      */
+    }
+    // dpm($plugin_settings);
+    // dpm($this->settings[$plugin_type]);
+    return $this->settings[$plugin_type][$name] + $plugin_settings;
+  }
+
+  function getScheduler() {
+    return $this->getPlugin('scheduler');
   }
 
   function getSchedulerSettings() {
-    return $this->settings['scheduler_settings'] + $this->getScheduler()->getDefaultSettings($this);
+    return $this->getPluginSettings('scheduler');
   }
 
   function getScheduledLabel() {
-    return $this->getScheduler()->getScheduledLabel($this->getSchedulerSettings());
+    $scheduler = $this->getScheduler();
+    $settings = $this->getSchedulerSettings();
+    return $this->getScheduler()->getScheduledLabel($settings[$scheduler->name]);
   }
 
   function getLauncher() {
-    if (!empty($this->settings['launcher'])) {
-      return ultimate_cron_launcher_load($this->settings['launcher']);
-    }
-    else {
-      return ultimate_cron_launcher_load($this->hook['launcher']);
-    }
+    return $this->getPlugin('launcher');
   }
 
   function getLauncherSettings() {
-    return $this->settings['launcher_settings'] + $this->hook['launcher_settings'];
+    return $this->getPluginSettings('launcher');
   }
 
-  function getLatestLogEntry() {
-    return UltimateCronLog::findLatest($this->name);
+  function getLatestLog() {
+    return $this->getPlugin('logger')->loadLatest($this);
   }
 
   function getLastRan() {
-    $log = UltimateCronLog::findLatest($this->name);
+    $log = $this->getLatestLog();
     return $log ? $log->start_time : 0;
     #$log = ultimate_cron_get_last_log_entry($this->name);
     #return $log ? $log['start_time'] : 0;
@@ -76,16 +101,9 @@ class UltimateCronJob {
   }
 
   function startLog() {
-    $log = new UltimateCronLog($this->name);
-    $log->module = $this->hook['module'];
-    $log->create();
+    $log = $this->getPlugin('logger');
+    $log->initialize($this);
     $log->catchMessages();
-    return $log;
-  }
-
-  function createLogEntry() {
-    $log = new UltimateCronLog($this->name);
-    $log->create();
     return $log;
   }
 

@@ -14,7 +14,7 @@ function ultimate_cron_schema() {
     'description' => 'Cron jobs',
     'export' => array(
       'admin_title' => 'title',
-      'admin_description' => 'description',
+      // 'admin_description' => 'description',
       'key' => 'name',
       'primary key' => 'jid',
       'identifier' => 'job',
@@ -63,8 +63,10 @@ function ultimate_cron_schema() {
         'serialize' => TRUE,
         'not null' => FALSE,
         'object default' => array(
-          'scheduler' => 0,
-          'scheduler_settings' => array(),
+          'scheduler' => array(),
+          'launcher' => array(),
+          'logger' => array(),
+          'settings' => array(),
         ),
       ),
     ),
@@ -103,18 +105,8 @@ function ultimate_cron_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      'scheduler_message' => array(
-        'description' => 'Scheduler message',
-        'type' => 'text',
-        'not null' => FALSE,
-      ),
-      'launcher_message' => array(
-        'description' => 'Launcher message',
-        'type' => 'text',
-        'not null' => FALSE,
-      ),
-      'messages' => array(
-        'description' => 'Messages',
+      'message' => array(
+        'description' => 'Message',
         'type' => 'text',
         'not null' => FALSE,
       ),

@@ -8,6 +8,8 @@
  * Queue scheduler.
  */
 class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
+  public $hasSettings = TRUE;
+
   public $presets = array(
     '* * * * *' => 60,
     '0 * * * *' => 3600,
@@ -28,6 +30,17 @@ class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
   }
 
   /**
+   * Form value for settings.
+   */
+  public function settingsFormValue($name, $value) {
+    switch ($name) {
+      case 'rules':
+        return is_array($value) ? reset($value) : '';
+    }
+    return parent::settingsFormValue($name, $value);
+  }
+
+  /**
    * Label for settings.
    */
   public function settingsLabel($name, $value) {
@@ -39,26 +52,28 @@ class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
   }
 
   public function getScheduledLabel($settings) {
-    return isset($settings['rules'][0]) ? t('Every @interval', array('@interval' =>format_interval($this->presets[$settings['rules'][0]]))) : t('N/A');
+    return isset($settings['rules'][0]) ? t('Every @interval', array('@interval' => format_interval($this->presets[$settings['rules'][0]]))) : t('N/A');
   }
 
   /**
    * Settings form for the crontab scheduler.
    */
   public function settingsForm(&$form, &$form_state) {
-    $rule = reset($form_state['values']['settings']['scheduler_settings']['rules']);
+    $elements = &$form['settings'][$this->type][$this->name];
+    $values = &$form_state['values']['settings'][$this->type][$this->name];
+    $rule = $this->settingsFormValue('rules', $values['rules']);
 
     $intervals = drupal_map_assoc($this->presets, 'format_interval');
     $options = array_combine(array_keys($this->presets), $intervals);
 
-    $form['settings']['scheduler_settings']['rules'] = array(
+    $elements['rules'] = array(
       '#type' => 'select',
       '#title' => t('Run cron every'),
       '#default_value' => $rule,
       '#description' => t('Select the interval you wish cron to run on.'),
       '#options' => $options,
       '#fallback' => TRUE,
-      '#fallback_required' => TRUE,
+      '#required' => TRUE,
     );
   }
 }

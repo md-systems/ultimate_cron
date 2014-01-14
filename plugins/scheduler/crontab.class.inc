@@ -8,6 +8,8 @@
  * Crontab scheduler.
  */
 class UltimateCronCrontabScheduler extends UltimateCronScheduler {
+  public $hasSettings = TRUE;
+
   /**
    * Default settings.
    */
@@ -48,23 +50,25 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
    * Settings form for the crontab scheduler.
    */
   public function settingsForm(&$form, &$form_state) {
-    $rules = $this->settingsFormValue('rules', $form_state['values']['settings']['scheduler_settings']['rules']);
-    $form['settings']['scheduler_settings']['rules'] = array(
+    $elements = &$form['settings'][$this->type][$this->name];
+    $values = &$form_state['values']['settings'][$this->type][$this->name];
+    $rules = $this->settingsFormValue('rules', $values['rules']);
+    $elements['rules'] = array(
       '#title' => t("Rules"),
       '#type' => 'textfield',
       '#default_value' => $rules,
       '#description' => t('Comma separated list of crontab rules.'),
       '#fallback' => TRUE,
-      '#fallback_required' => TRUE,
+      '#required' => TRUE,
       #'#element_validate' => array('element_validate_crontab_rule'),
     );
-    $form['settings']['scheduler_settings']['catch_up'] = array(
+    $elements['catch_up'] = array(
       '#title' => t("Catch up"),
       '#type' => 'textfield',
-      '#default_value' => $form_state['values']['settings']['scheduler_settings']['catch_up'],
+      '#default_value' => $values['catch_up'],
       '#description' => t('Dont run job after X seconds of rule.'),
       '#fallback' => TRUE,
-      '#fallback_required' => TRUE,
+      '#required' => TRUE,
       #'#element_validate' => array('element_validate_crontab_rule'),
     );
   }
@@ -73,9 +77,11 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
    * Submit handler.
    */
   public function settingsFormSubmit(&$form, &$form_state) {
-    if (!empty($form_state['values']['settings']['scheduler_settings']['rules'])) {
-      $rules = explode(',', $form_state['values']['settings']['scheduler_settings']['rules']);
-      $form_state['values']['settings']['scheduler_settings']['rules'] = array_map('trim', $rules);
+    $elements = &$form['settings'][$this->type][$this->name];
+    $values = &$form_state['values']['settings'][$this->type][$this->name];
+    if (!empty($values['rules'])) {
+      $rules = explode(',', $values['rules']);
+      $values['rules'] = array_map('trim', $rules);      
     }
   }
 
