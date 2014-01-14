@@ -69,7 +69,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
    * added additional filters in list_form() then this is where you should
    * handle them.
    *
-   * @return
+   * @return bool
    *   TRUE if the item should be excluded.
    */
   function list_filter($form_state, $item) {
@@ -177,12 +177,15 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
           empty($this->plugin['export']['admin_title']) ? $name : $item->{$this->plugin['export']['admin_title']}
         );
         break;
+
       case 'title':
         $this->rows[$name]['sort'] = $item->{$this->plugin['export']['admin_title']};
         break;
+
       case 'start_time':
         $this->rows[$name]['sort'] = $item->start_time;
         break;
+
       case 'storage':
         $this->sorts[$name] = $item->{$schema['export']['export type string']} . $name;
         break;

@@ -25,7 +25,6 @@ define('ULTIMATE_CRON_DEFAULT_LOGGER', 'database');
 
 module_load_include('plugin.inc', 'ultimate_cron');
 module_load_include('job.inc', 'ultimate_cron');
-module_load_include('log.inc', 'ultimate_cron');
 
 /**
  * Memory exhaust protection.
@@ -598,9 +597,13 @@ function _ultimate_cron_get_queues() {
  * Get module name.
  */
 function ultimate_cron_module_name($module) {
-  $file = drupal_get_path('module', $module) . '/' . $module . '.info';
-  $info = drupal_parse_info_file($file);
-  return $info['name'] ? $info['name'] : $module;
+  static $module_names = array();
+  if (!isset($module_names[$module])) {
+    $file = drupal_get_path('module', $module) . '/' . $module . '.info';
+    $info = drupal_parse_info_file($file);
+    $module_names[$module] = $info['name'] ? $info['name'] : $module;
+  }
+  return $module_names[$module];
 }
 
 function ultimate_cron_get_hook($name, $reset = FALSE) {

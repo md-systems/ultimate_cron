@@ -3,6 +3,8 @@
 class UltimateCronDatabaseLogger extends UltimateCronLogger {
 
   function finish() {
+    $this->end_time = microtime(TRUE);
+    $this->save();
   }
 
   function save() {

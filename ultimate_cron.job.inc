@@ -60,20 +60,35 @@ class UltimateCronJob {
       drupal_set_message("Could not acquire log for %name. Already running?", array(
         '%name' => $this->name
       ));
+      return;
     }
-    switch ($this->hook['api_version']) {
-      case 1:
-        // $args = array($hook);
-        // $args = array_merge($args, $this->hook['callback_arguments']);
-        break;
+    try {
+      $log = $this->startLog();
+      switch ($this->hook['api_version']) {
+        case 1:
+          // $args = array($hook);
+          // $args = array_merge($args, $this->hook['callback_arguments']);
+          break;
 
-      case 2:
-        call_user_func_array($this->hook['callback'], array(
-          $this, $this->hook['callback_arguments']
-        ));
-        break;
+        case 2:
+          call_user_func_array($this->hook['callback'], array(
+            $this, $this->hook['callback_arguments']
+          ));
+          break;
+
+        default:
+          watchdog('ultimate_cron', 'Could not invoke cron job @name. Wrong API version (@api_version)', array(
+            '@name' => $this->name,
+            '@api_version' => $this->hook['api_version'],
+          ));
+      }
+      $log->finish();
+      lock_release($lock_key);
     }
-    lock_release($lock_key);
+    catch (Exception $e) {
+      $log->finish();
+      lock_release($lock_key);
+    }
   }
 
   function startLog() {

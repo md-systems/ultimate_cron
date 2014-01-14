@@ -38,25 +38,20 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
    */
   public function launch($job) {
     // Set proper max execution time.
-    $settings = $job->getPluginSettings('launcher');
-    $max_execution_time = ini_get('max_execution_time');
-    if ($max_execution_time && $max_execution_time < $settings['max_execution_time']) {
-      set_time_limit($settings['max_execution_time']);
-    }
+    $settings = $job->getSettings();
+    $launcher_settings = $settings['launcher'][$settings['launcher']['name']];
 
-    // Log start.
-    // $log = $job->startLog();
+    $max_execution_time = ini_get('max_execution_time');
+    if ($max_execution_time && $max_execution_time < $launcher_settings['max_execution_time']) {
+      set_time_limit($launcher_settings['max_execution_time']);
+    }
 
     // Run job.
     try {
-      dpm("Running: $job->name");
-      // $job->run();
+      $job->run();
     }
     catch (Exception $e) {
       watchdog('ultimate_cron', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);
     }
-
-    // Log finish.
-    // $log->finish();
   }
 }
