@@ -49,9 +49,7 @@ $plugin = array(
  * Form to edit the settings of an Ultimate Cron job.
  */
 function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
-  // dpm("HERE: " . rand(1,100));
   $job = $form_state['item'];
-  // dpm($job);
 
   $form['info']['name'] = array_merge($form['info']['name'], array(
     '#type' => 'value',
@@ -121,19 +119,7 @@ function ultimate_cron_job_ctools_export_ui_form_validate(&$form, &$form_state) 
   foreach ($form_state['values']['settings'] as $plugin_type => &$settings) {
     $static = $plugin_types['ultimate_cron'][$plugin_type]['defaults']['static'];
     $class = $static['class'];
-    if (empty($class::$multiple)) {
-      $name = !empty($form_state['values']['settings'][$plugin_type]['name']) ? $form_state['values']['settings'][$plugin_type]['name'] : $job->hook[$plugin_type]['name'];
-
-      $plugin = ultimate_cron_plugin_load($plugin_type, $name);
-      $plugin->settingsFormValidate($form, $form_state);
-
-    }
-    else {
-      $plugins = ultimate_cron_plugin_load_all($plugin_type);
-      foreach ($plugins as $name => $plugin) {
-        $plugin->settingsFormValidate($form, $form_state);
-      }
-    }
+    $class::jobSettingsFormValidate($form, $form_state, $plugin_type, $job);
   }
 }
 
@@ -144,41 +130,13 @@ function ultimate_cron_job_ctools_export_ui_form_validate(&$form, &$form_state) 
  * $form_state['values'] to $form_state['item'].
  */
 function ultimate_cron_job_ctools_export_ui_form_submit(&$form, &$form_state) {
-  dpm("Submit");
   $job = $form_state['item'];
-  $plugin_types = ultimate_cron_ctools_plugin_type();
+  ctools_include('plugins');
+  $plugin_types = ctools_plugin_get_plugin_type_info();
 
   foreach ($form_state['values']['settings'] as $plugin_type => &$settings) {
-    if (empty($plugin_types[$plugin_type]['multiple'])) {
-      $name = !empty($form_state['values']['settings'][$plugin_type]['name']) ? $form_state['values']['settings'][$plugin_type]['name'] : $job->hook[$plugin_type]['name'];
-
-      $plugin = ultimate_cron_plugin_load($plugin_type, $name);
-      $plugin->settingsFormSubmit($form, $form_state);
-      $plugin->cleanForm($form, $form_state);
-    }
-    else {
-      $plugins = ultimate_cron_plugin_load_all($plugin_type);
-      foreach ($plugins as $name => $plugin) {
-        $plugin->settingsFormSubmit($form, $form_state);
-        // $plugin->cleanForm($form, $form_state);
-      }
-    }
-  }
-
-  // dpm($form_state['values']);
-  return;
-  $job = $form_state['item'];
-  $scheduler = !empty($form_state['values']['settings']['scheduler']) ? $form_state['values']['settings']['scheduler'] : $job->hook['scheduler'];
-
-  $scheduler = ultimate_cron_scheduler_load($scheduler);
-  $scheduler->settingsFormSubmit($form, $form_state);
-  foreach ($form_state['values']['settings']['scheduler_settings'] as $key => $value) {
-    if (
-      empty($value) &&
-      !empty($form['settings']['scheduler_settings'][$key]['#fallback']) &&
-      empty($form['settings']['scheduler_settings'][$key]['#use_fallback_value'])
-    ) {
-      unset($form_state['values']['settings']['scheduler_settings'][$key]);
-    }
+    $static = $plugin_types['ultimate_cron'][$plugin_type]['defaults']['static'];
+    $class = $static['class'];
+    $class::jobSettingsFormSubmit($form, $form_state, $plugin_type, $job);
   }
 }

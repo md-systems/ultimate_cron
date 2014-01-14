@@ -8,8 +8,6 @@
  * Crontab scheduler.
  */
 class UltimateCronCrontabScheduler extends UltimateCronScheduler {
-  public $hasSettings = TRUE;
-
   /**
    * Default settings.
    */
@@ -60,7 +58,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
       '#description' => t('Comma separated list of crontab rules.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
-      #'#element_validate' => array('element_validate_crontab_rule'),
+      '#element_validate' => array('ultimate_cron_plugin_crontab_element_validate_rule'),
     );
     $elements['catch_up'] = array(
       '#title' => t("Catch up"),
@@ -69,7 +67,6 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
       '#description' => t('Dont run job after X seconds of rule.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
-      #'#element_validate' => array('element_validate_crontab_rule'),
     );
   }
 

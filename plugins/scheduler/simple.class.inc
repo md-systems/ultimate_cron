@@ -8,8 +8,6 @@
  * Queue scheduler.
  */
 class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
-  public $hasSettings = TRUE;
-
   public $presets = array(
     '* * * * *' => 60,
     '0 * * * *' => 3600,

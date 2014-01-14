@@ -8,8 +8,6 @@
  * Ultimate Cron launcher plugin class.
  */
 class UltimateCronSerialLauncher extends UltimateCronLauncher {
-  public $hasSettings = TRUE;
-
   /**
    * Default settings.
    */
