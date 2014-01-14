@@ -29,17 +29,6 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
     return parent::settingsLabel($name, $value);
   }
 
-  /**
-   * Form value for settings.
-   */
-  public function settingsFormValue($name, $value) {
-    switch ($name) {
-      case 'rules':
-        return $value ? implode(',', $value) : '';
-    }
-    return parent::settingsFormValue($name, $value);
-  }
-
   public function getScheduledLabel($job) {
     $this->getOffset($job);
     $settings = $job->getSettings();
@@ -52,7 +41,8 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   public function settingsForm(&$form, &$form_state) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
-    $rules = $this->settingsFormValue('rules', $values['rules']);
+    $rules = is_array($values['rules']) ? implode(',', $values['rules']) : '';
+
     $elements['rules'] = array(
       '#title' => t("Rules"),
       '#type' => 'textfield',

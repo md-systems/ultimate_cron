@@ -47,10 +47,6 @@ class UltimateCronPlugin {
     return array();
   }
 
-  public function settingsFormValue($name, $value) {
-    return $value;
-  }
-
   public function settingsLabel($name, $value) {
     return $value;
   }
@@ -454,22 +450,4 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
 }
 
 class UltimateCronSettings extends UltimateCronPluginMultiple {
-  /**
-   * Get default settings.
-   */
-  public function xxgetDefaultSettings($job = NULL) {
-    $settings = array();
-    if ($job && !empty($job->hook[$this->type][$this->name])) {
-      $settings += $job->hook[$this->type][$this->name];
-    }
-    $settings += $this->settings + $this->defaultSettings();
-    #return $settings;
-    return array(
-      $this->name => $settings,
-    );
-
-    return array(
-      $this->name => parent::getDefaultSettings()
-    );
-  }
 }

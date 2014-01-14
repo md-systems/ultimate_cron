@@ -28,17 +28,6 @@ class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
   }
 
   /**
-   * Form value for settings.
-   */
-  public function settingsFormValue($name, $value) {
-    switch ($name) {
-      case 'rules':
-        return is_array($value) ? reset($value) : '';
-    }
-    return parent::settingsFormValue($name, $value);
-  }
-
-  /**
    * Label for settings.
    */
   public function settingsLabel($name, $value) {
@@ -62,7 +51,7 @@ class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
   public function settingsForm(&$form, &$form_state) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
-    $rule = $this->settingsFormValue('rules', $values['rules']);
+    $rule = is_array($values['rules']) ? reset($values['rules']) : '';
 
     $intervals = drupal_map_assoc($this->presets, 'format_interval');
     $options = array_combine(array_keys($this->presets), $intervals);
