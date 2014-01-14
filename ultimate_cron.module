@@ -719,27 +719,6 @@ function ultimate_cron_get_module_hooks($module) {
   return $items;
 }
 
-function ultimate_cron_form_ctools_export_ui_edit_item_form_alter(&$form, &$form_state) {
-  return;
-  $job = $form_state['item'];
-  if ($job->table != 'ultimate_cron_job') {
-    return;
-  }
-  if (!in_array('queue', $job->hook['tags'])) {
-    return;
-  }
-
-  if (!isset($form_state['values']['settings']['scheduler_settings']['queue_lease_time'])) {
-    $form_state['values']['settings']['scheduler_settings']['queue_lease_time'] = !empty($job->settings['scheduler_settings']['queue_lease_time']) ? $job->settings['scheduler_settings']['queue_lease_time'] : '';
-  }
-  $form['settings']['scheduler_settings']['queue_lease_time'] = array(
-    '#title' => t('Queue lease time'),
-    '#type' => 'textfield',
-    '#default_value' => $form_state['values']['settings']['scheduler_settings']['queue_lease_time'],
-    '#description' => t('Time in seconds to keep lock on claimed item') . ' ' . t('(Blank = @default)', array('@default' => variable_get('ultimate_cron_queue_lease_time', ULTIMATE_CRON_QUEUE_LEASE_TIME))),
-  );
-}
-
 /**
  * Get cron jobs available.
  *

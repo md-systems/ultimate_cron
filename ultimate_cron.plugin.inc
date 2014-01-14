@@ -69,7 +69,8 @@ class UltimateCronPlugin {
       }
       elseif (
         empty($values[$child]) &&
-        !empty($elements[$child]['#fallback'])
+        !empty($elements[$child]['#fallback']) &&
+        $values[$child] !== '0'
       ) {
         unset($values[$child]);
       }
@@ -152,7 +153,7 @@ class UltimateCronPlugin {
 
     // Setup plugin selector.
     $options = array();
-    $options[0] = t('Default (@default)', array(
+    $options[''] = t('Default (@default)', array(
       '@default' => $plugins[$job->hook[$plugin_type]['name']]->title,
     ));
     foreach ($plugins as $name => $plugin) {
@@ -189,16 +190,16 @@ class UltimateCronPlugin {
     }
   }
 
-  static function jobSettingsFormValidate($form, &$form_state, $plugin_type, $job) {
+  static function jobSettingsFormValidate($form, &$form_state, $plugin_type, $job = NULL) {
     $name = !empty($form_state['values']['settings'][$plugin_type]['name']) ? $form_state['values']['settings'][$plugin_type]['name'] : $job->hook[$plugin_type]['name'];
     $plugin = ultimate_cron_plugin_load($plugin_type, $name);
-    $plugin->settingsFormValidate($form, $form_state);
+    $plugin->settingsFormValidate($form, $form_state, $job);
   }
 
-  static function jobSettingsFormSubmit($form, &$form_state, $plugin_type, $job) {
+  static function jobSettingsFormSubmit($form, &$form_state, $plugin_type, $job = NULL) {
     $name = !empty($form_state['values']['settings'][$plugin_type]['name']) ? $form_state['values']['settings'][$plugin_type]['name'] : $job->hook[$plugin_type]['name'];
     $plugin = ultimate_cron_plugin_load($plugin_type, $name);
-    $plugin->settingsFormSubmit($form, $form_state);
+    $plugin->settingsFormSubmit($form, $form_state, $job);
 
     // Weed out blank values that have fallbacks.
     $elements = &$form['settings'][$plugin_type][$name];
@@ -218,13 +219,13 @@ class UltimateCronPlugin {
   /**
    * Settings form validate handler.
    */
-  public function settingsFormValidate(&$form, &$form_state) {
+  public function settingsFormValidate(&$form, &$form_state, $job = NULL) {
   }
 
   /**
    * Settings form submit handler.
    */
-  public function settingsFormSubmit(&$form, &$form_state) {
+  public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
   }
 
   /**
@@ -249,7 +250,7 @@ class UltimateCronPlugin {
         if (!$remove_non_fallbacks) {
           if ($element['#type'] == 'select' && empty($element['#multiple'])) {
             $element['#options'] = array(
-              '0' => t('Default (@default)', array('@default' => $this->settingsLabel($child, $defaults[$child]))),
+              '' => t('Default (@default)', array('@default' => $this->settingsLabel($child, $defaults[$child]))),
             ) + $element['#options'];
           }
           elseif ($defaults[$child] !== '') {
@@ -328,7 +329,7 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
     $plugins = ultimate_cron_plugin_load_all($plugin_type);
     foreach ($plugins as $name => $plugin) {
       if ($plugin->isValid($job)) {
-        $plugin->settingsFormValidate($form, $form_state);
+        $plugin->settingsFormValidate($form, $form_state, $job);
       }
     }
   }
@@ -337,7 +338,7 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
     $plugins = ultimate_cron_plugin_load_all($plugin_type);
     foreach ($plugins as $name => $plugin) {
       if ($plugin->isValid($job)) {
-        $plugin->settingsFormSubmit($form, $form_state);
+        $plugin->settingsFormSubmit($form, $form_state, $job);
 
         // Weed out blank values that have fallbacks.
         $elements = &$form['settings'][$plugin_type][$name];
@@ -383,39 +384,36 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   public $module;
   public $finished = FALSE;
 
-  public $lid = NULL;
-  public $start_time = 0;
-  public $end_time = 0;
-  public $message = '';
-  public $severity = -1;
+  public $log_entry = NULL;
+
   static public $logs = array();
 
   function initialize($job) {
-    $this->lid = NULL;
-    $this->start_time = microtime(TRUE);
-    $this->end_time = 0;
-    $this->message = '';
-    $this->severity = -1;
+    $log_entry->lid = NULL;
+    $log_entry->start_time = microtime(TRUE);
+    $log_entry->end_time = 0;
+    $log_entry->message = '';
+    $log_entry->severity = -1;
 
-    $this->module = $job->hook['module'];
-    $this->name = $job->name;
+    $log_entry->module = $job->hook['module'];
+    $log_entry->name = $job->name;
     $this->save();
   }
 
   function watchdog(array $log_entry) {
     $this->message .= t($log_entry['message'], $log_entry['variables']) . "\n";
-    if ($this->severity < 0 || $this->severity > $log_entry['severity']) {
-      $this->severity = $log_entry['severity'];
+    if ($this->log_entry->severity < 0 || $this->log_entry->severity > $log_entry['severity']) {
+      $this->log_entry->severity = $log_entry['severity'];
     }
   }
 
   function catchMessages() {
-    self::$logs[$this->lid] = $this;
+    self::$logs[$this->log_entry->lid] = $this;
     drupal_register_shutdown_function(array($this, 'catchMessagesShutdown'));
   }
 
   function unCatchMessages() {
-    unset(self::$logs[$this->lid]);
+    unset(self::$logs[$this->log_entry->lid]);
   }
 
   static function hook_watchdog(array $log_entry) {
@@ -425,7 +423,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   }
 
   public function catchMessagesShutdown() {
-    if ($this->finished) {
+    if ($this->log_entry->finished) {
       return;
     }
 
@@ -447,7 +445,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
       global $user;
       global $base_root;
       $log_entry = array(
-        'type'        => $this->module,
+        'type'        => $this->log_entry->module,
         'message'     => $message,
         'variables'   => array(),
         'severity'    => $severity,
@@ -468,4 +466,13 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
 }
 
 class UltimateCronSettings extends UltimateCronPluginMultiple {
+}
+
+class UltimateCronTaggedSettings extends UltimateCronSettings {
+  /**
+   * Only valid for jobs tagged with the proper tag.
+   */
+  public function isValid($job) {
+    return in_array($this->name, $job->hook['tags']);
+  }
 }

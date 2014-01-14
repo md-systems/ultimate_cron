@@ -223,7 +223,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     );
 
     // Started and duration.
-    $log = $item->getPlugin('logger')->loadLatest($item);
+    $log = $item->getPlugin('logger')->loadLatest($item)->log_entry;
     $start_time = $log->start_time ? format_date((int) $log->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
     $this->rows[$name]['data'][] = array('data' => $start_time, 'class' => array('ctools-export-ui-last-start-time'));
 

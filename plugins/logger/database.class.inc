@@ -1,19 +1,22 @@
 <?php
 
 class UltimateCronDatabaseLogger extends UltimateCronLogger {
+  function cleanup($job) {
+
+  }
 
   function finish() {
-    if (!$this->finished) {
-      $this->end_time = microtime(TRUE);
-      $this->finished = TRUE;
+    if (!$this->log_entry->finished) {
+      $this->log_entry->end_time = microtime(TRUE);
+      $this->log_entry->finished = TRUE;
       $this->save();
     }
   }
 
   function save() {
-    $keys = $this->lid ? array('lid') : array();
-    error_log("Saving: $this->name - $this->lid");
-    drupal_write_record('ultimate_cron_log', $this, $keys);
+    $keys = $this->log_entry->lid ? array('lid') : array();
+    error_log("Saving: $this->log_entry->name - $this->log_entry->lid");
+    drupal_write_record('ultimate_cron_log', $this->log_entry, $keys);
   }
 
   function loadLatest($job) {
@@ -25,18 +28,18 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
              ->execute()
              ->fetchObject();
     if ($log) {
-      $this->lid = $log->lid;
-      $this->start_time = $log->start_time;
-      $this->end_time = $log->end_time;
-      $this->message = $log->message;
-      $this->severity = $log->severity;
+      $this->log_entry->lid = $log->lid;
+      $this->log_entry->start_time = $log->start_time;
+      $this->log_entry->end_time = $log->end_time;
+      $this->log_entry->message = $log->message;
+      $this->log_entry->severity = $log->severity;
     }
     else {
-      $this->lid = NULL;
-      $this->start_time = 0;
-      $this->end_time = 0;
-      $this->message = '';
-      $this->severity = -1;
+      $this->log_entry->lid = NULL;
+      $this->log_entry->start_time = 0;
+      $this->log_entry->end_time = 0;
+      $this->log_entry->message = '';
+      $this->log_entry->severity = -1;
     }
     $this->module = $job->hook['module'];
     $this->name = $job->name;

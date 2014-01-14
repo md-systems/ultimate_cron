@@ -10,6 +10,6 @@ $plugin = array(
 
   'handler' => array(
     'class' => 'UltimateCronQueueSettings',
-    'parent' => 'UltimateCronSettings',
+    'parent' => 'UltimateCronTaggedSettings',
   ),
 );

@@ -7,14 +7,7 @@
 /**
  * Ultimate Cron launcher plugin class.
  */
-class UltimateCronQueueSettings extends UltimateCronSettings {
-  /**
-   * Only valid for jobs tagged with "queue".
-   */
-  public function isValid($job) {
-    return in_array($this->name, $job->hook['tags']);
-  }
-
+class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
   /**
    * Default settings.
    */

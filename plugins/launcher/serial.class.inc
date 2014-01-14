@@ -54,14 +54,16 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
   /**
    * Settings form validator.
    */
-  public function settingsFormValidate($form, &$form_state) {
+  public function settingsFormValidate($form, &$form_state, $job = NULL) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
-    if (intval($values['max_launch_threads']) <= 0) {
-      form_set_error("settings[$this->type][$this->name", t('%title must be greater than 0', array(
-        '%title' => $elements['max_launch_threads']['#title']
-      )));
+    if (!$job) {
+      if (intval($values['max_launch_threads']) <= 0) {
+        form_set_error("settings[$this->type][$this->name", t('%title must be greater than 0', array(
+          '%title' => $elements['max_launch_threads']['#title']
+        )));
+      }
     }
   }
 
