@@ -227,7 +227,14 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $start_time = $log->start_time ? format_date((int) $log->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
     $this->rows[$name]['data'][] = array('data' => $start_time, 'class' => array('ctools-export-ui-last-start-time'));
 
-    $duration = (int) ($log->end_time - $log->start_time);
+    $duration = NULL;
+    if ($log->start_time && $log->end_time) {
+      $duration = (int) ($log->end_time - $log->start_time);
+    }
+    elseif ($log->start_time) {
+      $duration = (int) (microtime(TRUE) - $log->start_time);
+    }
+    // $duration = $log->end_time ? (int) ($log->end_time - $log->start_time) : (int) (microtime(TRUE) - $log->start_time);
     switch (TRUE) {
       case $duration >= 86400:
         $format = 'd H:i:s';
@@ -240,7 +247,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       default:
         $format = 'i:s';
     }
-    $duration = $log->end_time ? gmdate($format, $duration) : t('N/A');
+    $duration = isset($duration) ? gmdate($format, $duration) : t('N/A');
     $this->rows[$name]['data'][] = array(
       'data' => $duration,
       'class' => array('ctools-export-ui-duration'),
@@ -254,27 +261,32 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $this->rows[$name]['data'][] = array('data' => check_plain($item->{$schema['export']['export type string']}), 'class' => array('ctools-export-ui-storage'));
 
     // Status.
-    switch ($log->severity) {
-      case WATCHDOG_EMERGENCY:
-      case WATCHDOG_ALERT:
-      case WATCHDOG_CRITICAL:
-      case WATCHDOG_ERROR:
-        $file = 'message-16-error.png';
-        break;
-      case WATCHDOG_WARNING:
-      case WATCHDOG_NOTICE:
-        $file = 'message-16-warning.png';
-        break;
-      case WATCHDOG_INFO:
-      case WATCHDOG_DEBUG:
-        $file = 'message-16-info.png';
-        break;
+    if ($log->start_time && !$log->end_time) {
+      $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
+    }
+    else {
+      switch ($log->severity) {
+        case WATCHDOG_EMERGENCY:
+        case WATCHDOG_ALERT:
+        case WATCHDOG_CRITICAL:
+        case WATCHDOG_ERROR:
+          $file = 'misc/message-16-error.png';
+          break;
+        case WATCHDOG_WARNING:
+        case WATCHDOG_NOTICE:
+          $file = 'misc/message-16-warning.png';
+          break;
+        case WATCHDOG_INFO:
+        case WATCHDOG_DEBUG:
+          $file = 'misc/message-16-info.png';
+          break;
 
-      default;
-        $file = 'message-16-ok.png';
+        default;
+          $file = 'misc/message-16-ok.png';
+      }
     }
     $image = theme('image', array(
-      'path' => 'misc/' . $file,
+      'path' => $file,
     ));
     $this->rows[$name]['data'][] = array(
       'data' => $image,

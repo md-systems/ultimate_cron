@@ -696,9 +696,9 @@ function ultimate_cron_get_module_hooks($module) {
         );
       }
 
-      foreach ($plugins[$plugin_type] as $name => $plugin) {
+      foreach ($plugins[$plugin_type] as $plugin_name => $plugin) {
         $item[$plugin_type] += array(
-          $name => array(),
+          $plugin_name => array(),
         );
       }
     }

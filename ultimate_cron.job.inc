@@ -55,6 +55,7 @@ class UltimateCronJob {
 
   function run() {
     $settings = $this->getSettings();
+    dpm($this);
     $lock_key = "uc:" . $this->name;
     if (!lock_acquire($lock_key, $settings['settings']['general']['lock_expire'])) {
       drupal_set_message("Could not acquire log for %name. Already running?", array(
