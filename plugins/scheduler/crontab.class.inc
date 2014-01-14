@@ -40,8 +40,10 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
     return parent::settingsFormValue($name, $value);
   }
 
-  public function getScheduledLabel($settings) {
-    return implode(', ', $settings['rules']);
+  public function getScheduledLabel($job) {
+    $this->getOffset($job);
+    $settings = $job->getSettings();
+    return implode(', ', $settings[$this->type][$this->name]['rules']);
   }
 
   /**
@@ -83,22 +85,22 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   }
 
   public function schedule($job) {
-    #dpm($job);
     include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
-    $settings = $job->getSchedulerSettings();
-    #dpm($job->getScheduler()->name);
-    #dpm($settings);
-    foreach ($settings['rules'] as $rule) {
+    $settings = $job->getSettings();
+    $scheduler_settings = $settings['scheduler'][$settings['scheduler']['name']];
+
+    foreach ($scheduler_settings['rules'] as $rule) {
       $now = time();
       $cron = new CronRule($rule, $now);
       $cron_last_ran = $cron->getLastRan();
-      $job_last_ran = $job->getLastRan();
+      $log = $job->getPlugin('logger')->loadLatest($job);
+      $job_last_ran = $log->start_time;
       $msg = sprintf("Checking %s on %s < %s >= %s <= %s",
         $rule,
         date('Y-m-d H:i:s', $job_last_ran),
         date('Y-m-d H:i:s', $cron_last_ran),
         date('Y-m-d H:i:s', $now),
-        date('Y-m-d H:i:s', $cron_last_ran + $settings['catch_up'])
+        date('Y-m-d H:i:s', $cron_last_ran + $scheduler_settings['catch_up'])
       );
       dpm($msg, $job->name);
       #dpm("CHECKING: $rule with result: $last_ran", $job->name);
@@ -106,12 +108,17 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
       if (
         $cron_last_ran >= $job_last_ran &&
         $now >= $job_last_ran &&
-        $now <= $cron_last_ran + $settings['catch_up']
+        $now <= $cron_last_ran + $scheduler_settings['catch_up']
       ) {
         return TRUE;
       }
       return FALSE;
     }
     return FALSE;
+  }
+
+  function getOffset($job) {
+    $sha = hexdec(substr(sha1($job->name), -2));
+    dpm($sha);
   }
 }

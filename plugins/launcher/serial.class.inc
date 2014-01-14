@@ -49,7 +49,8 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
 
     // Run job.
     try {
-      $job->run();
+      dpm("Running: $job->name");
+      // $job->run();
     }
     catch (Exception $e) {
       watchdog('ultimate_cron', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);

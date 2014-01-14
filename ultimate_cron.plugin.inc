@@ -32,16 +32,12 @@ class UltimateCronPlugin {
    * Get default settings.
    */
   public function getDefaultSettings($job = NULL) {
-    return $this->settings + $this->defaultSettings();
-
     $settings = array();
     if ($job && !empty($job->hook[$this->type][$this->name])) {
       $settings += $job->hook[$this->type][$this->name];
     }
     $settings += $this->settings + $this->defaultSettings();
-    return array(
-      $this->name => $settings
-    );
+    return $settings;
   }
 
   /**
@@ -256,18 +252,13 @@ class UltimateCronPlugin {
 
       if (!empty($element['#fallback'])) {
         if (!$remove_non_fallbacks) {
-          if (!empty($element['#use_fallback_value'])) {
-            $element['#default_value'] = $this->settingsFormValue($child, $defaults[$child]);
+          if ($element['#type'] == 'select' && empty($element['#multiple'])) {
+            $element['#options'] = array(
+              '0' => t('Default (@default)', array('@default' => $this->settingsLabel($child, $defaults[$child]))),
+            ) + $element['#options'];
           }
-          else {
-            if ($element['#type'] == 'select' && empty($element['#multiple'])) {
-              $element['#options'] = array(
-                '0' => t('Default (@default)', array('@default' => $this->settingsLabel($child, $defaults[$child]))),
-              ) + $element['#options'];
-            }
-            elseif ($defaults[$child] !== '') {
-              $element['#description'] .= ' ' . t('(Blank = @default)', array('@default' => $this->settingsLabel($child, $defaults[$child])));
-            }
+          elseif ($defaults[$child] !== '') {
+            $element['#description'] .= ' ' . t('(Blank = @default)', array('@default' => $this->settingsLabel($child, $defaults[$child])));
           }
           unset($element['#required']);
         }
@@ -341,19 +332,26 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
   static function jobSettingsFormValidate($form, &$form_state, $plugin_type, $job) {
     $plugins = ultimate_cron_plugin_load_all($plugin_type);
     foreach ($plugins as $name => $plugin) {
-      $plugin->settingsFormValidate($form, $form_state);
+      if ($plugin->isValid($job)) {
+        $plugin->settingsFormValidate($form, $form_state);
+      }
     }
   }
 
   static function jobSettingsFormSubmit($form, &$form_state, $plugin_type, $job) {
     $plugins = ultimate_cron_plugin_load_all($plugin_type);
     foreach ($plugins as $name => $plugin) {
-      $plugin->settingsFormSubmit($form, $form_state);
+      if ($plugin->isValid($job)) {
+        $plugin->settingsFormSubmit($form, $form_state);
 
-      // Weed out blank values that have fallbacks.
-      $elements = &$form['settings'][$plugin_type][$name];
-      $values = &$form_state['values']['settings'][$plugin_type][$name];;
-      $plugin->cleanForm($elements, $values);
+        // Weed out blank values that have fallbacks.
+        $elements = &$form['settings'][$plugin_type][$name];
+        $values = &$form_state['values']['settings'][$plugin_type][$name];
+        $plugin->cleanForm($elements, $values);
+      }
+      else {
+        unset($form_state['values']['settings'][$plugin_type][$name]);
+      }
     }
   }
 }
