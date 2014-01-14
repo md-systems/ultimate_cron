@@ -645,9 +645,11 @@ function ultimate_cron_get_module_hooks($module) {
       }
 
       if (!empty($settings['rules'])) {
-        $settings['scheduler_settings'] = array(
+        $settings['scheduler'] = array(
           'scheduler' => 'crontab',
-          'rules' => $settings['rules']
+          'crontab' => array(
+            'rules' => $settings['rules']
+          ),
         );
         unset($settings['rules']);
       }
@@ -828,6 +830,8 @@ function ultimate_cron_blank_values($array) {
 function ultimate_cron_run_scheduled() {
   ctools_include('export');
   $jobs = ctools_export_crud_load_all('ultimate_cron_job');
+
+  // Find jobs that should run now.
   $schedule = array();
   foreach ($jobs as $name => $job) {
     if ($job->schedule()) {
@@ -836,9 +840,19 @@ function ultimate_cron_run_scheduled() {
   }
   drupal_alter('cron_schedule', $schedule);
 
+  $launcher_schedule = array();
   foreach ($schedule as $name => $job) {
-    $job->launch();
+    $class = get_class($job->getPlugin('launcher'));
+    $launcher_schedule[$class][$name] = $job;
   }
+
+  ctools_include('plugins');
+  $plugin_types = ctools_plugin_get_plugin_type_info();
+  foreach ($launcher_schedule as $class => $jobs) {
+    $class::launchJobs($jobs);
+  }
+  dpm($plugin_types);
+  dpm($launcher_schedule);
 
   return 'TEST';
   drupal_goto('admin/config/system/cron');

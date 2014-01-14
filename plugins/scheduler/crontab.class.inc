@@ -37,7 +37,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   /**
    * Settings form for the crontab scheduler.
    */
-  public function settingsForm(&$form, &$form_state) {
+  public function settingsForm(&$form, &$form_state, $job = NULL) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
     $rules = is_array($values['rules']) ? implode(',', $values['rules']) : '';

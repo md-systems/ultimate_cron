@@ -15,6 +15,7 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
     return array(
       'global1' => 10,
       'global2' => '',
+      'global3' => 'SSDFSDF',
       'local1' => 10,
       'local2' => '',
     );
@@ -23,7 +24,18 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
   /**
    * Settings form for the crontab scheduler.
    */
-  public function settingsForm(&$form, &$form_state) {
+  public function settingsForm(&$form, &$form_state, $job = NULL) {
+    if (!$job) {
+      $form['settings'][$this->type][$this->name]['global3'] = array(
+        '#title' => t("My global only required value"),
+        '#type' => 'textfield',
+        '#default_value' => $form_state['values']['settings'][$this->type][$this->name]['global3'],
+        '#description' => t('My global only required value.'),
+        '#fallback' => TRUE,
+        '#required' => TRUE,
+      );
+    }
+
     $form['settings'][$this->type][$this->name]['global1'] = array(
       '#title' => t("My globally required value"),
       '#type' => 'textfield',

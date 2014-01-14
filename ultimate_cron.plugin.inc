@@ -114,7 +114,6 @@ class UltimateCronPlugin {
     $plugin_types = ctools_plugin_get_plugin_type_info();
     $plugin_info = $plugin_types['ultimate_cron'][$plugin_type];
     $static = $plugin_info['defaults']['static'];
-    $class = $static['class'];
 
     // Find plugin selected on this page.
     // If "0" (meaning default) use the one defined in the hook.
@@ -184,7 +183,7 @@ class UltimateCronPlugin {
     $form_state['default_values']['settings'][$plugin_type][$current_plugin->name] = $defaults;
     $form_state['values']['settings'][$plugin_type][$current_plugin->name] += ultimate_cron_blank_values($defaults);
 
-    $current_plugin->settingsForm($form, $form_state);
+    $current_plugin->settingsForm($form, $form_state, $job);
     if (empty($form['settings'][$plugin_type][$current_plugin->name]['no_settings'])) {
       $current_plugin->fallbackalize($form['settings'][$plugin_type][$current_plugin->name], $form_state['default_values']['settings'][$plugin_type][$current_plugin->name], FALSE);
     }
@@ -210,9 +209,9 @@ class UltimateCronPlugin {
   /**
    * Settings form.
    */
-  public function settingsForm(&$form, &$form_state) {
+  public function settingsForm(&$form, &$form_state, $job = NULL) {
     $form['settings'][$this->type][$this->name]['no_settings'] = array(
-      '#markup' => '<p>' . t('This plugin does not have any settings.') . '</p>',
+      '#markup' => '<p>' . t('This plugin has no settings.') . '</p>',
     );
   }
 
@@ -320,7 +319,7 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
       $form_state['default_values']['settings'][$plugin_type][$name] += $defaults;
       $form_state['values']['settings'][$plugin_type][$name] += ultimate_cron_blank_values($defaults);
 
-      $plugin->settingsForm($form, $form_state);
+      $plugin->settingsForm($form, $form_state, $job);
       $plugin->fallbackalize($form['settings'][$plugin_type][$name], $form_state['default_values']['settings'][$plugin_type][$name], FALSE);
     }
   }
@@ -357,7 +356,26 @@ abstract class UltimateCronScheduler extends UltimateCronPlugin {
 }
 
 abstract class UltimateCronLauncher extends UltimateCronPlugin {
-  abstract public function launch($job);
+  /**
+   * Launcher.
+   */
+  public function launch($job) {
+    // Run job.
+    try {
+      $job->run();
+    }
+    catch (Exception $e) {
+      watchdog('ultimate_cron', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);
+    }
+  }
+
+  static public function launchJobs($jobs) {
+    dpm("Default launch");
+    foreach ($jobs as $job) {
+      $job->launch();
+    }
+  }
+
 }
 
 abstract class UltimateCronLogger extends UltimateCronPlugin {
