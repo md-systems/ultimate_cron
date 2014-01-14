@@ -66,6 +66,99 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     }
   }
 
+  function logs_page($js, $input, $item) {
+    $output = '';
+    $log_entries = $item->getLogEntries();
+    $header = array(
+      t('Started'),
+      t('Duration'),
+      t('Message'),
+      t('Status'),
+    );
+    $rows = array();
+    foreach ($log_entries as $log_entry) {
+      $rows[$log_entry->lid]['data'] = array();
+      $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
+      $rows[$log_entry->lid]['data'][] = array('data' => $start_time, 'class' => array('ctools-export-ui-start-time'));
+
+      $duration = NULL;
+      if ($log_entry->start_time && $log_entry->end_time) {
+        $duration = (int) ($log_entry->end_time - $log_entry->start_time);
+      }
+      elseif ($log_entry->start_time) {
+        $duration = (int) (microtime(TRUE) - $log_entry->start_time);
+      }
+
+      switch (TRUE) {
+        case $duration >= 86400:
+          $format = 'd H:i:s';
+          break;
+
+        case $duration >= 3600:
+          $format = 'H:i:s';
+          break;
+
+        default:
+          $format = 'i:s';
+      }
+      $duration = isset($duration) ? gmdate($format, $duration) : t('N/A');
+      $rows[$log_entry->lid]['data'][] = array(
+        'data' => $duration,
+        'class' => array('ctools-export-ui-duration'),
+        'title' => $log_entry->end_time ? t('Previous run finished @ @end_time', array(
+          '@end_time' => format_date((int) $log_entry->end_time, 'custom', 'Y-m-d H:i:s'),
+        )) : '',
+      );
+
+      $rows[$log_entry->lid]['data'][] = array('data' => $log_entry->message, 'class' => array('ctools-export-ui-message'));
+
+      // Status.
+      if ($log_entry->start_time && !$log_entry->end_time) {
+        $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
+      }
+      else {
+        switch ($log_entry->severity) {
+          case WATCHDOG_EMERGENCY:
+          case WATCHDOG_ALERT:
+          case WATCHDOG_CRITICAL:
+          case WATCHDOG_ERROR:
+            $file = 'misc/message-16-error.png';
+            break;
+
+          case WATCHDOG_WARNING:
+          case WATCHDOG_NOTICE:
+            $file = 'misc/message-16-warning.png';
+            break;
+
+          case WATCHDOG_INFO:
+          case WATCHDOG_DEBUG:
+            $file = 'misc/message-16-info.png';
+            break;
+
+          default:
+            $file = 'misc/message-16-ok.png';
+        }
+      }
+      $severity_levels = array(
+        -1 => t('no info'),
+        -2 => t('running'),
+      ) + watchdog_severity_levels();
+      $image = theme('image', array('path' => $file));
+      $rows[$log_entry->lid]['data'][] = array(
+        'data' => $image,
+        'class' => array('ctools-export-ui-status'),
+        'title' => $severity_levels[$log_entry->severity],
+      );
+
+    }
+    $output .= theme('table', array(
+      'header' => $header,
+      'rows' => $rows,
+    ));
+    $output .= theme('pager');
+    return $output;
+  }
+
   /**
    * Create the filter/sort form at the top of a list of exports.
    *
@@ -160,7 +253,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     // $header[] = array('data' => t('Name'), 'class' => array('ctools-export-ui-name'));
     $header[] = array('data' => t('Scheduled'), 'class' => array('ctools-export-ui-scheduled'));
-    $header[] = array('data' => t('Started'), 'class' => array('ctools-export-ui-last-start-time'));
+    $header[] = array('data' => t('Started'), 'class' => array('ctools-export-ui-start-time'));
     $header[] = array('data' => t('Duration'), 'class' => array('ctools-export-ui-duration'));
     $header[] = array('data' => t('Status'), 'class' => array('ctools-export-ui-status'));
     $header[] = array('data' => t('Storage'), 'class' => array('ctools-export-ui-storage'));
@@ -263,16 +356,16 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     );
 
     // Started and duration.
-    $log = $item->getPlugin('logger')->loadLatest($item)->log_entry;
-    $start_time = $log->start_time ? format_date((int) $log->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
+    $log_entry = $item->getPlugin('logger')->loadLatest($item)->log_entry;
+    $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
     $this->rows[$name]['data'][] = array('data' => $start_time, 'class' => array('ctools-export-ui-last-start-time'));
 
     $duration = NULL;
-    if ($log->start_time && $log->end_time) {
-      $duration = (int) ($log->end_time - $log->start_time);
+    if ($log_entry->start_time && $log_entry->end_time) {
+      $duration = (int) ($log_entry->end_time - $log_entry->start_time);
     }
-    elseif ($log->start_time) {
-      $duration = (int) (microtime(TRUE) - $log->start_time);
+    elseif ($log_entry->start_time) {
+      $duration = (int) (microtime(TRUE) - $log_entry->start_time);
     }
 
     switch (TRUE) {
@@ -291,17 +384,17 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $this->rows[$name]['data'][] = array(
       'data' => $duration,
       'class' => array('ctools-export-ui-duration'),
-      'title' => $log->end_time ? t('Previous run finished @ @end_time', array(
-        '@end_time' => format_date((int) $log->end_time, 'custom', 'Y-m-d H:i:s'),
+      'title' => $log_entry->end_time ? t('Previous run finished @ @end_time', array(
+        '@end_time' => format_date((int) $log_entry->end_time, 'custom', 'Y-m-d H:i:s'),
       )) : '',
     );
 
     // Status.
-    if ($log->start_time && !$log->end_time) {
+    if ($log_entry->start_time && !$log_entry->end_time) {
       $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
     }
     else {
-      switch ($log->severity) {
+      switch ($log_entry->severity) {
         case WATCHDOG_EMERGENCY:
         case WATCHDOG_ALERT:
         case WATCHDOG_CRITICAL:
@@ -327,7 +420,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $this->rows[$name]['data'][] = array(
       'data' => $image,
       'class' => array('ctools-export-ui-status'),
-      'title' => $log->message ? $log->message : t('No info'),
+      'title' => $log_entry->message ? $log_entry->message : t('No info'),
     );
 
     // Storage.

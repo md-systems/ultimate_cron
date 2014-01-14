@@ -15,12 +15,6 @@
  */
 
 
-define('ULTIMATE_CRON_DEFAULT_SCHEDULER', 'simple');
-define('ULTIMATE_CRON_DEFAULT_LAUNCHER', 'serial');
-define('ULTIMATE_CRON_DEFAULT_LOGGER', 'database');
-
-// ---------- HOOKS ----------
-
 // module_load_include('nagios.inc', 'ultimate_cron');
 
 module_load_include('plugin.inc', 'ultimate_cron');
@@ -54,6 +48,8 @@ if (!function_exists('_out_of_memory_protection')) {
     reset($callbacks);
   }
 }
+
+// ---------- CTOOLS INTEGRATION ----------
 
 /**
  * Implements of hook_ctools_plugin_api().
@@ -329,43 +325,6 @@ function ultimate_cron_menu() {
     }
   }
 
-
-  $items['admin/ultimate-cron/service/start/%'] = array(
-    'type' => MENU_CALLBACK,
-    'title' => 'Run cron job',
-    'description' => 'Run cron job',
-    'page callback' => 'ultimate_cron_service_start',
-    'page arguments' => array(4),
-    'access arguments' => array('administer ultimate cron'),
-    'file' => 'ultimate_cron.admin.inc',
-  );
-  $items['admin/ultimate-cron/service/enable/%'] = array(
-    'type' => MENU_CALLBACK,
-    'title' => 'Enable cron job',
-    'description' => 'Enable cron job',
-    'page callback' => 'ultimate_cron_service_enable',
-    'page arguments' => array(4, TRUE),
-    'access arguments' => array('administer ultimate cron'),
-    'file' => 'ultimate_cron.admin.inc',
-  );
-  $items['admin/ultimate-cron/service/disable/%'] = array(
-    'type' => MENU_CALLBACK,
-    'title' => 'Disable cron job',
-    'description' => 'Disable cron job',
-    'page callback' => 'ultimate_cron_service_enable',
-    'page arguments' => array(4, FALSE),
-    'access arguments' => array('administer ultimate cron'),
-    'file' => 'ultimate_cron.admin.inc',
-  );
-  $items['admin/ultimate-cron/service/process-status'] = array(
-    'type' => MENU_CALLBACK,
-    'title' => 'Cron job process status',
-    'description' => 'Cron job process status',
-    'page callback' => 'ultimate_cron_service_process_status',
-    #'delivery callback' => 'ajax_deliver',
-    'access arguments' => array('administer ultimate cron'),
-    'file' => 'ultimate_cron.admin.inc',
-  );
   return $items;
 }
 
@@ -553,6 +512,7 @@ function ultimate_cron_cron_run($return = FALSE) {
     return;
   }
 
+  ultimate_cron_run_scheduled($return);
 }
 
 // ---------- HELPER FUNCTIONS ----------
@@ -745,8 +705,6 @@ function ultimate_cron_get_hooks($reset = FALSE) {
   // Allow other to manipulate the hook list.
   drupal_alter('cron', $hooks);
 
-  // dpm($hooks);
-
   return $hooks;
 }
 
@@ -810,7 +768,7 @@ function ultimate_cron_blank_values($array) {
   return $result;
 }
 
-function ultimate_cron_run_scheduled() {
+function ultimate_cron_run_scheduled($return = FALSE) {
   ctools_include('export');
   $jobs = ctools_export_crud_load_all('ultimate_cron_job');
 
@@ -834,11 +792,11 @@ function ultimate_cron_run_scheduled() {
   foreach ($launcher_schedule as $class => $jobs) {
     $class::launchJobs($jobs);
   }
-  dpm($plugin_types);
-  dpm($launcher_schedule);
 
-  return 'TEST';
-  drupal_goto('admin/config/system/cron');
+  if ($return) {
+    drupal_goto('admin/config/system/cron');
+  }
+  exit;
 }
 
 function ultimate_cron_watchdog(array $log_entry) {

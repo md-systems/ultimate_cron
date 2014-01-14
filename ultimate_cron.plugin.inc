@@ -471,7 +471,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     unset(self::$logs[$this->log_entry->lid]);
   }
 
-  static function hook_watchdog(array $log_entry) {
+  final static function hook_watchdog(array $log_entry) {
     foreach (self::$logs as $log) {
       $log->watchdog($log_entry);
     }

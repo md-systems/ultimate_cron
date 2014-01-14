@@ -108,6 +108,10 @@ class UltimateCronJob {
     }
   }
 
+  function getLogEntries() {
+    return $this->getPlugin('logger')->getLogEntries($this);
+  }
+
   function startLog() {
     $log = $this->getPlugin('logger');
     $log->initialize($this);

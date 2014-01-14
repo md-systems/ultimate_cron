@@ -75,6 +75,18 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
     return $this;
   }
 
+  function getLogEntries($job) {
+    $logs = db_select('ultimate_cron_log', 'l')
+      ->fields('l')
+      ->extend('PagerDefault')
+      ->condition('l.name', $job->name)
+      ->limit(10)
+      ->orderBy('l.start_time', 'DESC')
+      ->execute()
+      ->fetchAll();
+    return $logs;
+  }
+
   function settingsForm(&$form, &$form_state) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
