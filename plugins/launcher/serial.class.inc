@@ -61,16 +61,37 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
   }
 
   static public function launchJobs($jobs) {
-    // Set proper max execution time.
     $plugin = ultimate_cron_plugin_load('launcher', 'serial');
     $settings = $plugin->getDefaultSettings();
 
+    // Set proper max execution time.
     $max_execution_time = ini_get('max_execution_time');
     if ($max_execution_time && $max_execution_time < $settings['max_execution_time']) {
       set_time_limit($settings['max_execution_time']);
     }
+    $lock_expire = max($max_execution_time, $settings['max_execution_time']);
 
-    dpm("Testing threads: " . $settings['max_launch_threads']);
+    // Find a free slot, try for 3 seconds.
+    $lock = FALSE;
+    $expire = microtime(TRUE) + 3;
+    do {
+      for ($slot = 1; $slot <= $settings['max_launch_threads']; $slot++) {
+        $lock_key = 'ultimate_cron_serial_launcher_' . $slot;
+        if (lock_may_be_available($lock_key)) {
+          if ($lock = lock_acquire($lock_key, $lock_expire)) {
+            break 2;
+          }
+        }
+      }
+    } while (microtime(TRUE) < $expire);
+
+    if (!$lock) {
+      watchdog('serial_launcher', "No free slots available for starting launch thread", array(), WATCHDOG_WARNING);
+      return;
+    }
+
+    watchdog('serial_launcher', "Cron thread %slot started", array('%slot' => $slot), WATCHDOG_INFO);
+
     foreach ($jobs as $job) {
       $job->launch();
     }
