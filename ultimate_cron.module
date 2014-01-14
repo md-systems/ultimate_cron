@@ -49,6 +49,19 @@ if (!function_exists('_out_of_memory_protection')) {
   }
 }
 
+/**
+ * Output buffer callback for poormans cron early page flush.
+ */
+function _ultimate_cron_poormans_page_flush($content) {
+  if (!empty($GLOBALS['poorman_active']) && !drupal_is_cli() && $_SERVER['REQUEST_METHOD'] == 'GET') {
+    $size = strlen($content);
+    header("Content-length: $size");
+    header("Connection: close");
+  }
+  return $content;
+}
+ob_start('_ultimate_cron_poormans_page_flush');
+
 // ---------- CTOOLS INTEGRATION ----------
 
 /**
@@ -260,15 +273,33 @@ function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
  * Implements hook_exit().
  */
 function ultimate_cron_exit($dest = NULL) {
-  // Register our own Poormans Cron handler.
-  $callbacks = &drupal_register_shutdown_function();
-  array_unshift($callbacks, array('callback' => 'ultimate_cron_poorman', 'arguments' => array()));
-  // Reset internal array pointer just in case ...
-  reset($callbacks);
+  // We're picky about when we run poormans cron, because
+  // we want to flush the output buffer.
+  if (!drupal_is_cli() && $_SERVER['REQUEST_METHOD'] == 'GET') {
+    // Register our own Poormans Cron handler.
+    $callbacks = &drupal_register_shutdown_function();
+    array_unshift($callbacks, array('callback' => 'ultimate_cron_poorman', 'arguments' => array()));
+    // Reset internal array pointer just in case ...
+    reset($callbacks);
+  }
 }
 
 function ultimate_cron_poorman() {
-  error_log("POORMAN");
+  $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
+  $cron_last = variable_get('cron_last', 0);
+  if ($settings['poorman_interval'] && ($cron_last < time() - $settings['poorman_interval'])) {
+    // Thundering herd protection should be done in the launcher.
+
+    if ($settings['poorman_page_flush']) {
+      $GLOBALS['poorman_active'] = TRUE;
+      while (ob_get_level() > 0) {
+        ob_end_flush();
+      }
+      flush();
+    }
+
+    ultimate_cron_run_scheduled();
+  }
 }
 
 /**
@@ -546,7 +577,7 @@ function _ultimate_cron_variable_load($name) {
 /**
  * Variable set with cache by-pass.
  */
-function _ultimate_cron_variable_set($name, $value) {
+function _ultimate_cron_variable_save($name, $value) {
   global $conf;
   db_merge('variable')->key(array('name' => $name))->fields(array('value' => serialize($value)))->execute();
   $conf[$name] = $value;
@@ -783,7 +814,7 @@ function ultimate_cron_blank_values($array) {
   return $result;
 }
 
-function ultimate_cron_run_scheduled($return = FALSE) {
+function ultimate_cron_run_scheduled() {
   ctools_include('export');
   $jobs = ctools_export_crud_load_all('ultimate_cron_job');
 
@@ -802,18 +833,13 @@ function ultimate_cron_run_scheduled($return = FALSE) {
     $launcher_schedule[$class][$name] = $job;
   }
 
+  _ultimate_cron_variable_save('cron_last', time());
+
   ctools_include('plugins');
   $plugin_types = ctools_plugin_get_plugin_type_info();
   foreach ($launcher_schedule as $class => $jobs) {
     $class::launchJobs($jobs);
   }
-
-  _ultimate_cron_variable_set('cron_last', time());
-
-  if ($return) {
-    drupal_goto('admin/config/system/cron');
-  }
-  exit;
 }
 
 function ultimate_cron_watchdog(array $log_entry) {

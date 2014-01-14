@@ -81,6 +81,9 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     }
     $lock_timeout = max($max_execution_time, $settings['max_execution_time']);
 
+    // If infinite max execution, then we use a day for the lock.
+    $lock_timeout = $lock_timeout ? $lock_timeout : 86400;
+
     // Find a free slot, try for 3 seconds.
     $lock = FALSE;
     $expire = microtime(TRUE) + 3;

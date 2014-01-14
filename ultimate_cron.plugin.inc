@@ -244,7 +244,10 @@ class UltimateCronPlugin {
     }
     foreach (element_children($elements) as $child) {
       $element = &$elements[$child];
-      $this->fallbackalize($element, $defaults[$child], $remove_non_fallbacks);
+      $this->fallbackalize($element, empty($element['#tree']) ? $defaults : $defaults[$child], $remove_non_fallbacks);
+      if (empty($element['#type']) || $element['#type'] == 'fieldset') {
+        continue;
+      }
 
       if (!empty($element['#fallback'])) {
         if (!$remove_non_fallbacks) {
