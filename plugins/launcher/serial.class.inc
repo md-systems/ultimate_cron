@@ -24,6 +24,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
   public function settingsForm(&$form, &$form_state, $job = NULL) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
+
     if (!$job) {
       $elements['max_execution_time'] = array(
         '#title' => t("Maximum execution time"),
@@ -50,9 +51,13 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     }
   }
 
-  function settingsFormValidate($form, &$form_state) {
+  /**
+   * Settings form validator.
+   */
+  public function settingsFormValidate($form, &$form_state) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
+
     if (intval($values['max_launch_threads']) <= 0) {
       form_set_error("settings[$this->type][$this->name", t('%title must be greater than 0', array(
         '%title' => $elements['max_launch_threads']['#title']
@@ -60,6 +65,9 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     }
   }
 
+  /**
+   * Launch manager.
+   */
   static public function launchJobs($jobs) {
     $plugin = ultimate_cron_plugin_load('launcher', 'serial');
     $settings = $plugin->getDefaultSettings();

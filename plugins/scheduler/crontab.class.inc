@@ -29,6 +29,9 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
     return parent::settingsLabel($name, $value);
   }
 
+  /**
+   * Label for schedule.
+   */
   public function getScheduledLabel($job) {
     $settings = $job->getSettings();
     return implode(', ', $settings[$this->type][$this->name]['rules']);
@@ -37,9 +40,10 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   /**
    * Settings form for the crontab scheduler.
    */
-  public function settingsForm(&$form, &$form_state, $job = NULL) {
+  public function settingsForm(&$form, &$form_state) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
+
     $rules = is_array($values['rules']) ? implode(',', $values['rules']) : '';
 
     $elements['rules'] = array(
@@ -65,14 +69,17 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
    * Submit handler.
    */
   public function settingsFormSubmit(&$form, &$form_state) {
-    $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
+
     if (!empty($values['rules'])) {
       $rules = explode(',', $values['rules']);
-      $values['rules'] = array_map('trim', $rules);      
+      $values['rules'] = array_map('trim', $rules);
     }
   }
 
+  /**
+   * Schedule handler.
+   */
   public function schedule($job) {
     include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
     $settings = $job->getSettings();
@@ -92,7 +99,6 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
         date('Y-m-d H:i:s', $cron_last_ran + $scheduler_settings['catch_up'])
       );
       dpm($msg, $job->name);
-      #dpm("CHECKING: $rule with result: $last_ran", $job->name);
 
       if (
         $cron_last_ran >= $job_last_ran &&
@@ -109,7 +115,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   /**
    * Get a "unique" offset for a job.
    */
-  function getOffset($job) {
+  protected function getOffset($job) {
     return hexdec(substr(sha1($job->name), -2));
   }
 }

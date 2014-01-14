@@ -38,6 +38,9 @@ class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
     return parent::settingsLabel($name, $value);
   }
 
+  /**
+   * Label for schedule.
+   */
   public function getScheduledLabel($item) {
     $settings = $item->getSettings();
     return t('Every @interval', array(
@@ -48,9 +51,10 @@ class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
   /**
    * Settings form for the crontab scheduler.
    */
-  public function settingsForm(&$form, &$form_state, $job = NULL) {
+  public function settingsForm(&$form, &$form_state) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
+
     $rule = is_array($values['rules']) ? reset($values['rules']) : '';
 
     $intervals = drupal_map_assoc($this->presets, 'format_interval');
