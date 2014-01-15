@@ -73,6 +73,7 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
         '#required' => TRUE,
       );
       $elements['poorman']['poorman_page_flush'] = array(
+        '#parents' => array('settings', $this->type, $this->name, 'poorman_page_flush'),
         '#type' => 'checkbox',
         '#title' => t('Poormans Cron page flush'),
         '#default_value' => $values['poorman_page_flush'],
