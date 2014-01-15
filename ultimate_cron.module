@@ -828,7 +828,7 @@ function ultimate_cron_run_scheduled() {
   // Find jobs that should run now.
   $schedule = array();
   foreach ($jobs as $name => $job) {
-    if ($job->schedule()) {
+    if (empty($job->disabled) && $job->schedule()) {
       $schedule[$name] = $job;
     }
   }
