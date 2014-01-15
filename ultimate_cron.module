@@ -55,7 +55,7 @@ if (!function_exists('_out_of_memory_protection')) {
 function _ultimate_cron_poormans_page_flush($content) {
   if (!empty($GLOBALS['poorman_active']) && !drupal_is_cli() && $_SERVER['REQUEST_METHOD'] == 'GET') {
     $size = strlen($content);
-    header("Content-length: $size");
+    header("Content-Length: $size");
     header("Connection: close");
   }
   return $content;
@@ -291,11 +291,18 @@ function ultimate_cron_poorman() {
     // Thundering herd protection should be done in the launcher.
 
     if ($settings['poorman_page_flush']) {
+      ignore_user_abort();
       $GLOBALS['poorman_active'] = TRUE;
       while (ob_get_level() > 0) {
         ob_end_flush();
       }
       flush();
+
+      // FastCGI may need another way of letting the client know, that
+      // we're done with it.
+      if (function_exists('fastcgi_finish_request')) {
+        fastcgi_finish_request();
+      }
     }
 
     ultimate_cron_run_scheduled();

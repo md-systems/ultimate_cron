@@ -107,7 +107,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
       $cron->offset = $this->getOffset($job);
       $cron_last_ran = $cron->getLastRan($now);
       $log = $job->getPlugin('logger')->loadLatest($job);
-      $job_last_ran = $log->start_time;
+      $job_last_ran = $log->log_entry->start_time;
       $msg = sprintf("Checking %s on %s < %s >= %s <= %s",
         $rule,
         date('Y-m-d H:i:s', $job_last_ran),

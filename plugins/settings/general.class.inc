@@ -45,7 +45,9 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
         '#title' => t('Jobs'),
       );
     }
+
     $elements['jobs']['lock_timeout'] = array(
+      '#parents' => array('settings', $this->type, $this->name, 'lock_timeout'),
       '#title' => t("Job lock timeout"),
       '#type' => 'textfield',
       '#default_value' => $values['lock_timeout'],
@@ -61,6 +63,7 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
       );
       $options = array(0 => t('Never')) + drupal_map_assoc($this->poorman_intervals, 'format_interval');
       $elements['poorman']['poorman_interval'] = array(
+        '#parents' => array('settings', $this->type, $this->name, 'poorman_interval'),
         '#type' => 'select',
         '#title' => t('Poormans Cron interval'),
         '#default_value' => $values['poorman_interval'],
