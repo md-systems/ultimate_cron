@@ -86,8 +86,10 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
 
     // Find a free slot, try for 3 seconds.
     $lock = FALSE;
-    $expire = microtime(TRUE) + 3;
-    do {
+    $delay = 3 * 1000000;
+    $sleep = 25000;
+
+    while ($delay > 0) {
       for ($slot = 1; $slot <= $settings['max_launch_threads']; $slot++) {
         $lock_name = 'ultimate_cron_serial_launcher_' . $slot;
         if (lock_may_be_available($lock_name)) {
@@ -95,8 +97,13 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
             break 2;
           }
         }
+        usleep($sleep);
+        // After each sleep, increase the value of $sleep until it reaches
+        // 500ms, to reduce the potential for a lock stampede.
+        $delay = $delay - $sleep;
+        $sleep = min(500000, $sleep + 25000, $delay);
       }
-    } while (microtime(TRUE) < $expire);
+    }
 
     if (!$lock) {
       watchdog('serial_launcher', "No free slots available for starting launch thread", array(), WATCHDOG_WARNING);
