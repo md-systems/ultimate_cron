@@ -30,6 +30,12 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     else {
       unset($allowed_operations['unlock']);
     }
+    if (!empty($item->hook['configure'])) {
+      $allowed_operations['configure'] = array(
+        'title' => t('Configure'),
+        'href' => $item->hook['configure'],
+      );
+    }
     return $allowed_operations;
   }
 
