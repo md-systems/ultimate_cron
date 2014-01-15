@@ -10,6 +10,8 @@
 class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
   public $presets = array(
     '* * * * *' => 60,
+    '*/15 * * * *' => 900,
+    '*/30 * * * *' => 1800,
     '0 * * * *' => 3600,
     '0 */3 * * *' => 10800,
     '0 */6 * * *' => 21600,
@@ -23,7 +25,7 @@ class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
    */
   public function defaultSettings() {
     return array(
-      'rules' => array('0 * * * *'),
+      'rules' => array('0/15 * * * *'),
     ) + parent::defaultSettings();
   }
 
