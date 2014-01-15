@@ -27,7 +27,7 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
   public function defaultSettings() {
     return array(
       'lock_timeout' => 3600,
-      'poorman_interval' => 300,
+      'poorman_interval' => 60,
       'poorman_page_flush' => TRUE,
     );
   }
