@@ -38,8 +38,10 @@ class UltimateCronJob {
     else {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $name => $plugin) {
-        $settings += array($name => array());
-        $settings[$name] += $plugin->getDefaultSettings($this);
+        if ($plugin->isValid($this)) {
+          $settings += array($name => array());
+          $settings[$name] += $plugin->getDefaultSettings($this);
+        }
       }
     }
     return $settings;
@@ -75,11 +77,8 @@ class UltimateCronJob {
       ));
       return;
     }
-    $log = NULL;
     $php_self = NULL;
     try {
-      $log = $this->startLog();
-
       // Signal to whomever might be listening, that we're cron!
       // @investigate Is this safe? (He asked knowingly ...)
       $php_self = $_SERVER['PHP_SELF'] ? $_SERVER['PHP_SELF'] : '';
@@ -107,7 +106,6 @@ class UltimateCronJob {
       // Restore state.
       $_SERVER['PHP_SELF'] = $php_self;
 
-      $log->finish();
       $this->unlock();
     }
     catch (Exception $e) {
@@ -118,9 +116,6 @@ class UltimateCronJob {
 
       watchdog('ultimate_cron', 'Error running @name: @error', array('@error' => $e->getMessage()), WATCHDOG_ERROR);
 
-      if ($log) {
-        $log->finish();
-      }
       $this->unlock();
     }
   }
@@ -137,12 +132,12 @@ class UltimateCronJob {
   }
 
   function getModuleName() {
-    $info = ultimate_cron_get_module_info($this->hook['module']);
+    $info = system_get_info('module', $this->hook['module']);
     return $info && !empty($info['name']) ? $info['name'] : $this->hook['module'];
   }
 
   function getModuleDescription() {
-    $info = ultimate_cron_get_module_info($this->hook['module']);
+    $info = system_get_info('module', $this->hook['module']);
     return $info && !empty($info['description']) ? $info['description'] : '';
   }
 

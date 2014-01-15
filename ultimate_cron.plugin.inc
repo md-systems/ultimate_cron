@@ -54,7 +54,7 @@ class UltimateCronPlugin {
   /**
    * Default plugin valid for all jobs.
    */
-  public function isValid($job) {
+  public function isValid($job = NULL) {
     return TRUE;
   }
 
@@ -86,7 +86,9 @@ class UltimateCronPlugin {
     $key = 'ultimate_cron_default_plugin_' . $plugin_type;
     $options = array();
     foreach (ultimate_cron_plugin_load_all($plugin_type) as $name => $plugin) {
-      $options[$name] = $plugin->title;
+      if ($plugin->isValid()) {
+        $options[$name] = $plugin->title;
+      }
     }
     $form[$key] = array(
       '#type' => 'select',
@@ -278,7 +280,9 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
   static function defaultSettingsForm(&$form, &$form_state, $plugin_info) {
     $plugin_type = $plugin_info['type'];
     foreach (ultimate_cron_plugin_load_all($plugin_type) as $name => $plugin) {
-      $plugins[] = l($plugin->title, "admin/config/system/cron/$plugin_type/$name");
+      if ($plugin->isValid()) {
+        $plugins[] = l($plugin->title, "admin/config/system/cron/$plugin_type/$name");
+      }
     }
     $form['available'] = array(
       '#markup' => theme('item_list', array(
@@ -364,6 +368,8 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    * Launcher.
    */
   public function launch($job) {
+    $log = $job->startLog();
+
     // Run job.
     try {
       $job->run();
@@ -371,6 +377,8 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
     catch (Exception $e) {
       watchdog('ultimate_cron', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);
     }
+
+    $log->finish();
   }
 
   static public function launchJobs($jobs) {
@@ -417,8 +425,6 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
 }
 
 abstract class UltimateCronLogger extends UltimateCronPlugin {
-  public $name;
-  public $module;
   public $finished = FALSE;
 
   public $log_entry = NULL;
@@ -431,6 +437,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     $this->log_entry->lid = NULL;
     $this->log_entry->start_time = 0;
     $this->log_entry->end_time = 0;
+    $this->log_entry->launcher_message = '';
     $this->log_entry->message = '';
     $this->log_entry->severity = -1;
   }
@@ -440,6 +447,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     $this->log_entry->lid = NULL;
     $this->log_entry->start_time = microtime(TRUE);
     $this->log_entry->end_time = 0;
+    $this->log_entry->launcher_message = '';
     $this->log_entry->message = '';
     $this->log_entry->severity = -1;
 
@@ -522,7 +530,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   }
 
   static function cleanupLogs() {
-    $jobs = ultimate_cron_job_load_all_export_ui();
+    $jobs = ultimate_cron_job_load_all();
     foreach ($jobs as $job) {
       $job->getPlugin('logger')->cleanup($job);
     }
@@ -536,7 +544,7 @@ class UltimateCronTaggedSettings extends UltimateCronSettings {
   /**
    * Only valid for jobs tagged with the proper tag.
    */
-  public function isValid($job) {
-    return in_array($this->name, $job->hook['tags']);
+  public function isValid($job = NULL) {
+    return $job ? in_array($this->name, $job->hook['tags']) : parent::isValid();
   }
 }

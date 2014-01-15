@@ -78,6 +78,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $header = array(
       t('Started'),
       t('Duration'),
+      t('Launcher message'),
       t('Message'),
       t('Status'),
     );
@@ -116,6 +117,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         )) : '',
       );
 
+      $rows[$log_entry->lid]['data'][] = array('data' => $log_entry->launcher_message, 'class' => array('ctools-export-ui-launcher-message'));
       $rows[$log_entry->lid]['data'][] = array('data' => $log_entry->message, 'class' => array('ctools-export-ui-message'));
 
       // Status.
@@ -189,7 +191,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $jobs = ultimate_cron_get_hooks();
     $modules = array();
     foreach ($jobs as $job) {
-      $info = ultimate_cron_get_module_info($job['module']);
+      $info = system_get_info('module', $job['module']);
       $modules[$job['module']] = $info && !empty($info['name']) ? $info['name'] : $job['module'];
     }
 

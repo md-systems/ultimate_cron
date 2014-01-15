@@ -53,14 +53,16 @@ if (!function_exists('_out_of_memory_protection')) {
  * Output buffer callback for poormans cron early page flush.
  */
 function _ultimate_cron_poormans_page_flush($content) {
-  if (!empty($GLOBALS['poorman_active']) && !drupal_is_cli() && $_SERVER['REQUEST_METHOD'] == 'GET') {
+  if (!empty($GLOBALS['poorman_active'])) {
     $size = strlen($content);
     header("Content-Length: $size");
     header("Connection: close");
   }
   return $content;
 }
-ob_start('_ultimate_cron_poormans_page_flush');
+if (!drupal_is_cli() && $_SERVER['REQUEST_METHOD'] == 'GET') {
+  ob_start('_ultimate_cron_poormans_page_flush');
+}
 
 // ---------- CTOOLS INTEGRATION ----------
 
@@ -199,7 +201,7 @@ function ultimate_cron_plugin_load_all($plugin_type) {
  * @return object
  *   Job object.
  */
-function ultimate_cron_job_load($name) {
+function ultimate_cron_job_load_export_ui($name) {
   ctools_include('export');
   $result = ctools_export_load_object('ultimate_cron_job', 'names', array($name));
   if (isset($result[$name])) {
@@ -215,7 +217,7 @@ function ultimate_cron_job_load($name) {
  * @return array
  *   Job objects.
  */
-function ultimate_cron_job_load_all($reset = FALSE) {
+function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
   ctools_include('export');
   if ($reset) {
     ctools_export_load_object_reset('ultimate_cron_job');
@@ -227,13 +229,13 @@ function ultimate_cron_job_load_all($reset = FALSE) {
   return $results;
 }
 
-function ultimate_cron_job_load_export_ui($name) {
-  $jobs = ultimate_cron_job_load_all_export_ui();
+function ultimate_cron_job_load($name) {
+  $jobs = ultimate_cron_job_load_all();
   return $jobs[$name];
 }
 
-function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
-  $jobs = ultimate_cron_job_load_all($reset);
+function ultimate_cron_job_load_all($reset = FALSE) {
+  $jobs = ultimate_cron_job_load_all_export_ui($reset);
   $schema = ctools_export_get_schema('ultimate_cron_job');
   $export = $schema['export'];
   $status = variable_get($export['status'], array());
@@ -365,6 +367,9 @@ function ultimate_cron_menu() {
     );
     $weight++;
     foreach (ultimate_cron_plugin_load_all($plugin_type) as $name => $plugin) {
+      if (!$plugin->isValid()) {
+        continue;
+      }
       $items["admin/config/system/cron/$plugin_type/$name"] = array(
         'type' => MENU_LOCAL_TASK,
         'title' => $plugin->title,
@@ -611,19 +616,6 @@ function _ultimate_cron_get_queues() {
   return $queues;
 }
 
-/**
- * Get module name.
- */
-function ultimate_cron_get_module_info($module) {
-  static $module_info = array();
-  if (!isset($module_info[$module])) {
-    $file = drupal_get_path('module', $module) . '/' . $module . '.info';
-    $info = drupal_parse_info_file($file);
-    $module_info[$module] = $info ? $info : array();
-  }
-  return $module_info[$module];
-}
-
 function ultimate_cron_get_hook($name, $reset = FALSE) {
   $jobs = ultimate_cron_get_hooks($reset);
   return $jobs[$name];
@@ -715,6 +707,9 @@ function ultimate_cron_get_module_hooks($module) {
       }
 
       foreach ($plugins[$plugin_type] as $plugin_name => $plugin) {
+        if (!$plugin->isValid()) {
+          continue;
+        }
         $item[$plugin_type] += array(
           $plugin_name => array(),
         );

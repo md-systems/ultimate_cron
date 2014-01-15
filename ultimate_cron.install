@@ -14,14 +14,12 @@ function ultimate_cron_schema() {
     'description' => 'Cron jobs',
     'export' => array(
       'admin_title' => 'title',
-      // 'admin_description' => 'description',
       'key' => 'name',
       'primary key' => 'jid',
       'identifier' => 'job',
-      'load callback' => 'ultimate_cron_job_load_export_ui',
-      'load all callback' => 'ultimate_cron_job_load_all_export_ui',
+      'load callback' => 'ultimate_cron_job_load',
+      'load all callback' => 'ultimate_cron_job_load_all',
       'object' => 'UltimateCronJob',
-      #'create callback' => 'ultimate_cron_job_create_export_ui',
       'api' => array(
         'owner' => 'ultimate_cron',
         'api' => 'ultimate_cron',
@@ -51,11 +49,6 @@ function ultimate_cron_schema() {
         'length' => 127,
         'not null' => TRUE,
         'default' => '',
-      ),
-      'description' => array(
-        'description' => 'Description',
-        'type' => 'text',
-        'not null' => TRUE,
       ),
       'settings' => array(
         'description' => 'Settings',
@@ -104,6 +97,11 @@ function ultimate_cron_schema() {
         'size' => 'big',
         'not null' => TRUE,
         'default' => 0,
+      ),
+      'launcher_message' => array(
+        'description' => 'Launcher message',
+        'type' => 'text',
+        'not null' => FALSE,
       ),
       'message' => array(
         'description' => 'Message',

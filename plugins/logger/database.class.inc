@@ -47,24 +47,21 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   }
 
   function loadLatest($job) {
-    $log = db_select('ultimate_cron_log', 'l')
+    $log_entry = db_select('ultimate_cron_log', 'l')
              ->fields('l')
              ->condition('l.name', $job->name)
              ->orderBy('l.start_time', 'DESC')
              ->range(0, 1)
              ->execute()
              ->fetchObject();
-    if ($log) {
-      $this->log_entry->lid = $log->lid;
-      $this->log_entry->start_time = $log->start_time;
-      $this->log_entry->end_time = $log->end_time;
-      $this->log_entry->message = $log->message;
-      $this->log_entry->severity = $log->severity;
+    if ($log_entry) {
+      $this->log_entry = $log_entry;
     }
     else {
       $this->log_entry->lid = NULL;
       $this->log_entry->start_time = 0;
       $this->log_entry->end_time = 0;
+      $this->log_entry->launcher_message = '';
       $this->log_entry->message = '';
       $this->log_entry->severity = -1;
     }

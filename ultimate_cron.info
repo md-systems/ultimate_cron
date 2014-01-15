@@ -2,8 +2,6 @@ name = "Ultimate Cron"
 description = "Cron"
 core = 7.x
 
-dependencies[] = background_process
-
 files[] = tests/rules.test
 files[] = js/ultimate_cron.js
 files[] = ultimate_cron.plugin.inc
