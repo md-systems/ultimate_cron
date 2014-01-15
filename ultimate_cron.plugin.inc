@@ -374,7 +374,6 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
   }
 
   static public function launchJobs($jobs) {
-    dpm("Default launch");
     foreach ($jobs as $job) {
       $job->launch();
     }

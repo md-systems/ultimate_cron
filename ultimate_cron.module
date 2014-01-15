@@ -305,7 +305,7 @@ function ultimate_cron_poorman() {
       }
     }
 
-    ultimate_cron_run_scheduled();
+    ultimate_cron_run_scheduled(FALSE);
   }
 }
 
@@ -398,10 +398,10 @@ function ultimate_cron_menu_alter(&$items) {
   unset($items['admin/config/system/cron']['type']);
 
   $steal = &$items['admin/reports/status/run-cron'];
-  $steal['page callback'] = 'ultimate_cron_service_start';
+  $steal['page callback'] = 'ultimate_cron_run_scheduled';
   $steal['page arguments'] = array();
   $steal['module'] = 'ultimate_cron';
-  $steal['file'] = 'ultimate_cron.admin.inc';
+  $steal['file'] = 'ultimate_cron.module';
 }
 
 /**
@@ -426,7 +426,7 @@ function ultimate_cron_cron_queue_info() {
   if (!$processed) {
     $processed = TRUE;
     if (basename($_SERVER['PHP_SELF']) == 'cron.php') {
-      ultimate_cron_cron_run(FALSE);
+      ultimate_cron_cron_run();
       exit;
     }
   }
@@ -555,7 +555,7 @@ function ultimate_cron_cron_alter(&$hooks) {
  * @param boolean $return
  *   return to caller if TRUE, otherwise exit().
  */
-function ultimate_cron_cron_run($return = FALSE) {
+function ultimate_cron_cron_run() {
   if (variable_get('install_task', FALSE) != 'done') {
     return;
   }
@@ -565,7 +565,8 @@ function ultimate_cron_cron_run($return = FALSE) {
     return;
   }
 
-  ultimate_cron_run_scheduled($return);
+  ultimate_cron_run_scheduled(FALSE);
+  exit;
 }
 
 // ---------- HELPER FUNCTIONS ----------
@@ -821,7 +822,7 @@ function ultimate_cron_blank_values($array) {
   return $result;
 }
 
-function ultimate_cron_run_scheduled() {
+function ultimate_cron_run_scheduled($redirect = TRUE) {
   ctools_include('export');
   $jobs = ctools_export_crud_load_all('ultimate_cron_job');
 
@@ -846,6 +847,10 @@ function ultimate_cron_run_scheduled() {
   $plugin_types = ctools_plugin_get_plugin_type_info();
   foreach ($launcher_schedule as $class => $jobs) {
     $class::launchJobs($jobs);
+  }
+
+  if ($redirect) {
+    drupal_goto('admin/config/system/cron');
   }
 }
 

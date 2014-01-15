@@ -108,14 +108,6 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
       $cron_last_ran = $cron->getLastRan($now);
       $log = $job->getPlugin('logger')->loadLatest($job);
       $job_last_ran = $log->log_entry->start_time;
-      $msg = sprintf("Checking %s on %s < %s >= %s <= %s",
-        $rule,
-        date('Y-m-d H:i:s', $job_last_ran),
-        date('Y-m-d H:i:s', $cron_last_ran),
-        date('Y-m-d H:i:s', $now),
-        date('Y-m-d H:i:s', $cron_last_ran + $scheduler_settings['catch_up'])
-      );
-      dpm($msg, $job->name);
 
       if (
         $cron_last_ran >= $job_last_ran &&
@@ -124,7 +116,6 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
       ) {
         return TRUE;
       }
-      return FALSE;
     }
     return FALSE;
   }
