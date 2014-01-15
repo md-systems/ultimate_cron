@@ -43,7 +43,6 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
 
   function save() {
     $keys = $this->log_entry->lid ? array('lid') : array();
-    error_log("Saving: " . $this->log_entry->name . ' - ' . $this->log_entry->lid);
     drupal_write_record('ultimate_cron_log', $this->log_entry, $keys);
   }
 
