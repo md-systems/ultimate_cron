@@ -83,6 +83,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       t('Message'),
       t('Status'),
     );
+    $lock_id = $item->isLocked();
     $rows = array();
     foreach ($log_entries as $log_entry) {
       $rows[$log_entry->lid]['data'] = array();
@@ -122,8 +123,15 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       $rows[$log_entry->lid]['data'][] = array('data' => '<pre>' . $log_entry->message . '</pre>', 'class' => array('ctools-export-ui-message'));
 
       // Status.
-      if ($log_entry->start_time && !$log_entry->end_time) {
+      if ($lock_id && $log_entry->lid == $lock_id) {
         $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
+        $status = theme('image', array('path' => $file));
+        $title = t('running');
+      }
+      elseif ($log_entry->start_time && !$log_entry->end_time) {
+        $file = drupal_get_path('module', 'ultimate_cron') . '/icons/lock_open.png';
+        $status = theme('image', array('path' => $file));
+        $title = t('unfinished but not locked?');
       }
       else {
         switch ($log_entry->severity) {
@@ -147,16 +155,16 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
           default:
             $file = 'misc/message-16-ok.png';
         }
+        $severity_levels = array(
+          -1 => t('no info'),
+        ) + watchdog_severity_levels();
+        $status = theme('image', array('path' => $file));
+        $title = $severity_levels[$log_entry->severity];
       }
-      $severity_levels = array(
-        -1 => t('no info'),
-        -2 => t('running'),
-      ) + watchdog_severity_levels();
-      $image = theme('image', array('path' => $file));
       $rows[$log_entry->lid]['data'][] = array(
-        'data' => $image,
+        'data' => $status,
         'class' => array('ctools-export-ui-status'),
-        'title' => $severity_levels[$log_entry->severity],
+        'title' => $title,
       );
 
     }
@@ -403,8 +411,16 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     );
 
     // Status.
-    if ($log_entry->start_time && !$log_entry->end_time) {
+    $lock_id = $item->isLocked();
+    if ($lock_id && $log_entry->lid == $lock_id) {
       $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
+      $status = theme('image', array('path' => $file));
+      $title = t('running');
+    }
+    elseif ($log_entry->start_time && !$log_entry->end_time) {
+      $file = drupal_get_path('module', 'ultimate_cron') . '/icons/lock_open.png';
+      $status = theme('image', array('path' => $file));
+      $title = t('unfinished but not locked?');
     }
     else {
       switch ($log_entry->severity) {
@@ -428,13 +444,18 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         default:
           $file = 'misc/message-16-ok.png';
       }
+      $severity_levels = array(
+        -1 => t('no info'),
+      ) + watchdog_severity_levels();
+      $status = theme('image', array('path' => $file));
+      $title = $severity_levels[$log_entry->severity];
     }
-    $image = theme('image', array('path' => $file));
     $this->rows[$name]['data'][] = array(
-      'data' => $image,
+      'data' => $status,
       'class' => array('ctools-export-ui-status'),
-      'title' => $log_entry->message ? $log_entry->message : t('No info'),
+      'title' => $title,
     );
+
 
     // Storage.
     $this->rows[$name]['data'][] = array('data' => check_plain($item->{$schema['export']['export type string']}), 'class' => array('ctools-export-ui-storage'));
