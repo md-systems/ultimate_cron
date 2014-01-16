@@ -28,6 +28,9 @@ module_load_include('plugin.inc', 'ultimate_cron');
 if (!function_exists('_out_of_memory_protection')) {
   $GLOBALS['__RESERVED_MEMORY'] = str_repeat('0', 1024 * 1024 * 2);
 
+  /**
+   * Unleash the memory.
+   */
   function _out_of_memory_protection() {
     unset($GLOBALS['__RESERVED_MEMORY']);
   }
@@ -165,6 +168,9 @@ function ultimate_cron_ctools_plugin_type() {
   );
 }
 
+/**
+ * Get plugin instance.
+ */
 function ultimate_cron_ctools_plugin_instance($name, $plugin) {
   $class = ctools_plugin_get_class($plugin, 'handler');
   return $class ? new $class($name, $plugin) : FALSE;
@@ -230,18 +236,23 @@ function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
   return $results;
 }
 
+/**
+ * Export UI load callback.
+ */
 function ultimate_cron_job_load($name) {
   $jobs = ultimate_cron_job_load_all();
   return $jobs[$name];
 }
 
+/**
+ * Export UI load all callback.
+ */
 function ultimate_cron_job_load_all($reset = FALSE) {
   $jobs = ultimate_cron_job_load_all_export_ui($reset);
   $schema = ctools_export_get_schema('ultimate_cron_job');
   $export = $schema['export'];
   $status = variable_get($export['status'], array());
 
-  $hooks = array();
   foreach (ultimate_cron_get_hooks($reset) as $name => $hook) {
     if (!isset($jobs[$name])) {
       $jobs[$name] = ctools_export_crud_new('ultimate_cron_job');
@@ -273,11 +284,23 @@ function ultimate_cron_job_load_all($reset = FALSE) {
 // ---------- HOOKS ----------
 
 /**
+ * Implements hook_init().
+ */
+function ultimate_cron_init() {
+  _ultimate_cron_variable_load('cron_last');
+}
+
+/**
  * Implements hook_exit().
  */
 function ultimate_cron_exit($dest = NULL) {
+  // No need for poorman until site is installed.
+  if (variable_get('install_task') != 'done') {
+    return;
+  }
+
   // We're picky about when we run poormans cron, because
-  // we want to flush the output buffer.
+  // we may want to flush the output buffer.
   if (!drupal_is_cli() && $_SERVER['REQUEST_METHOD'] == 'GET') {
     // Register our own Poormans Cron handler.
     $callbacks = &drupal_register_shutdown_function();
@@ -287,6 +310,9 @@ function ultimate_cron_exit($dest = NULL) {
   }
 }
 
+/**
+ * Launch poormans cron if applicable.
+ */
 function ultimate_cron_poorman() {
   $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
   $cron_last = variable_get('cron_last', 0);
@@ -376,7 +402,11 @@ function ultimate_cron_menu() {
         'title' => $plugin->title,
         'description' => $plugin->description,
         'page callback' => 'drupal_get_form',
-        'page arguments' => array('ultimate_cron_plugin_settings', $plugin_type, $name),
+        'page arguments' => array(
+          'ultimate_cron_plugin_settings',
+          $plugin_type,
+          $name
+        ),
         'access arguments' => array('administer ultimate cron'),
         'file' => 'ultimate_cron.admin.inc',
         'weight' => $weight++,
@@ -490,13 +520,12 @@ function ultimate_cron_queue_cron($job, $arguments) {
   $items = 0;
   $settings = $job->getPluginSettings('settings');
 
-  while (time() < $end && $item = $queue->claimItem($settings['queue']['queue_lease_time'])) {;
+  while (time() < $end && $item = $queue->claimItem($settings['queue']['queue_lease_time'])) {
     $function($item->data);
     $queue->deleteItem($item);
     $items++;
   }
-  sleep(30);
-  #drupal_set_message(t('Processed @items items', array('@items' => $items)));
+
   watchdog($job->hook['module'], 'Processed @items items from queue @queue', array(
     '@items' => $items,
     '@queue' => $arguments['queue_name'],
@@ -506,15 +535,10 @@ function ultimate_cron_queue_cron($job, $arguments) {
 }
 
 /**
- * Implements hook_init().
+ * Implements hook_watchdog().
  */
-function ultimate_cron_init() {
-  // No need for hocus pocus and poorman until site is installed.
-  if (variable_get('install_task') != 'done') {
-    return;
-  }
-
-  _ultimate_cron_variable_load('cron_last');
+function ultimate_cron_watchdog(array $log_entry) {
+  UltimateCronLogger::hook_watchdog($log_entry);
 }
 
 // ---------- FIXUPS FOR CORE  ----------
@@ -557,9 +581,6 @@ function ultimate_cron_cron_alter(&$hooks) {
  *
  * The cron handler takes over the normal Drupal cron handler,
  * and runs the normal hook_cron() plus the hook_cronapi().
- *
- * @param boolean $return
- *   return to caller if TRUE, otherwise exit().
  */
 function ultimate_cron_cron_run() {
   if (variable_get('install_task', FALSE) != 'done') {
@@ -567,7 +588,7 @@ function ultimate_cron_cron_run() {
   }
 
   // If run from core cron through CLI then don't do anything (drush core-cron)
-  if (!$return && drupal_is_cli()) {
+  if (drupal_is_cli()) {
     return;
   }
 
@@ -617,6 +638,9 @@ function _ultimate_cron_get_queues() {
   return $queues;
 }
 
+/**
+ * Get a specific hook.
+ */
 function ultimate_cron_get_hook($name, $reset = FALSE) {
   $jobs = ultimate_cron_get_hooks($reset);
   return $jobs[$name];
@@ -760,6 +784,9 @@ function ultimate_cron_get_hooks($reset = FALSE) {
 
 // ---------- CRON RULE FUNCTIONS ----------
 
+/**
+ * Form element validator for cron rules.
+ */
 function ultimate_cron_plugin_crontab_element_validate_rule($element, &$form_state) {
   $rules = array();
   $value = $element['#value'];
@@ -777,9 +804,10 @@ function ultimate_cron_plugin_crontab_element_validate_rule($element, &$form_sta
 /**
  * Check if rule is valid.
  *
- * @param $rule
+ * @param string $rule
  *   rule to validate.
- * @return
+ *
+ * @return bool
  *   TRUE if valid, FALSE if not.
  */
 function ultimate_cron_validate_rule($rule) {
@@ -818,6 +846,9 @@ function ultimate_cron_blank_values($array) {
   return $result;
 }
 
+/**
+ * Run scheduled jobs.
+ */
 function ultimate_cron_run_scheduled($redirect = TRUE) {
   ctools_include('export');
   $jobs = ctools_export_crud_load_all('ultimate_cron_job');
@@ -839,8 +870,6 @@ function ultimate_cron_run_scheduled($redirect = TRUE) {
 
   _ultimate_cron_variable_save('cron_last', time());
 
-  ctools_include('plugins');
-  $plugin_types = ctools_plugin_get_plugin_type_info();
   foreach ($launcher_schedule as $class => $jobs) {
     $class::launchJobs($jobs);
   }
@@ -850,10 +879,9 @@ function ultimate_cron_run_scheduled($redirect = TRUE) {
   }
 }
 
-function ultimate_cron_watchdog(array $log_entry) {
-  UltimateCronLogger::hook_watchdog($log_entry);
-}
-
+/**
+ * Background Process legacy callback for running cron jobs.
+ */
 function ultimate_cron_background_process_legacy_callback($name, $lid) {
   $job = ultimate_cron_job_load($name);
 

@@ -1,11 +1,14 @@
 <?php
+/**
+ * @file
+ * Job class for Ultimate Cron.
+ */
 
 class UltimateCronJob {
-  function build_operations_alter(&$allowed_operations) {
-    $this->getPlugin('launcher')->build_operations_alter($allowed_operations);
-  }
-
-  function getSettings($type = NULL) {
+  /**
+   * Get job settings.
+   */
+  public function getSettings($type = NULL) {
     ctools_include('plugins');
     $settings = array();
 
@@ -23,7 +26,16 @@ class UltimateCronJob {
     return $settings;
   }
 
-  function getPlugin($plugin_type) {
+  /**
+   * Get job plugin.
+   *
+   * @param string $plugin_type
+   *   Name of plugin type.
+   *
+   * @return mixed
+   *   Plugin instance of the specified type.
+   */
+  public function getPlugin($plugin_type) {
     if (!empty($this->settings[$plugin_type]['name'])) {
       return ultimate_cron_plugin_load($plugin_type, $this->settings[$plugin_type]['name']);
     }
@@ -32,7 +44,10 @@ class UltimateCronJob {
     }
   }
 
-  function getPluginSettings($plugin_type) {
+  /**
+   * Get plugin settings.
+   */
+  public function getPluginSettings($plugin_type) {
     ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     $plugin_info = $plugin_types['ultimate_cron'][$plugin_type];
@@ -60,6 +75,17 @@ class UltimateCronJob {
   }
 
   /**
+   * Allow a job to alter the allowed operations on it in the Export UI.
+   */
+  public function build_operations_alter(&$allowed_operations) {
+    ctools_include('plugins');
+    $plugin_types = ctools_plugin_get_plugin_type_info();
+    foreach (array_keys($plugin_types['ultimate_cron']) as $name) {
+      $this->getPlugin($name)->build_operations_alter($this, $allowed_operations);
+    }
+  }
+
+  /**
    * Invoke the jobs callback.
    */
   public function invoke() {
@@ -77,9 +103,10 @@ class UltimateCronJob {
         }
 
       case 2:
-        return call_user_func_array($this->hook['callback'], array(
+        $result = call_user_func_array($this->hook['callback'], array(
           $this, $this->hook['callback_arguments']
         ));
+        return $result;
 
       default:
         throw new Exception(t('Could not invoke cron job @name. Wrong API version (@api_version)', array(
@@ -89,15 +116,24 @@ class UltimateCronJob {
     }
   }
 
-  function schedule() {
+  /**
+   * Check job schedule.
+   */
+  public function schedule() {
     return $this->getPlugin('scheduler')->schedule($this);
   }
 
-  function launch() {
+  /**
+   * Launch job.
+   */
+  public function launch() {
     return $this->getPlugin('launcher')->launch($this);
   }
 
-  function lock() {
+  /**
+   * Lock job.
+   */
+  public function lock() {
     return $this->getPlugin('launcher')->lock($this);
 
     $settings = $this->getSettings();
@@ -106,89 +142,72 @@ class UltimateCronJob {
     );
   }
 
-  function unlock() {
+  /**
+   * Unlock job.
+   */
+  public function unlock() {
     return $this->getPlugin('launcher')->unlock($this);
   }
 
-  function isLocked() {
+  /**
+   * Get locked state of job.
+   */
+  public function isLocked() {
     return $this->getPlugin('launcher')->isLocked($this);
   }
 
-  function run() {
+  /**
+   * Run job.
+   */
+  public function run() {
     return $this->getPlugin('launcher')->run($this);
-
-    if (!$this->lock()) {
-      drupal_set_message("Could not acquire log for %name. Already running?", array(
-        '%name' => $this->name
-      ));
-      return;
-    }
-    $php_self = NULL;
-    try {
-      // Signal to whomever might be listening, that we're cron!
-      // @investigate Is this safe? (He asked knowingly ...)
-      $php_self = $_SERVER['PHP_SELF'] ? $_SERVER['PHP_SELF'] : '';
-      $_SERVER['PHP_SELF'] = 'cron.php';
-
-      switch ($this->hook['api_version']) {
-        case 1:
-          // $args = array($hook);
-          // $args = array_merge($args, $this->hook['callback_arguments']);
-          break;
-
-        case 2:
-          call_user_func_array($this->hook['callback'], array(
-            $this, $this->hook['callback_arguments']
-          ));
-          break;
-
-        default:
-          watchdog('ultimate_cron', 'Could not invoke cron job @name. Wrong API version (@api_version)', array(
-            '@name' => $this->name,
-            '@api_version' => $this->hook['api_version'],
-          ));
-      }
-
-      // Restore state.
-      $_SERVER['PHP_SELF'] = $php_self;
-
-      $this->unlock();
-    }
-    catch (Exception $e) {
-      // Restore state.
-      if (isset($php_self)) {
-        $_SERVER['PHP_SELF'] = $php_self;
-      }
-
-      watchdog('ultimate_cron', 'Error running @name: @error', array('@error' => $e->getMessage()), WATCHDOG_ERROR);
-
-      $this->unlock();
-    }
   }
 
-  function getLogEntries() {
+  /**
+   * Get log entries.
+   */
+  public function getLogEntries() {
     return $this->getPlugin('logger')->getLogEntries($this);
   }
 
-  function loadLog($lock_id) {
+  /**
+   * Load log.
+   */
+  public function loadLog($lock_id) {
     return $this->getPlugin('logger')->load($this, $lock_id);
   }
 
-  function startLog($lock_id, $init_message = '') {
+  /**
+   * Start logging.
+   *
+   * @param string $lock_id
+   *   The lock id to use.
+   * @param string $init_message
+   *   Initial message for the log.
+   *
+   * @return UltimateCronLogger
+   *   The log object.
+   */
+  public function startLog($lock_id, $init_message = '') {
     $log = $this->getPlugin('logger');
     $log->initialize($lock_id, $this, $init_message);
     $log->catchMessages();
     return $log;
   }
 
-  function getModuleName() {
+  /**
+   * Get module name for this job.
+   */
+  public function getModuleName() {
     $info = system_get_info('module', $this->hook['module']);
     return $info && !empty($info['name']) ? $info['name'] : $this->hook['module'];
   }
 
-  function getModuleDescription() {
+  /**
+   * Get module description for this job.
+   */
+  public function getModuleDescription() {
     $info = system_get_info('module', $this->hook['module']);
     return $info && !empty($info['description']) ? $info['description'] : '';
   }
-
 }

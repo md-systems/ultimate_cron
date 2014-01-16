@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * Plugin framework for Ultimate Cron.
+ */
 
 class UltimateCronPlugin {
   public $name = '';
@@ -28,6 +32,9 @@ class UltimateCronPlugin {
     $this->settings = variable_get($this->key, array());
   }
 
+  /**
+   * Allow plugins to alter the allowed operations for a job.
+   */
   public function build_operations_alter(&$allowed_operations) {
   }
 
@@ -368,10 +375,21 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
 }
 
 abstract class UltimateCronScheduler extends UltimateCronPlugin {
+  /**
+   * Check job schedule.
+   * @param UltimateCronJob $job
+   *   The job to check schedule for.
+   *
+   * @return bool
+   *   TRUE if job should run.
+   */
   abstract public function schedule($job);
 }
 
 abstract class UltimateCronLauncher extends UltimateCronPlugin {
+  /**
+   * Launch job.
+   */
   abstract public function launch($job);
 
   /**
@@ -409,36 +427,9 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
   }
 
   /**
-   * Launcher.
-   */
-  /*
-  public function launch($job) {
-    $log = $job->startLog();
-
-    // Run job.
-    try {
-      $job->run();
-    }
-    catch (Exception $e) {
-      watchdog('ultimate_cron', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);
-    }
-
-    $log->finish();
-  }
-  */
-
-  /**
    * Run the job.
    */
   public function run($job) {
-    /*
-    if (!$job->lock()) {
-      drupal_set_message("Could not acquire log for %name. Already running?", array(
-        '%name' => $this->name
-      ));
-      return;
-    }
-    */
     $php_self = NULL;
     try {
       // Signal to whomever might be listening, that we're cron!
@@ -450,8 +441,6 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
 
       // Restore state.
       $_SERVER['PHP_SELF'] = $php_self;
-
-      // $job->unlock();
     }
     catch (Exception $e) {
       // Restore state.
@@ -460,8 +449,6 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
       }
 
       watchdog('ultimate_cron', 'Error running @name: @error', array('@error' => $e->getMessage()), WATCHDOG_ERROR);
-
-      // $job->unlock();
     }
   }
 

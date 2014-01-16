@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Default cron job launcher for Ultimate Cron.
+ * Background Process 1.x launcher for Ultimate Cron.
  */
 
 /**
@@ -10,11 +10,15 @@
 class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   static private $currentThread = NULL;
 
-  public function build_operations_alter(&$allowed_operations) {
+  /**
+   * Use ajax for run, since we're launching in the background.
+   */
+  public function build_operations_alter($job, &$allowed_operations) {
     if (!empty($allowed_operations['run'])) {
       $allowed_operations['run']['attributes'] = array('class' => array('use-ajax'));
     }
   }
+
   /**
    * Default settings.
    */
@@ -24,6 +28,9 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     );
   }
 
+  /**
+   * Only expose this plugin, if Background Process is 1.x.
+   */
   public function isValid($job = NULL) {
     // Intermistic way of determining version of Background Process.
     // Background Process 1.x has a dependency on the Progress module.
@@ -93,10 +100,12 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   }
 
   /**
+   * Lock job.
+   *
    * Background Process doesn't internally provide a unique id
    * for the running process, so we'll have to add that ourselves.
    */
- function lock($job) {
+  public function lock($job) {
     $lock_id = 'uc-' . $job->name . '-' . urlencode(uniqid('', TRUE));
     $process = new BackgroundProcess($lock_id);
     if ($process->lock()) {
@@ -108,16 +117,18 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   /**
    * Unlock background process.
    */
- function unlock($lock_id) {
+  public function unlock($lock_id) {
     return background_process_unlock($lock_id);
   }
 
   /**
+   * Check locked state.
+   *
    * Because Background Process doesn't support a unique id per
    * process, we'll have to match against the prefix, which is
    * the job name.
    */
-  function isLocked($job) {
+  public function isLocked($job) {
     $lock_id_prefix = 'uc-' . $job->name . '-';
     $lock_id = db_select('background_process', 'bp')
       ->fields('bp', array('handle'))
@@ -131,7 +142,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   /**
    * Background Process launch.
    */
-  function launch($job) {
+  public function launch($job) {
     $settings = $job->getSettings();
 
     $lock_id = $job->lock();
@@ -139,7 +150,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     $process = new BackgroundProcess($lock_id);
     $this->exec_status = $this->status = BACKGROUND_PROCESS_STATUS_LOCKED;
 
-    // Always run cron job as anonymous user
+    // Always run cron job as anonymous user.
     $process->uid = 0;
     $process->service_group = $settings['launcher']['background_process_legacy']['service_group'];
 
@@ -170,48 +181,6 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * Launch manager.
    */
   static public function launchJobs($jobs) {
-    /*
-    $plugin = ultimate_cron_plugin_load('launcher', 'serial');
-    $settings = $plugin->getDefaultSettings();
-
-    // Set proper max execution time.
-    $max_execution_time = ini_get('max_execution_time');
-    if ($max_execution_time && $max_execution_time < $settings['max_execution_time']) {
-      set_time_limit($settings['max_execution_time']);
-    }
-    $lock_timeout = max($max_execution_time, $settings['max_execution_time']);
-
-    // If infinite max execution, then we use a day for the lock.
-    $lock_timeout = $lock_timeout ? $lock_timeout : 86400;
-
-    // Find a free slot, try for 3 seconds.
-    $lock = FALSE;
-    $delay = 3 * 1000000;
-    $sleep = 25000;
-
-    while ($delay > 0) {
-      for ($slot = 1; $slot <= $settings['max_launch_threads']; $slot++) {
-        $lock_name = 'ultimate_cron_serial_launcher_' . $slot;
-        if (lock_may_be_available($lock_name)) {
-          if ($lock = lock_acquire($lock_name, $lock_timeout)) {
-            break 2;
-          }
-        }
-        usleep($sleep);
-        // After each sleep, increase the value of $sleep until it reaches
-        // 500ms, to reduce the potential for a lock stampede.
-        $delay = $delay - $sleep;
-        $sleep = min(500000, $sleep + 25000, $delay);
-      }
-    }
-
-    if (!$lock) {
-      watchdog('serial_launcher', "No free slots available for starting launch thread", array(), WATCHDOG_WARNING);
-      return;
-    }
-    watchdog('serial_launcher', "Cron thread %slot started", array('%slot' => $slot), WATCHDOG_INFO);
-    */
-
     self::$currentThread = 1;
     foreach ($jobs as $job) {
       $job->launch();
