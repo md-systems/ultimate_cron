@@ -8,7 +8,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
   /**
    * Ensure we cannot add, import, delete or clone.
    */
-  function hook_menu(&$items) {
+  public function hook_menu(&$items) {
     parent::hook_menu($items);
 
     unset($items['admin/config/system/cron/jobs/add']);
@@ -20,7 +20,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
   /**
    * Ensure that we cannot clone from the operations link list.
    */
-  function build_operations($item) {
+  public function build_operations($item) {
     $allowed_operations = parent::build_operations($item);
     unset($allowed_operations['clone']);
     // dpm($allowed_operations);
@@ -41,7 +41,10 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     return $allowed_operations;
   }
 
-  function run_page($js, $input, $item) {
+  /**
+   * Run a job callback.
+   */
+  public function run_page($js, $input, $item) {
     $item->launch();
     if (!$js) {
       drupal_goto(ctools_export_ui_plugin_base_path($this->plugin));
@@ -51,7 +54,10 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     }
   }
 
-  function unlock_page($js, $input, $item, $lock_id) {
+  /**
+   * Unlock a job callback.
+   */
+  public function unlock_page($js, $input, $item, $lock_id) {
     $log = $item->getPlugin('logger')->load($item, $lock_id);
     $log->finished = FALSE;
     $log->catchMessages();
@@ -73,7 +79,10 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     }
   }
 
-  function logs_page($js, $input, $item) {
+  /**
+   * Page with logs.
+   */
+  public function logs_page($js, $input, $item) {
     $output = '';
     $log_entries = $item->getLogEntries();
     $header = array(
@@ -184,7 +193,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
    * get the base form and then modify it as necessary to add search
    * gadgets for custom fields.
    */
-  function list_form(&$form, &$form_state) {
+  public function list_form(&$form, &$form_state) {
     parent::list_form($form, $form_state);
 
     $all = array('all' => t('- All -'));
@@ -223,7 +232,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
    * @return bool
    *   TRUE if the item should be excluded.
    */
-  function list_filter($form_state, $item) {
+  public function list_filter($form_state, $item) {
     $schema = ctools_export_get_schema($this->plugin['schema']);
     if ($form_state['values']['storage'] != 'all' && $form_state['values']['storage'] != $item->{$schema['export']['export type string']}) {
       return TRUE;
@@ -261,7 +270,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
    * If you've added columns via list_build_row() but are still using a
    * table, override this method to set up the table header.
    */
-  function list_table_header() {
+  public function list_table_header() {
     $header = array();
     $header[] = array('data' => t('Module'), 'class' => array('ctools-export-ui-module'));
     if (!empty($this->plugin['export']['admin_title'])) {
@@ -285,7 +294,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
    * Override this if you wish to provide more or change how these work.
    * The actual handling of the sorting will happen in build_row().
    */
-  function list_sort_options() {
+  public function list_sort_options() {
     if (!empty($this->plugin['export']['admin_title'])) {
       $options = array(
         'disabled' => t('Enabled, module, title'),
@@ -313,7 +322,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
    * method, so this is building up a row suitable for theme('table').
    * This doesn't have to be true if you override both.
    */
-  function list_build_row($item, &$form_state, $operations) {
+  public function list_build_row($item, &$form_state, $operations) {
     // Set up sorting.
     $name = $item->{$this->plugin['export']['key']};
     $schema = ctools_export_get_schema($this->plugin['schema']);
@@ -481,7 +490,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
    * For the most part, you should not need to override this method, as the
    * fiddly bits call through to other functions.
    */
-  function list_form_submit(&$form, &$form_state) {
+  public function list_form_submit(&$form, &$form_state) {
     // Filter and re-sort the pages.
     $plugin = $this->plugin;
 
@@ -510,7 +519,10 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     }
   }
 
-  static function multi_column_sort($a, $b) {
+  /**
+   * Sort callback for multiple column sort.
+   */
+  static public function multi_column_sort($a, $b) {
     foreach ($a as $i => $sort) {
       if ($a[$i] == $b[$i]) {
         continue;

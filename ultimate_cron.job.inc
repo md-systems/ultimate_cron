@@ -35,8 +35,11 @@ class UltimateCronJob {
    * @return mixed
    *   Plugin instance of the specified type.
    */
-  public function getPlugin($plugin_type) {
-    if (!empty($this->settings[$plugin_type]['name'])) {
+  public function getPlugin($plugin_type, $name = NULL) {
+    if ($name) {
+      return ultimate_cron_plugin_load($plugin_type, $name);
+    }
+    elseif (!empty($this->settings[$plugin_type]['name'])) {
       return ultimate_cron_plugin_load($plugin_type, $this->settings[$plugin_type]['name']);
     }
     else {
@@ -80,8 +83,18 @@ class UltimateCronJob {
   public function build_operations_alter(&$allowed_operations) {
     ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
-    foreach (array_keys($plugin_types['ultimate_cron']) as $name) {
-      $this->getPlugin($name)->build_operations_alter($this, $allowed_operations);
+    foreach ($plugin_types['ultimate_cron'] as $name => $info) {
+      $static = $info['defaults']['static'];
+      $class = $static['class'];
+      if (!$class::$multiple) {
+        $this->getPlugin($name)->build_operations_alter($this, $allowed_operations);
+      }
+      else {
+        $plugins = ultimate_cron_plugin_load_all($name);
+        foreach ($plugins as $plugin) {
+          $this->getPlugin($name, $plugin->name)->build_operations_alter($this, $allowed_operations);
+        }
+      }
     }
   }
 
