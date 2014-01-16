@@ -73,7 +73,7 @@ function ultimate_cron_schema() {
     'description' => 'Logs',
     'fields' => array(
       'lid' => array(
-        'description' => 'Log ID',
+        'description' => 'Lock ID',
         'type' => 'varchar',
         'length' => 255,
         'not null' => TRUE,
