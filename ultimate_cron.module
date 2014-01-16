@@ -100,7 +100,7 @@ function ultimate_cron_ctools_plugin_directory($module, $type) {
   );
 
   if (isset($supported[$module][$type])) {
-    return "plugins/" . $supported[$module][$type];
+    return "plugins/$module/" . $supported[$module][$type];
   }
 }
 
