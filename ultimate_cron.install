@@ -408,12 +408,10 @@ function ultimate_cron_update_7200() {
   $schema = drupal_get_schema('ultimate_cron_job', TRUE);
   db_create_table('ultimate_cron_job', $schema);
 
-  // Refresh schema, so that cTools export is able to save the objects.
-  drupal_get_schema('ultimate_cron_job', TRUE);
-
   // New table is ready. Let's migrate the settings.
   ctools_include('export');
   $old_jobs = db_query("SELECT * FROM {ultimate_cron}");
+  $jobs = ultimate_cron_job_load_all();
 
   foreach ($old_jobs as $old_job) {
     $name = $old_job->name;
