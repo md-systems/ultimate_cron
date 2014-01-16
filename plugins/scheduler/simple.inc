@@ -6,7 +6,7 @@
 
 $plugin = array(
   'title' => t('Simple'),
-  'description' => t('Simple scheduler.'),
+  'description' => t('Provides a set of predefined intervals for scheduling.'),
 
   'handler' => array(
     'class' => 'UltimateCronSimpleScheduler',

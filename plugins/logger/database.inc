@@ -2,7 +2,7 @@
 
 $plugin = array(
   'title' => t('Database'),
-  'description' => t('Database logger.'),
+  'description' => t('Stores logs in the database.'),
 
   'handler' => array(
     'class' => 'UltimateCronDatabaseLogger',

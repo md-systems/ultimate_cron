@@ -6,7 +6,7 @@
 
 $plugin = array(
   'title' => t('Crontab'),
-  'description' => t('Crontab scheduler.'),
+  'description' => t('Use crontab rules for scheduling jobs.'),
 
   'handler' => array(
     'class' => 'UltimateCronCrontabScheduler',

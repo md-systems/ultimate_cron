@@ -6,7 +6,7 @@
 
 $plugin = array(
   'title' => t('Serial'),
-  'description' => t('Serial launcher.'),
+  'description' => t('Launches scheduled jobs in the same thread and runs them consecutively.'),
 
   'handler' => array(
     'class' => 'UltimateCronSerialLauncher',

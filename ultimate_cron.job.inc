@@ -1,12 +1,24 @@
 <?php
 
 class UltimateCronJob {
-  function getSettings() {
+  function build_operations_alter(&$allowed_operations) {
+    $this->getPlugin('launcher')->build_operations_alter($allowed_operations);
+  }
+
+  function getSettings($type = NULL) {
     ctools_include('plugins');
     $settings = array();
+
     $plugin_types = ctools_plugin_get_plugin_type_info();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $plugin_info) {
       $settings[$plugin_info['type']] = $this->getPluginSettings($plugin_type);
+    }
+    if ($type) {
+      $class = $plugin_types['ultimate_cron'][$type]['defaults']['static']['class'];
+      if (!$class::$multiple) {
+        return $settings[$type][$settings[$type]['name']];
+      }
+      return $settings[$type];
     }
     return $settings;
   }
@@ -47,6 +59,36 @@ class UltimateCronJob {
     return $settings;
   }
 
+  /**
+   * Invoke the jobs callback.
+   */
+  public function invoke() {
+    switch ($this->hook['api_version']) {
+      case 1:
+        $args = array($this->hook);
+        $args = array_merge($args, $this->hook['callback_arguments']);
+        if (!is_callable($this->hook['callback'])) {
+          return call_user_func_array($this->hook['callback'], array(
+            $this->name, $this->hook
+          ));
+        }
+        else {
+          return module_invoke($this->hook['module'], 'cronapi', 'execute', $this->name, $this->hook);
+        }
+
+      case 2:
+        return call_user_func_array($this->hook['callback'], array(
+          $this, $this->hook['callback_arguments']
+        ));
+
+      default:
+        throw new Exception(t('Could not invoke cron job @name. Wrong API version (@api_version)', array(
+          '@name' => $this->name,
+          '@api_version' => $this->hook['api_version'],
+        )));
+    }
+  }
+
   function schedule() {
     return $this->getPlugin('scheduler')->schedule($this);
   }
@@ -56,6 +98,8 @@ class UltimateCronJob {
   }
 
   function lock() {
+    return $this->getPlugin('launcher')->lock($this);
+
     $settings = $this->getSettings();
     return $this->getPlugin('launcher')->lock(
       $this, $settings['settings']['general']['lock_timeout']
@@ -71,6 +115,8 @@ class UltimateCronJob {
   }
 
   function run() {
+    return $this->getPlugin('launcher')->run($this);
+
     if (!$this->lock()) {
       drupal_set_message("Could not acquire log for %name. Already running?", array(
         '%name' => $this->name
@@ -124,9 +170,14 @@ class UltimateCronJob {
     return $this->getPlugin('logger')->getLogEntries($this);
   }
 
-  function startLog() {
+  function loadLog($lock_id) {
+    error_log("AND HERE?");
+    return $this->getPlugin('logger')->load($this, $lock_id);
+  }
+
+  function startLog($lock_id, $init_message = '') {
     $log = $this->getPlugin('logger');
-    $log->initialize($this);
+    $log->initialize($lock_id, $this, $init_message);
     $log->catchMessages();
     return $log;
   }

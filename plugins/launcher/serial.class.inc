@@ -8,6 +8,8 @@
  * Ultimate Cron launcher plugin class.
  */
 class UltimateCronSerialLauncher extends UltimateCronLauncher {
+  static public $currentThread = NULL;
+
   /**
    * Default settings.
    */
@@ -68,6 +70,40 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
   }
 
   /**
+   * Launcher.
+   */
+  public function launch($job) {
+    $lock_id = $job->lock();
+
+    if (!$lock_id) {
+      return;
+    }
+
+    if (self::$currentThread) {
+      $init_message = t('Launched in thread @current_thread', array(
+        '@current_thread' => self::$currentThread,
+      ));
+    }
+    else {
+      global $user;
+      $init_message = t('Launched by @username', array(
+        '@username' => $user->name,
+      ));
+    }
+    $log = $job->startLog($lock_id, $init_message);
+
+    // Run job.
+    try {
+      $job->run();
+    }
+    catch (Exception $e) {
+      watchdog('ultimate_cron', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);
+    }
+
+    $log->finish();
+  }
+
+  /**
    * Launch manager.
    */
   static public function launchJobs($jobs) {
@@ -112,6 +148,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
 
     watchdog('serial_launcher', "Cron thread %slot started", array('%slot' => $slot), WATCHDOG_INFO);
 
+    self::$currentThread = $slot;
     foreach ($jobs as $job) {
       $job->launch();
     }

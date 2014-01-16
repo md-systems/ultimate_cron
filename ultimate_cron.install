@@ -74,8 +74,8 @@ function ultimate_cron_schema() {
     'fields' => array(
       'lid' => array(
         'description' => 'Log ID',
-        'type' => 'serial',
-        'size' => 'normal',
+        'type' => 'varchar',
+        'length' => 255,
         'not null' => TRUE,
       ),
       'name' => array(
@@ -98,8 +98,8 @@ function ultimate_cron_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      'launcher_message' => array(
-        'description' => 'Launcher message',
+      'init_message' => array(
+        'description' => 'Initial message',
         'type' => 'text',
         'not null' => FALSE,
       ),
@@ -126,6 +126,40 @@ function ultimate_cron_schema() {
         'name',
         'end_time'
       ),
+    ),
+  );
+
+  $schema['ultimate_cron_lock'] = array(
+    'description' => 'Locks',
+    'fields' => array(
+      'lid' => array(
+        'description' => 'Lock ID',
+        'type' => 'serial',
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'Name',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'current' => array(
+        'description' => 'Current lock',
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'expire' => array(
+        'description' => 'Expiration time of lock',
+        'type' => 'float',
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+    ),
+    'primary key' => array('lid'),
+    'unique keys' => array(
+      'idx_name' => array('name', 'current'),
     ),
   );
 

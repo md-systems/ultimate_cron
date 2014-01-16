@@ -17,8 +17,9 @@
 
 // module_load_include('nagios.inc', 'ultimate_cron');
 
-module_load_include('plugin.inc', 'ultimate_cron');
+module_load_include('lock.inc', 'ultimate_cron');
 module_load_include('job.inc', 'ultimate_cron');
+module_load_include('plugin.inc', 'ultimate_cron');
 
 /**
  * Memory exhaust protection.
@@ -851,4 +852,24 @@ function ultimate_cron_run_scheduled($redirect = TRUE) {
 
 function ultimate_cron_watchdog(array $log_entry) {
   UltimateCronLogger::hook_watchdog($log_entry);
+}
+
+function ultimate_cron_background_process_legacy_callback($name, $lid) {
+  error_log("HERE: $name - $lid!");
+  $job = ultimate_cron_job_load($name);
+
+  $log = $job->loadLog($lid);
+
+  $log->finished = FALSE;
+  $log->catchMessages();
+
+  // Run job.
+  try {
+    $job->run();
+  }
+  catch (Exception $e) {
+    watchdog('ultimate_cron', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);
+  }
+
+  $log->finish();
 }

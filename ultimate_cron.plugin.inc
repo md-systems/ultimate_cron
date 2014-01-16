@@ -166,8 +166,10 @@ class UltimateCronPlugin {
       '#type'          => 'select',
       '#options'       => $options,
       '#default_value' => $form_state['values']['settings'][$plugin_type]['name'],
-      '#title'         => t(ucfirst($plugin_type)),
-      '#description'   => t(ucfirst($plugin_type) . ' for this job.'),
+      '#title'         => $static['title singular proper'],
+      '#description'   => t('Select which @plugin to use for this job.', array(
+        '@plugin' => $static['title singular'],
+      )),
       '#ajax' => array(
         'callback' => 'ultimate_cron_job_plugin_settings_ajax',
         'wrapper' => $wrapper,
@@ -179,7 +181,10 @@ class UltimateCronPlugin {
     // Plugin specific settings wrapper for ajax replace.
     $form['settings'][$plugin_type][$current_plugin->name] = array(
       '#tree' => TRUE,
-      '#prefix' => '<div id="' . $wrapper . '">',
+      '#type' => 'fieldset',
+      '#title' => $current_plugin->title,
+      '#description' => $current_plugin->description,
+      '#prefix' => '<div id="' . $wrapper . '">', // '<strong>' . $current_plugin->description . '</strong>',
       '#suffix' => '</div>',
     );
 
@@ -364,9 +369,46 @@ abstract class UltimateCronScheduler extends UltimateCronPlugin {
 }
 
 abstract class UltimateCronLauncher extends UltimateCronPlugin {
+  abstract public function launch($job);
+
+  /**
+   * Generate lock key for job.
+   */
+  public function lockKey($job) {
+    return 'uc:' . $job->name;
+  }
+
+  /**
+   * Lock job.
+   */
+  public function lock($job, $timeout = 30.0) {
+    $locker = new UltimateCronLock();
+    if ($lock_id = $locker->lock($this->lockKey($job), $timeout)) {
+      return $lock_id;
+    }
+    return FALSE;
+  }
+
+  /**
+   * Unlock job.
+   */
+  public function unlock($lock_id) {
+    $locker = new UltimateCronLock();
+    return $locker->unlock($lock_id);
+  }
+
+  /**
+   * Check if job is locked.
+   */
+  public function isLocked($job) {
+    $locker = new UltimateCronLock();
+    return $locker->isLocked($this->lockKey($job));
+  }
+
   /**
    * Launcher.
    */
+  /*
   public function launch($job) {
     $log = $job->startLog();
 
@@ -380,46 +422,53 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
 
     $log->finish();
   }
+  */
 
+  /**
+   * Run the job.
+   */
+  public function run($job) {
+    /*
+    if (!$job->lock()) {
+      drupal_set_message("Could not acquire log for %name. Already running?", array(
+        '%name' => $this->name
+      ));
+      return;
+    }
+    */
+    $php_self = NULL;
+    try {
+      // Signal to whomever might be listening, that we're cron!
+      // @investigate Is this safe? (He asked knowingly ...)
+      $php_self = $_SERVER['PHP_SELF'] ? $_SERVER['PHP_SELF'] : '';
+      $_SERVER['PHP_SELF'] = 'cron.php';
+
+      $job->invoke();
+
+      // Restore state.
+      $_SERVER['PHP_SELF'] = $php_self;
+
+      // $job->unlock();
+    }
+    catch (Exception $e) {
+      // Restore state.
+      if (isset($php_self)) {
+        $_SERVER['PHP_SELF'] = $php_self;
+      }
+
+      watchdog('ultimate_cron', 'Error running @name: @error', array('@error' => $e->getMessage()), WATCHDOG_ERROR);
+
+      // $job->unlock();
+    }
+  }
+
+  /**
+   * Launch scheduled cron jobs.
+   */
   static public function launchJobs($jobs) {
     foreach ($jobs as $job) {
       $job->launch();
     }
-  }
-
-  public function lockKey($job) {
-    return 'uc:' . $job->name;
-  }
-
-  public function lock($job, $timeout) {
-    return lock_acquire($this->lockKey($job), $timeout);
-  }
-
-  public function unlock($job) {
-    $lock_inc = variable_get('lock_inc', 'includes/lock.inc');
-    if ($lock_inc == 'includes/lock.inc') {
-      db_delete('semaphore')
-        ->condition('name', $this->lockKey($job))
-        ->execute();
-
-    }
-    elseif (preg_match('/\/memcache_storage\/includes\/lock.inc$/', $lock_inc)) {
-      MemcacheStorageAPI::delete($this->lockKey($job), 'semaphore');
-    }
-    elseif (preg_match('/\/memcache-lock.inc$/', $lock_inc)) {
-      dmemcache_delete($this->lockKey($job), 'semaphore');
-    }
-    else {
-      return FALSE;
-    }
-
-    global $locks;
-    unset($locks[$this->lockKey($job)]);
-    return TRUE;
-  }
-
-  public function isLocked($job) {
-    return !lock_may_be_available($this->lockKey($job));
   }
 
 }
@@ -437,22 +486,23 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     $this->log_entry->lid = NULL;
     $this->log_entry->start_time = 0;
     $this->log_entry->end_time = 0;
-    $this->log_entry->launcher_message = '';
+    $this->log_entry->init_message = '';
     $this->log_entry->message = '';
     $this->log_entry->severity = -1;
   }
 
-  function initialize($job) {
+  function initialize($lock_id, $job, $init_message = '') {
     $this->log_entry = new stdClass();
-    $this->log_entry->lid = NULL;
+    $this->log_entry->lid = $lock_id;
     $this->log_entry->start_time = microtime(TRUE);
     $this->log_entry->end_time = 0;
-    $this->log_entry->launcher_message = '';
+    $this->log_entry->init_message = $init_message;
     $this->log_entry->message = '';
     $this->log_entry->severity = -1;
 
     $this->log_entry->module = $job->hook['module'];
     $this->log_entry->name = $job->name;
+    $this->job = $job;
     $this->save();
   }
 
@@ -473,8 +523,10 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   }
 
   function catchMessages() {
+    if (empty(self::$logs[$this->log_entry->lid])) {
+      drupal_register_shutdown_function(array($this, 'catchMessagesShutdown'));
+    }
     self::$logs[$this->log_entry->lid] = $this;
-    drupal_register_shutdown_function(array($this, 'catchMessagesShutdown'));
   }
 
   function unCatchMessages() {
@@ -488,7 +540,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   }
 
   public function catchMessagesShutdown() {
-    if ($this->finished) {
+    if ($this->finished || empty(self::$logs[$this->log_entry->lid])) {
       return;
     }
 

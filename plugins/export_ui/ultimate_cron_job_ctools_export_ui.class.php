@@ -24,8 +24,9 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $allowed_operations = parent::build_operations($item);
     unset($allowed_operations['clone']);
     // dpm($allowed_operations);
-    if ($item->isLocked()) {
+    if ($lock_id = $item->isLocked()) {
       unset($allowed_operations['run']);
+      $allowed_operations['unlock']['href'] .= '/' . $lock_id;
     }
     else {
       unset($allowed_operations['unlock']);
@@ -36,6 +37,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         'href' => $item->hook['configure'],
       );
     }
+    $item->build_operations_alter($allowed_operations);
     return $allowed_operations;
   }
 
@@ -49,21 +51,20 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     }
   }
 
-  function unlock_page($js, $input, $item) {
-    $log = $item->getPlugin('logger')->loadLatest($item);
-    dpm($log);
-    if ($log->log_entry->lid && $log->log_entry->start_time && !$log->log_entry->end_time) {
-      $log->log_entry->finished = FALSE;
-      $log->catchMessages();
-      global $user;
-      watchdog('ultimate_cron', '@name manually unlocked by user @username (@uid)', array(
-        '@name' => $item->name,
-        '@username' => $user->name,
-        '@uid' => $user->uid,
-      ), WATCHDOG_WARNING);
-      $log->finish();
-      $item->unlock();
-    }
+  function unlock_page($js, $input, $item, $lock_id) {
+    $log = $item->getPlugin('logger')->load($item, $lock_id);
+    $log->finished = FALSE;
+    $log->catchMessages();
+    global $user;
+    watchdog('ultimate_cron', '@name manually unlocked by user @username (@uid)', array(
+      '@name' => $item->name,
+      '@username' => $user->name,
+      '@uid' => $user->uid,
+    ), WATCHDOG_WARNING);
+    $log->finish();
+
+    $item->getPlugin('launcher')->unlock($lock_id);
+
     if (!$js) {
       drupal_goto(ctools_export_ui_plugin_base_path($this->plugin));
     }
@@ -78,7 +79,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $header = array(
       t('Started'),
       t('Duration'),
-      t('Launcher message'),
+      t('Initial message'),
       t('Message'),
       t('Status'),
     );
@@ -117,7 +118,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         )) : '',
       );
 
-      $rows[$log_entry->lid]['data'][] = array('data' => $log_entry->launcher_message, 'class' => array('ctools-export-ui-launcher-message'));
+      $rows[$log_entry->lid]['data'][] = array('data' => $log_entry->init_message, 'class' => array('ctools-export-ui-init-message'));
       $rows[$log_entry->lid]['data'][] = array('data' => $log_entry->message, 'class' => array('ctools-export-ui-message'));
 
       // Status.
@@ -366,7 +367,11 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     // Started and duration.
     $log_entry = $item->getPlugin('logger')->loadLatest($item)->log_entry;
     $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
-    $this->rows[$name]['data'][] = array('data' => $start_time, 'class' => array('ctools-export-ui-last-start-time'));
+    $this->rows[$name]['data'][] = array(
+      'data' => $start_time,
+      'class' => array('ctools-export-ui-last-start-time'),
+      'title' => $log_entry->init_message,
+    );
 
     $duration = NULL;
     if ($log_entry->start_time && $log_entry->end_time) {
