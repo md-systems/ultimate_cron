@@ -437,12 +437,10 @@ function ultimate_cron_update_7200() {
         $jobs[$name]->settings['launcher']['background_process_legacy']['service_group'] = $old_job->settings['service_group'];
       }
 
-      print "$name: saving\n";
       ctools_export_crud_save('ultimate_cron_job', $jobs[$name]);
     }
 
     $status = isset($old_job->settings['enabled']) ? $old_job->settings['enabled'] : TRUE;
-    print "$name: status - " . (int) $status . "\n";
     ctools_export_set_status('ultimate_cron_job', $name, !$status);
   }
 
@@ -502,5 +500,7 @@ function ultimate_cron_update_7200() {
     'start_time',
     'end_time'
   ));
-}
 
+  variable_set('ultimate_cron_plugin_scheduler_default', 'crontab');
+  variable_set('ultimate_cron_plugin_launcher_default', 'background_process_legacy');
+}

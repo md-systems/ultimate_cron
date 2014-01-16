@@ -703,7 +703,7 @@ function ultimate_cron_get_module_hooks($module) {
       );
       if (!$class::$multiple) {
         $item[$plugin_type] += array(
-          'name' => variable_get('ultimate_cron_default_plugin_' . $plugin_type, $static['default plugin']),
+          'name' => variable_get('ultimate_cron_plugin_' . $plugin_type . '_default', $static['default plugin']),
         );
       }
 

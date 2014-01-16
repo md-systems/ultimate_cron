@@ -86,7 +86,7 @@ class UltimateCronPlugin {
   static function defaultSettingsForm(&$form, &$form_state, $plugin_info) {
     $plugin_type = $plugin_info['type'];
     $static = $plugin_info['defaults']['static'];
-    $key = 'ultimate_cron_default_plugin_' . $plugin_type;
+    $key = 'ultimate_cron_plugin_' . $plugin_type . '_default';
     $options = array();
     foreach (ultimate_cron_plugin_load_all($plugin_type) as $name => $plugin) {
       if ($plugin->isValid()) {
