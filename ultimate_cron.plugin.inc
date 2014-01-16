@@ -28,6 +28,9 @@ class UltimateCronPlugin {
     $this->settings = variable_get($this->key, array());
   }
 
+  public function build_operations_alter(&$allowed_operations) {
+  }
+
   /**
    * Get default settings.
    */
