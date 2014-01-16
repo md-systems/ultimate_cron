@@ -57,6 +57,9 @@ class UltimateCronPlugin {
     return array();
   }
 
+  /**
+   * Get label for a specific setting.
+   */
   public function settingsLabel($name, $value) {
     return $value;
   }
@@ -71,7 +74,7 @@ class UltimateCronPlugin {
   /**
    * Clean form of empty fallback values.
    */
-  function cleanForm($elements, &$values) {
+  public function cleanForm($elements, &$values) {
     foreach (element_children($elements) as $child) {
       $this->cleanForm($elements[$child], $values[$child]);
       if (!empty($elements[$child]['#markup'])) {
@@ -90,7 +93,7 @@ class UltimateCronPlugin {
   /**
    * Default settings form.
    */
-  static function defaultSettingsForm(&$form, &$form_state, $plugin_info) {
+  static public function defaultSettingsForm(&$form, &$form_state, $plugin_info) {
     $plugin_type = $plugin_info['type'];
     $static = $plugin_info['defaults']['static'];
     $key = 'ultimate_cron_plugin_' . $plugin_type . '_default';
@@ -109,7 +112,10 @@ class UltimateCronPlugin {
     $form = system_settings_form($form);
   }
 
-  static function jobSettingsForm(&$form, &$form_state, $plugin_type, $job) {
+  /**
+   * Job settings form.
+   */
+  static public function jobSettingsForm(&$form, &$form_state, $plugin_type, $job) {
     // Check valid plugins.
     $plugins = ultimate_cron_plugin_load_all($plugin_type);
     foreach ($plugins as $name => $plugin) {
@@ -194,7 +200,7 @@ class UltimateCronPlugin {
       '#type' => 'fieldset',
       '#title' => $current_plugin->title,
       '#description' => $current_plugin->description,
-      '#prefix' => '<div id="' . $wrapper . '">', // '<strong>' . $current_plugin->description . '</strong>',
+      '#prefix' => '<div id="' . $wrapper . '">',
       '#suffix' => '</div>',
     );
 
@@ -207,13 +213,19 @@ class UltimateCronPlugin {
     }
   }
 
-  static function jobSettingsFormValidate($form, &$form_state, $plugin_type, $job = NULL) {
+  /**
+   * Job settings form validate handler.
+   */
+  static public function jobSettingsFormValidate($form, &$form_state, $plugin_type, $job = NULL) {
     $name = !empty($form_state['values']['settings'][$plugin_type]['name']) ? $form_state['values']['settings'][$plugin_type]['name'] : $job->hook[$plugin_type]['name'];
     $plugin = ultimate_cron_plugin_load($plugin_type, $name);
     $plugin->settingsFormValidate($form, $form_state, $job);
   }
 
-  static function jobSettingsFormSubmit($form, &$form_state, $plugin_type, $job = NULL) {
+  /**
+   * Job settings form submit handler.
+   */
+  static public function jobSettingsFormSubmit($form, &$form_state, $plugin_type, $job = NULL) {
     $name = !empty($form_state['values']['settings'][$plugin_type]['name']) ? $form_state['values']['settings'][$plugin_type]['name'] : $job->hook[$plugin_type]['name'];
     $plugin = ultimate_cron_plugin_load($plugin_type, $name);
     $plugin->settingsFormSubmit($form, $form_state, $job);
@@ -255,7 +267,7 @@ class UltimateCronPlugin {
    * @param boolean $remove_non_fallbacks
    *   If TRUE, non fallback elements will be removed.
    */
-  function fallbackalize(&$elements, $defaults, $remove_non_fallbacks = FALSE) {
+  public function fallbackalize(&$elements, $defaults, $remove_non_fallbacks = FALSE) {
     if (empty($elements)) {
       return;
     }
@@ -292,7 +304,7 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
   /**
    * Default settings form.
    */
-  static function defaultSettingsForm(&$form, &$form_state, $plugin_info) {
+  static public function defaultSettingsForm(&$form, &$form_state, $plugin_info) {
     $plugin_type = $plugin_info['type'];
     foreach (ultimate_cron_plugin_load_all($plugin_type) as $name => $plugin) {
       if ($plugin->isValid()) {
@@ -307,7 +319,10 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
     );
   }
 
-  static function jobSettingsForm(&$form, &$form_state, $plugin_type, $job) {
+  /**
+   * Job settings form.
+   */
+  static public function jobSettingsForm(&$form, &$form_state, $plugin_type, $job) {
     // Check valid plugins.
     $plugins = ultimate_cron_plugin_load_all($plugin_type);
     foreach ($plugins as $name => $plugin) {
@@ -347,7 +362,10 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
     }
   }
 
-  static function jobSettingsFormValidate($form, &$form_state, $plugin_type, $job) {
+  /**
+   * Job settings form validate handler.
+   */
+  static public function jobSettingsFormValidate($form, &$form_state, $plugin_type, $job) {
     $plugins = ultimate_cron_plugin_load_all($plugin_type);
     foreach ($plugins as $name => $plugin) {
       if ($plugin->isValid($job)) {
@@ -356,7 +374,10 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
     }
   }
 
-  static function jobSettingsFormSubmit($form, &$form_state, $plugin_type, $job) {
+  /**
+   * Job settings form submit handler.
+   */
+  static public function jobSettingsFormSubmit($form, &$form_state, $plugin_type, $job) {
     $plugins = ultimate_cron_plugin_load_all($plugin_type);
     foreach ($plugins as $name => $plugin) {
       if ($plugin->isValid($job)) {
@@ -377,6 +398,7 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
 abstract class UltimateCronScheduler extends UltimateCronPlugin {
   /**
    * Check job schedule.
+   *
    * @param UltimateCronJob $job
    *   The job to check schedule for.
    *
@@ -470,7 +492,10 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
 
   static public $logs = array();
 
-  function __construct($name, $plugin) {
+  /**
+   * Constructor.
+   */
+  public function __construct($name, $plugin) {
     parent::__construct($name, $plugin);
     $this->log_entry = new stdClass();
     $this->log_entry->lid = NULL;
@@ -481,7 +506,10 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     $this->log_entry->severity = -1;
   }
 
-  function initialize($lock_id, $job, $init_message = '') {
+  /**
+   * Initialize a new log entry.
+   */
+  public function initialize($lock_id, $job, $init_message = '') {
     $this->log_entry = new stdClass();
     $this->log_entry->lid = $lock_id;
     $this->log_entry->start_time = microtime(TRUE);
@@ -496,7 +524,10 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     $this->save();
   }
 
-  function finish() {
+  /**
+   * Finish a log and save it if applicable.
+   */
+  public function finish() {
     if (!$this->finished) {
       $this->unCatchMessages();
       $this->log_entry->end_time = microtime(TRUE);
@@ -505,30 +536,47 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     }
   }
 
-  function watchdog(array $log_entry) {
+  /**
+   * Implements hook_watchdog().
+   */
+  public function watchdog(array $log_entry) {
     $this->log_entry->message .= t($log_entry['message'], $log_entry['variables']) . "\n";
     if ($this->log_entry->severity < 0 || $this->log_entry->severity > $log_entry['severity']) {
       $this->log_entry->severity = $log_entry['severity'];
     }
   }
 
-  function catchMessages() {
+  /**
+   * Begin capturing messages.
+   */
+  public function catchMessages() {
     if (empty(self::$logs[$this->log_entry->lid])) {
       drupal_register_shutdown_function(array($this, 'catchMessagesShutdown'));
     }
     self::$logs[$this->log_entry->lid] = $this;
   }
 
-  function unCatchMessages() {
+  /**
+   * End message capturing.
+   */
+  public function unCatchMessages() {
     unset(self::$logs[$this->log_entry->lid]);
   }
 
-  final static function hook_watchdog(array $log_entry) {
+  /**
+   * Invoke loggers watchdog hooks.
+   */
+  final static public function hook_watchdog(array $log_entry) {
     foreach (self::$logs as $log) {
       $log->watchdog($log_entry);
     }
   }
 
+  /**
+   * PHP shutdown function callback.
+   *
+   * Log errors if any.
+   */
   public function catchMessagesShutdown() {
     if ($this->finished || empty(self::$logs[$this->log_entry->lid])) {
       return;
@@ -571,7 +619,10 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     $this->finish();
   }
 
-  static function cleanupLogs() {
+  /**
+   * Clean up logs.
+   */
+  static public function cleanupLogs() {
     $jobs = ultimate_cron_job_load_all();
     foreach ($jobs as $job) {
       $job->getPlugin('logger')->cleanup($job);

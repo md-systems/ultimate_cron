@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * Cache logger for Ultimate Cron.
+ */
 
 $plugin = array(
   'title' => t('Cache'),

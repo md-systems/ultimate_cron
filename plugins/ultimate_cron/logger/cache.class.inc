@@ -1,26 +1,42 @@
 <?php
+/**
+ * @file
+ * Cache logger for Ultimate Cron.
+ */
 
 class UltimateCronCacheLogger extends UltimateCronLogger {
-  function defaultSettings() {
+  /**
+   * Default settings.
+   */
+  public function defaultSettings() {
     return array(
       'bin' => 'cache',
       'timeout' => 0,
     );
   }
 
-  function cleanup($job) {
+  /**
+   * Cleanup logs.
+   */
+  public function cleanup($job) {
   }
 
-  function save() {
+  /**
+   * Save log entry.
+   */
+  public function save() {
     $job = $this->job;
     $settings = $job->getSettings('logger');
 
     $expire = $settings['timeout'] > 0 ? time() + $settings['timeout'] : $settings['timeout'];
-    cache_set('uc-name:' . $job->name, $this->log_entry->lid, $settings['bin']);
-    cache_set('uc-lid:' . $this->log_entry->lid, $this->log_entry, $settings['bin']);
+    cache_set('uc-name:' . $job->name, $this->log_entry->lid, $settings['bin'], $expire);
+    cache_set('uc-lid:' . $this->log_entry->lid, $this->log_entry, $settings['bin'], $expire);
   }
 
-  function load($job, $lid) {
+  /**
+   * Load log entry.
+   */
+  public function load($job, $lid) {
     $settings = $job->getSettings('logger');
 
     $cache = $lid ? cache_get('uc-lid:' . $lid, $settings['bin']) : NULL;
@@ -41,20 +57,28 @@ class UltimateCronCacheLogger extends UltimateCronLogger {
     return $this;
   }
 
-  function loadLatest($job) {
+  /**
+   * Load latest log entry.
+   */
+  public function loadLatest($job) {
     $settings = $job->getSettings('logger');
 
-    $log_entry = NULL;
     $cache = cache_get('uc-name:' . $job->name, $settings['bin']);
     return $this->load($job, empty($cache->data) ? NULL : $cache->data);
   }
 
-  function getLogEntries($job) {
+  /**
+   * Get log entries.
+   */
+  public function getLogEntries($job) {
     $log = $this->loadLatest($job);
     return $log->log_entry->lid ? array($log->log_entry) : array();
   }
 
-  function settingsForm(&$form, &$form_state) {
+  /**
+   * Settings form.
+   */
+  public function settingsForm(&$form, &$form_state) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 

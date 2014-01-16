@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * Database logger for Ultimate Cron.
+ */
 
 $plugin = array(
   'title' => t('Database'),

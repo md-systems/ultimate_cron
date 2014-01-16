@@ -1,11 +1,11 @@
 <?php
 /**
  * @file
- * Default cron job launcher for Ultimate Cron.
+ * General settings for Ultimate Cron.
  */
 
 /**
- * Ultimate Cron launcher plugin class.
+ * General settings plugin class.
  */
 class UltimateCronGeneralSettings extends UltimateCronSettings {
   public $poorman_intervals = array(
@@ -33,7 +33,7 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
   }
 
   /**
-   * Settings form for the crontab scheduler.
+   * Settings form.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
     $elements = &$form['settings'][$this->type][$this->name];

@@ -1,11 +1,11 @@
 <?php
 /**
  * @file
- * Default cron job launcher for Ultimate Cron.
+ * Queue settings for Ultimate Cron.
  */
 
 /**
- * Ultimate Cron launcher plugin class.
+ * Queue settings plugin class.
  */
 class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
   /**
@@ -18,7 +18,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
   }
 
   /**
-   * Settings form for the crontab scheduler.
+   * Settings form.
    */
   public function settingsForm(&$form, &$form_state) {
     $elements = &$form['settings'][$this->type][$this->name];

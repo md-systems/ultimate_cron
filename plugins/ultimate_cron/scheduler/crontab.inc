@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Default cron job scheduler for Ultimate Cron.
+ * Crontab cron job scheduler for Ultimate Cron.
  */
 
 $plugin = array(

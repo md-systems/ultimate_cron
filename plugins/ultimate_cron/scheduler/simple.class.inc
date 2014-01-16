@@ -1,11 +1,11 @@
 <?php
 /**
  * @file
- * Default cron job scheduler for Ultimate Cron.
+ * Simple cron job scheduler for Ultimate Cron.
  */
 
 /**
- * Queue scheduler.
+ * Simple scheduler.
  */
 class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
   public $presets = array(
@@ -51,7 +51,7 @@ class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
   }
 
   /**
-   * Settings form for the crontab scheduler.
+   * Settings form for the simple scheduler.
    */
   public function settingsForm(&$form, &$form_state) {
     $elements = &$form['settings'][$this->type][$this->name];

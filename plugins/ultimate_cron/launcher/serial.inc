@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Default cron job launcher for Ultimate Cron.
+ * Serial cron job launcher for Ultimate Cron.
  */
 
 $plugin = array(

@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Extra settings for cron queues.
+ * Queue settings for Ultimate Cron.
  */
 
 $plugin = array(

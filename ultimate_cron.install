@@ -317,10 +317,10 @@ function ultimate_cron_update_7105(&$context) {
     return;
   }
   $items = db_select('ultimate_cron')
-             ->fields('ultimate_cron', array('fid', 'function'))
-             ->orderBy('fid', 'ASC')
-             ->execute()
-             ->fetchAllAssoc('fid', PDO::FETCH_ASSOC);
+    ->fields('ultimate_cron', array('fid', 'function'))
+    ->orderBy('fid', 'ASC')
+    ->execute()
+    ->fetchAllAssoc('fid', PDO::FETCH_ASSOC);
   $fids = array();
   $keep = array();
   foreach ($items as $item) {

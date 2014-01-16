@@ -1,13 +1,23 @@
 <?php
+/**
+ * @file
+ * Database logger for Ultimate Cron.
+ */
 
 class UltimateCronDatabaseLogger extends UltimateCronLogger {
-  function defaultSettings() {
+  /**
+   * Default settings.
+   */
+  public function defaultSettings() {
     return array(
       'logs_expire' => 86400 * 14,
     );
   }
 
-  function cleanup($job) {
+  /**
+   * Cleanup logs.
+   */
+  public function cleanup($job) {
     $settings = $job->getSettings();
     $logger_settings = $settings['logger'][$settings['logger']['name']];
 
@@ -41,7 +51,10 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
     }
   }
 
-  function save() {
+  /**
+   * Save log entry.
+   */
+  public function save() {
     if (!$this->log_entry->lid) {
       return;
     }
@@ -85,27 +98,17 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
         $this->save();
       }
     }
-    return;
-
-    db_merge('ultimate_cron_log')
-      ->key(array('lid' => $this->log_entry->lid))
-      ->fields(array(
-        'name' => $this->log_entry->name,
-        'start_time' => $this->log_entry->start_time,
-        'end_time' => $this->log_entry->end_time,
-        'init_message' => $this->log_entry->init_message,
-        'message' => $this->log_entry->message,
-        'severity' => $this->log_entry->severity
-      ))
-      ->execute();
   }
 
-  function load($job, $lid) {
+  /**
+   * Load log entry.
+   */
+  public function load($job, $lid) {
     $log_entry = db_select('ultimate_cron_log', 'l')
-             ->fields('l')
-             ->condition('l.lid', $lid)
-             ->execute()
-             ->fetchObject();
+      ->fields('l')
+      ->condition('l.lid', $lid)
+      ->execute()
+      ->fetchObject();
     if ($log_entry) {
       $this->log_entry = $log_entry;
     }
@@ -121,15 +124,18 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
     return $this;
   }
 
-  function loadLatest($job) {
+  /**
+   * Load latest log entry.
+   */
+  public function loadLatest($job) {
     $log_entry = db_select('ultimate_cron_log', 'l')
-             ->fields('l')
-             ->condition('l.name', $job->name)
-             ->orderBy('l.start_time', 'DESC')
-             ->orderBy('l.end_time', 'DESC')
-             ->range(0, 1)
-             ->execute()
-             ->fetchObject();
+      ->fields('l')
+      ->condition('l.name', $job->name)
+      ->orderBy('l.start_time', 'DESC')
+      ->orderBy('l.end_time', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchObject();
     if ($log_entry) {
       $this->log_entry = $log_entry;
     }
@@ -147,7 +153,10 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
     return $this;
   }
 
-  function getLogEntries($job) {
+  /**
+   * Get log entries.
+   */
+  public function getLogEntries($job) {
     $logs = db_select('ultimate_cron_log', 'l')
       ->fields('l')
       ->extend('PagerDefault')
@@ -159,7 +168,10 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
     return $logs;
   }
 
-  function settingsForm(&$form, &$form_state) {
+  /**
+   * Settings form.
+   */
+  public function settingsForm(&$form, &$form_state) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
