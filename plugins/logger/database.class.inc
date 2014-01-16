@@ -42,10 +42,51 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   }
 
   function save() {
-    error_log("Saving: {$this->log_entry->lid} - " . print_r($this->log_entry, TRUE));
     if (!$this->log_entry->lid) {
       return;
     }
+    try {
+      db_insert('ultimate_cron_log')
+        ->fields(array(
+          'lid' => $this->log_entry->lid,
+          'name' => $this->log_entry->name,
+          'start_time' => $this->log_entry->start_time,
+          'end_time' => $this->log_entry->end_time,
+          'init_message' => $this->log_entry->init_message,
+          'message' => $this->log_entry->message,
+          'severity' => $this->log_entry->severity
+        ))
+        ->execute();
+    }
+    catch (PDOException $e) {
+      // Row already exists. Let's update it, if we can.
+      $updated = db_update('ultimate_cron_log')
+        ->fields(array(
+          'name' => $this->log_entry->name,
+          'start_time' => $this->log_entry->start_time,
+          'end_time' => $this->log_entry->end_time,
+          'init_message' => $this->log_entry->init_message,
+          'message' => $this->log_entry->message,
+          'severity' => $this->log_entry->severity
+        ))
+        ->condition('lid', $this->log_entry->lid)
+        ->condition('end_time', 0)
+        ->execute();
+      if (!$updated) {
+        // Row was not updated, someone must have beaten us to it.
+        // Let's create a new log entry.
+        $lid = $this->log_entry->lid . '-' . uniqid('', TRUE);
+        $this->log_entry->message = t('Lock #@original_lid was already closed and logged. Creating a new log entry @lid', array(
+          '@original_lid' => $this->log_entry->lid,
+          '@lid' => $lid,
+        )) . "\n" . $this->log_entry->message;
+        $this->log_entry->severity = $this->log_entry->severity < WATCHDOG_ERROR ? $this->log_entry->severity : WATCHDOG_ERROR;
+        $this->log_entry->lid = $lid;
+        $this->save();
+      }
+    }
+    return;
+
     db_merge('ultimate_cron_log')
       ->key(array('lid' => $this->log_entry->lid))
       ->fields(array(
@@ -85,6 +126,7 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
              ->fields('l')
              ->condition('l.name', $job->name)
              ->orderBy('l.start_time', 'DESC')
+             ->orderBy('l.end_time', 'DESC')
              ->range(0, 1)
              ->execute()
              ->fetchObject();

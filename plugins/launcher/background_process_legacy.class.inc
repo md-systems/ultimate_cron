@@ -92,6 +92,10 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     $values = &$form_state['values']['settings'][$this->type][$this->name];
   }
 
+  /**
+   * Background Process doesn't internally provide a unique id
+   * for the running process, so we'll have to add that ourselves.
+   */
  function lock($job) {
     $lock_id = 'uc-' . $job->name . '-' . urlencode(uniqid('', TRUE));
     $process = new BackgroundProcess($lock_id);
@@ -101,10 +105,18 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     return FALSE;
   }
 
+  /**
+   * Unlock background process.
+   */
  function unlock($lock_id) {
     return background_process_unlock($lock_id);
   }
 
+  /**
+   * Because Background Process doesn't support a unique id per
+   * process, we'll have to match against the prefix, which is
+   * the job name.
+   */
   function isLocked($job) {
     $lock_id_prefix = 'uc-' . $job->name . '-';
     $lock_id = db_select('background_process', 'bp')
@@ -116,6 +128,9 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     return $lock_id;
   }
 
+  /**
+   * Background Process launch.
+   */
   function launch($job) {
     $settings = $job->getSettings();
 

@@ -171,7 +171,6 @@ class UltimateCronJob {
   }
 
   function loadLog($lock_id) {
-    error_log("AND HERE?");
     return $this->getPlugin('logger')->load($this, $lock_id);
   }
 

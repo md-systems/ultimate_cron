@@ -118,8 +118,8 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         )) : '',
       );
 
-      $rows[$log_entry->lid]['data'][] = array('data' => $log_entry->init_message, 'class' => array('ctools-export-ui-init-message'));
-      $rows[$log_entry->lid]['data'][] = array('data' => $log_entry->message, 'class' => array('ctools-export-ui-message'));
+      $rows[$log_entry->lid]['data'][] = array('data' => '<pre>' . $log_entry->init_message . '</pre>', 'class' => array('ctools-export-ui-init-message'));
+      $rows[$log_entry->lid]['data'][] = array('data' => '<pre>' . $log_entry->message . '</pre>', 'class' => array('ctools-export-ui-message'));
 
       // Status.
       if ($log_entry->start_time && !$log_entry->end_time) {

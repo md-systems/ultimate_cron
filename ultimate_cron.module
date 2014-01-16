@@ -855,7 +855,6 @@ function ultimate_cron_watchdog(array $log_entry) {
 }
 
 function ultimate_cron_background_process_legacy_callback($name, $lid) {
-  error_log("HERE: $name - $lid!");
   $job = ultimate_cron_job_load($name);
 
   $log = $job->loadLog($lid);
