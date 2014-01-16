@@ -674,8 +674,7 @@ function ultimate_cron_get_module_hooks($module) {
 
   // Add hook_cron() if applicable.
   if (empty($items["{$module}_cron"]) && module_hook($module, 'cron')) {
-    $file = drupal_get_path('module', $module) . '/' . $module . '.info';
-    $info = drupal_parse_info_file($file);
+    $info = system_get_info('module', $module);
     $items["{$module}_cron"] = array(
       'module' => $module,
       'title' => 'Default cron handler',
@@ -687,6 +686,7 @@ function ultimate_cron_get_module_hooks($module) {
   static $plugin_types;
   static $plugins;
   if (!isset($plugin_types)) {
+    ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     $plugins = array();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {

@@ -120,11 +120,8 @@ function ultimate_cron_schema() {
     'indexes' => array(
       'idx_last' => array(
         'name',
-        'start_time'
-      ),
-      'idx_count' => array(
-        'name',
-        'end_time'
+        'start_time',
+        'end_time',
       ),
     ),
   );
@@ -406,13 +403,77 @@ function ultimate_cron_update_7107(&$context) {
  * Rename columns and indices to 2.x style.
  */
 function ultimate_cron_update_7200() {
-  drupal_install_schema('ultimate_cron_job');
-  // @todo Copy data from old table before dropping it ...
+  $schema = drupal_get_schema('ultimate_cron_lock', TRUE);
+  db_create_table('ultimate_cron_lock', $schema);
+  $schema = drupal_get_schema('ultimate_cron_job', TRUE);
+  db_create_table('ultimate_cron_job', $schema);
+
+  // Refresh schema, so that cTools export is able to save the objects.
+  drupal_get_schema('ultimate_cron_job', TRUE);
+
+  // New table is ready. Let's migrate the settings.
+  ctools_include('export');
+  $old_jobs = db_query("SELECT * FROM {ultimate_cron}");
+
+  foreach ($old_jobs as $old_job) {
+    $name = $old_job->name;
+    $old_job->settings = unserialize($old_job->settings);
+
+    if (isset($jobs[$name])) {
+      $jobs[$name]->settings['scheduler'] = array(
+        'name' => 'crontab',
+        'crontab' => array()
+      );
+      if (!empty($old_job->settings['rules'])) {
+        $jobs[$name]->settings['scheduler']['crontab']['rules'] = $old_job->settings['rules'];
+      }
+      if (!empty($old_job->settings['catch_up'])) {
+        $jobs[$name]->settings['scheduler']['crontab']['catch_up'] = $old_job->settings['catch_up'];
+      }
+
+      $jobs[$name]->settings['launcher'] = array(
+        'name' => 'background_process_legacy',
+        'background_process_legacy' => array()
+      );
+      if (!empty($old_job->settings['catch_up'])) {
+        $jobs[$name]->settings['launcher']['background_process_legacy']['service_group'] = $old_job->settings['service_group'];
+      }
+
+      print "$name: saving\n";
+      ctools_export_crud_save('ultimate_cron_job', $jobs[$name]);
+    }
+
+    $status = isset($old_job->settings['enabled']) ? $old_job->settings['enabled'] : TRUE;
+    print "$name: status - " . (int) $status . "\n";
+    ctools_export_set_status('ultimate_cron_job', $name, !$status);
+  }
+
+  // Don't need the old one anymore.
   db_drop_table('ultimate_cron');
 
+  // Make sure we don't get clashing lock ids.
+  $serial_start = db_query("SELECT MAX(lid) FROM {ultimate_cron_log}")->fetchField();
+  if ($serial_start) {
+    db_insert('ultimate_cron_lock')
+      ->fields(array(
+        'lid' => $serial_start + 1,
+        'current' => $serial_start + 1,
+        'name' => 'migrate:boundary',
+        'expire' => time(),
+      ))
+      ->execute();
+  }
+
+  // Update log table to new format.
   db_drop_field('ultimate_cron_log', 'exec_status');
   db_drop_index('ultimate_cron_log', 'idx_last');
   db_drop_index('ultimate_cron_log', 'idx_count');
+  db_change_field('ultimate_cron_log', 'lid', 'lid', array(
+    'description' => 'Lock ID',
+    'type' => 'varchar',
+    'length' => 255,
+    'not null' => TRUE,
+  ));
   db_change_field('ultimate_cron_log', 'start_stamp', 'start_time', array(
     'description' => 'Timestamp of execution start',
     'type' => 'float',
@@ -427,6 +488,21 @@ function ultimate_cron_update_7200() {
     'not null' => TRUE,
     'default' => 0
   ));
-  db_add_index('ultimate_cron_log', 'idx_last', array('name', 'start_time'));
-  db_add_index('ultimate_cron_log', 'idx_count', array('name', 'end_time'));
+  db_change_field('ultimate_cron_log', 'service_host', 'init_message', array(
+    'description' => 'Initial message',
+    'type' => 'text',
+    'not null' => FALSE,
+  ));
+  db_change_field('ultimate_cron_log', 'msg', 'message', array(
+    'description' => 'Message',
+    'type' => 'text',
+    'not null' => FALSE,
+  ));
+
+  db_add_index('ultimate_cron_log', 'idx_last', array(
+    'name',
+    'start_time',
+    'end_time'
+  ));
 }
+
