@@ -621,10 +621,12 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    *
    * Log errors if any.
    */
-  public function catchMessagesShutdown() {
-    if ($this->finished || empty(self::$logs[$this->log_entry->lid])) {
+  public function catchMessagesShutdown($force = FALSE) {
+    if (!$force && ($this->finished || empty(self::$logs[$this->log_entry->lid]))) {
+      unset(self::$logs[$this->log_entry->lid]);
       return;
     }
+    unset(self::$logs[$this->log_entry->lid]);
 
     // Get error messages.
     $error = error_get_last();

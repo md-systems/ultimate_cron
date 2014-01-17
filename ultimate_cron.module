@@ -861,21 +861,6 @@ function ultimate_cron_blank_values($array) {
   return $result;
 }
 
-function ultimate_cron_get_schedule() {
-  ctools_include('export');
-  $jobs = ctools_export_crud_load_all('ultimate_cron_job');
-
-  // Find jobs that should run now.
-  $schedule = array();
-  foreach ($jobs as $name => $job) {
-    if (empty($job->disabled) && $job->schedule() && !$job->isLocked()) {
-      $schedule[$name] = $job;
-    }
-  }
-  drupal_alter('cron_schedule', $schedule);
-  return $schedule;
-}
-
 /**
  * Run scheduled jobs.
  */
@@ -898,13 +883,30 @@ function ultimate_cron_run_scheduled($redirect = TRUE) {
 }
 
 /**
+ * Implements hook_background_process_shutdown().
+ */
+function ultimate_cron_background_process_shutdown($process) {
+  // We only handle the legacy callback here.
+  if ($process->callback != 'ultimate_cron_background_process_legacy_callback') {
+    return;
+  }
+
+  // Close the Ultimate Cron log entry.
+  list ($name, $lock_id) = $process->args;
+  $job = ultimate_cron_job_load($name);
+
+  $log = $job->loadLog($lock_id);
+  $log->finished = FALSE;
+  $log->catchMessagesShutdown(TRUE);
+}
+
+/**
  * Background Process legacy callback for running cron jobs.
  */
 function ultimate_cron_background_process_legacy_callback($name, $lock_id) {
   $job = ultimate_cron_job_load($name);
 
   $log = $job->loadLog($lock_id);
-
   $log->finished = FALSE;
   $log->catchMessages();
 
