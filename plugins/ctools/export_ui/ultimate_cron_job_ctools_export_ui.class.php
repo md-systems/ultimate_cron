@@ -204,6 +204,8 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
   public function list_form(&$form, &$form_state) {
     parent::list_form($form, $form_state);
 
+    $form['#attached']['js'][] = drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.js';
+
     // There's no normal for Ultimate Cron!
     unset($form['top row']['storage']['#options'][t('Normal')]);
 
@@ -300,7 +302,6 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       $header[] = array('data' => t('Title'), 'class' => array('ctools-export-ui-title'));
     }
 
-    // $header[] = array('data' => t('Name'), 'class' => array('ctools-export-ui-name'));
     $header[] = array('data' => t('Scheduled'), 'class' => array('ctools-export-ui-scheduled'));
     $header[] = array('data' => t('Started'), 'class' => array('ctools-export-ui-start-time'));
     $header[] = array('data' => t('Duration'), 'class' => array('ctools-export-ui-duration'));

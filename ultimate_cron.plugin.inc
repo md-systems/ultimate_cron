@@ -194,12 +194,17 @@ class UltimateCronPlugin {
       ),
     );
 
+    $default_settings_link = l(
+      t('(change default settings)'),
+      'admin/config/system/cron/' . $current_plugin->type . '/' . $current_plugin->name
+    );
+
     // Plugin specific settings wrapper for ajax replace.
     $form['settings'][$plugin_type][$current_plugin->name] = array(
       '#tree' => TRUE,
       '#type' => 'fieldset',
       '#title' => $current_plugin->title,
-      '#description' => $current_plugin->description,
+      '#description' => $current_plugin->description . ' ' . $default_settings_link,
       '#prefix' => '<div id="' . $wrapper . '">',
       '#suffix' => '</div>',
     );
