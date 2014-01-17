@@ -41,6 +41,28 @@ function ultimate_cron_drush_command() {
     'aliases' => array('cl'),
   );
 
+  $items['cron-job-get'] = array(
+    'description' => "Get cron job configuration",
+    'arguments' => array(
+      'name' => 'Job in question',
+    ),
+    'examples' => array(
+      'drush cron-job-get node_cron' => 'Get the node_cron job configuration',
+    ),
+    'aliases' => array('cjget'),
+  );
+
+  $items['cron-job-set'] = array(
+    'description' => "Set cron job configuration",
+    'arguments' => array(
+      'name' => 'Job in question',
+    ),
+    'examples' => array(
+      'drush cron-job-set node_cron {"settings":{"scheduler":{"name":"crontab"}}}' => 'Set the node_cron scheduler to "crontab"',
+    ),
+    'aliases' => array('cjset'),
+  );
+
   $items['cron-run'] = array(
     'description' => "Run cron job",
     'arguments' => array(
@@ -315,6 +337,28 @@ function drush_ultimate_cron_cron_logs($name = NULL) {
     $table[$log_entry->lid][] = $status;
   }
   drush_print_table($table);
+}
+
+/**
+ * Get a cron jobs configuration.
+ */
+function drush_ultimate_cron_cron_job_get($name = NULL) {
+  if (!$name) {
+    return drush_set_error(dt('No job specified?'));
+  }
+  $job = ultimate_cron_job_load($name);
+  drush_print(drupal_json_encode($job->getSettings()));
+}
+
+/**
+ * Set a cron jobs configuration.
+ */
+function drush_ultimate_cron_cron_job_set($name = NULL) {
+  if (!$name) {
+    return drush_set_error(dt('No job specified?'));
+  }
+  $job = ultimate_cron_job_load($name);
+  drush_print(drupal_json_encode($job->getSettings()));
 }
 
 /**
