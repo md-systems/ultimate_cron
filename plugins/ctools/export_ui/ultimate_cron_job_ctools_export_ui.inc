@@ -58,7 +58,7 @@ $plugin = array(
         'load arguments' => array('ultimate_cron_job_ctools_export_ui'),
         'access callback' => TRUE,
         'access arguments' => array(),
-        'type' => MENU_CALLBACK,
+        'type' => MENU_VISIBLE_IN_BREADCRUMB,
       ),
     ),
   ),
