@@ -94,7 +94,7 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
           '@original_lid' => $this->log_entry->lid,
           '@lid' => $lid,
         )) . "\n" . $this->log_entry->message;
-        $this->log_entry->severity = $this->log_entry >= 0 && $this->log_entry->severity < WATCHDOG_ERROR ? $this->log_entry->severity : WATCHDOG_ERROR;
+        $this->log_entry->severity = $this->log_entry->severity >= 0 && $this->log_entry->severity < WATCHDOG_ERROR ? $this->log_entry->severity : WATCHDOG_ERROR;
         $this->log_entry->lid = $lid;
         $this->save();
       }
