@@ -196,6 +196,9 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
   public function list_form(&$form, &$form_state) {
     parent::list_form($form, $form_state);
 
+    // There's no normal for Ultimate Cron!
+    unset($form['top row']['storage']['#options'][t('Normal')]);
+
     $all = array('all' => t('- All -'));
 
     $form['top row']['status'] = array(
