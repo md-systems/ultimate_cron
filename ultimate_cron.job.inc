@@ -147,7 +147,8 @@ class UltimateCronJob {
    * Lock job.
    */
   public function lock() {
-    return $this->getPlugin('launcher')->lock($this);
+    $settings = $this->getSettings('settings');
+    return $this->getPlugin('launcher')->lock($this, $settings['general']['lock_timeout']);
   }
 
   /**

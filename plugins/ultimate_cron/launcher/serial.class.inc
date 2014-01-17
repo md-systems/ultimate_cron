@@ -106,6 +106,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       watchdog('ultimate_cron', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);
     }
 
+    $job->unlock($lock_id);
     $log->finish();
   }
 
