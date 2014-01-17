@@ -186,7 +186,9 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   static public function launchJobs($jobs) {
     self::$currentThread = 1;
     foreach ($jobs as $job) {
-      $job->launch();
+      if ($job->schedule()) {
+        $job->launch();
+      }
     }
   }
 }

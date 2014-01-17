@@ -865,15 +865,15 @@ function ultimate_cron_get_schedule() {
  * Run scheduled jobs.
  */
 function ultimate_cron_run_scheduled($redirect = TRUE) {
-  $launcher_schedule = array();
-  foreach (ultimate_cron_get_schedule() as $name => $job) {
+  $schedule = array();
+  foreach (ultimate_cron_job_load_all() as $name => $job) {
     $class = get_class($job->getPlugin('launcher'));
-    $launcher_schedule[$class][$name] = $job;
+    $schedule[$class][$name] = $job;
   }
 
   _ultimate_cron_variable_save('cron_last', time());
 
-  foreach ($launcher_schedule as $class => $jobs) {
+  foreach ($schedule as $class => $jobs) {
     $class::launchJobs($jobs);
   }
 

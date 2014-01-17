@@ -209,10 +209,14 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     $all = array('all' => t('- All -'));
 
+    $options = $all + array(
+      'running' => 'running',
+      -1 => 'no info',
+    ) + watchdog_severity_levels();
     $form['top row']['status'] = array(
       '#type' => 'select',
       '#title' => t('Status'),
-      '#options' => $all + watchdog_severity_levels(),
+      '#options' => $options,
       '#default_value' => 'all',
       '#weight' => -2,
     );
@@ -253,7 +257,16 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       return TRUE;
     }
 
-    if ($form_state['values']['status'] != 'all' && $form_state['values']['status'] != $item->severity) {
+    $item->log_entry = $item->loadLatestLog()->log_entry;
+    $item->lock_id = $item->isLocked();
+    // dpm($item, $item->name);
+    // dpm($form_state['values']['status']);
+    if ($form_state['values']['status'] == 'running') {
+      if (!$item->lock_id) {
+        return TRUE;
+      }
+    }
+    elseif ($form_state['values']['status'] != 'all' && $form_state['values']['status'] != $item->log_entry->severity) {
       return TRUE;
     }
 
@@ -393,7 +406,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     );
 
     // Started and duration.
-    $log_entry = $item->loadLatestLog()->log_entry;
+    $log_entry = $item->log_entry;
     $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
 
     $username = t('anonymous') . ' (0)';
@@ -438,7 +451,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     );
 
     // Status.
-    $lock_id = $item->isLocked();
+    $lock_id = $item->lock_id;
     if ($lock_id && $log_entry->lid == $lock_id) {
       $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
       $status = theme('image', array('path' => $file));

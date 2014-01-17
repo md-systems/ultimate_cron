@@ -18,11 +18,10 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
    * Cleanup logs.
    */
   public function cleanup($job) {
-    $settings = $job->getSettings();
-    $logger_settings = $settings['logger'][$settings['logger']['name']];
+    $settings = $job->getSettings('logger');
 
     // Is cleanup disabled?
-    if (!$logger_settings['logs_expire']) {
+    if (!$settings['logs_expire']) {
       return;
     }
 
@@ -32,7 +31,7 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
       $lids = db_select('ultimate_cron_log', 'l')
         ->fields('l', array('lid'))
         ->condition('l.name', $job->name)
-        ->condition('l.start_time', microtime(TRUE) - $logger_settings['logs_expire'], '<')
+        ->condition('l.start_time', microtime(TRUE) - $settings['logs_expire'], '<')
         ->range(0, 100)
         ->execute()
         ->fetchAll(PDO::FETCH_COLUMN);

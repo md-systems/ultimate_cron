@@ -161,7 +161,9 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
 
     self::$currentThread = $thread;
     foreach ($jobs as $job) {
-      $job->launch();
+      if ($job->schedule()) {
+        $job->launch();
+      }
     }
   }
 }
