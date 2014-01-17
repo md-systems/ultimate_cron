@@ -46,6 +46,9 @@ function ultimate_cron_drush_command() {
     'arguments' => array(
       'name' => 'Job in question',
     ),
+    'options' => array(
+      'fallback' => 'Also show fallback settings'
+    ),
     'examples' => array(
       'drush cron-job-get node_cron' => 'Get the node_cron job configuration',
     ),
@@ -347,18 +350,54 @@ function drush_ultimate_cron_cron_job_get($name = NULL) {
     return drush_set_error(dt('No job specified?'));
   }
   $job = ultimate_cron_job_load($name);
-  drush_print(drupal_json_encode($job->getSettings()));
+  require_once drupal_get_path('module', 'ultimate_cron') . '/includes/nicejson.php';
+  $settings = drush_get_option('fallback') ? $job->getSettings() : $job->settings;
+  $nicejson = json_format(drupal_json_encode($settings));
+  drush_print($nicejson);
 }
 
 /**
  * Set a cron jobs configuration.
  */
-function drush_ultimate_cron_cron_job_set($name = NULL) {
+function drush_ultimate_cron_cron_job_set($name = NULL, $settings = NULL) {
   if (!$name) {
     return drush_set_error(dt('No job specified?'));
   }
+  if (!$settings) {
+    return drush_set_error(dt('No settings specified?'));
+  }
+  $settings = drupal_json_decode($settings);
+  if ($settings === FALSE) {
+    return drush_set_error(dt('Invalid JSON'));
+  }
   $job = ultimate_cron_job_load($name);
-  drush_print(drupal_json_encode($job->getSettings()));
+
+  $plugin_types = ctools_plugin_get_plugin_type_info();
+  foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+    $class = $info['defaults']['static']['class'];
+    if (!$class::$multiple) {
+      if (isset($settings[$plugin_type])) {
+        $job->settings[$plugin_type] = $settings[$plugin_type] + $job->settings[$plugin_type];
+      }
+    }
+    else {
+      $plugins = ultimate_cron_plugin_load_all($plugin_type);
+      foreach ($plugins as $plugin) {
+        if (isset($settings[$plugin_type][$plugin->name])) {
+          $job->settings[$plugin_type][$plugin->name] = $settings[$plugin_type][$plugin->name] + $job->settings[$plugin_type][$plugin->name];
+        }
+      }
+    }
+  }
+
+  require_once drupal_get_path('module', 'ultimate_cron') . '/includes/nicejson.php';
+  $nicejson = json_format(drupal_json_encode($job->settings));
+  drush_print($nicejson);
+  if (drush_confirm(dt('Do you want to update the job with the above settings?'))) {
+    ctools_include('export');
+    ctools_export_crud_save('ultimate_cron_job', $job);
+    drush_print(dt('Job has been updated'));
+  }
 }
 
 /**
