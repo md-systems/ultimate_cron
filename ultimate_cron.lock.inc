@@ -82,11 +82,13 @@ class UltimateCronLock {
    * Release lock.
    */
   public function unlock($lock_id) {
-    db_update('ultimate_cron_lock')
+    $unlocked = db_update('ultimate_cron_lock')
       ->expression('current', 'lid')
       ->condition('lid', $lock_id)
+      ->condition('current', 0)
       ->execute();
     $this->persist($lock_id);
+    return $unlocked;
   }
 
   /**

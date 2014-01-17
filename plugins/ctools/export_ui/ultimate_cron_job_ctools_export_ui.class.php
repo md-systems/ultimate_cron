@@ -58,18 +58,18 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
    * Unlock a job callback.
    */
   public function unlock_page($js, $input, $item, $lock_id) {
-    $log = $item->getPlugin('logger')->load($item, $lock_id);
-    $log->finished = FALSE;
-    $log->catchMessages();
-    global $user;
-    watchdog('ultimate_cron', '@name manually unlocked by user @username (@uid)', array(
-      '@name' => $item->name,
-      '@username' => $user->name,
-      '@uid' => $user->uid,
-    ), WATCHDOG_WARNING);
-    $log->finish();
-
-    $item->getPlugin('launcher')->unlock($lock_id);
+    if ($item->unlock($lock_id, TRUE)) {
+      $log = $item->loadLog($lock_id);
+      $log->finished = FALSE;
+      $log->catchMessages();
+      global $user;
+      watchdog('ultimate_cron', '@name manually unlocked by user @username (@uid)', array(
+        '@name' => $item->name,
+        '@username' => $user->name,
+        '@uid' => $user->uid,
+      ), WATCHDOG_WARNING);
+      $log->finish();
+    }
 
     if (!$js) {
       drupal_goto(ctools_export_ui_plugin_base_path($this->plugin));

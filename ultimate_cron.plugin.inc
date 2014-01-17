@@ -455,7 +455,7 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
   /**
    * Unlock job.
    */
-  public function unlock($lock_id) {
+  public function unlock($lock_id, $manual = FALSE) {
     list($launcher, $lock_id) = explode('-', $lock_id, 2);
     $locker = new UltimateCronLock();
     return $locker->unlock($lock_id);
@@ -593,8 +593,8 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   /**
    * Begin capturing messages.
    */
-  public function catchMessages() {
-    if (empty(self::$logs[$this->log_entry->lid])) {
+  public function catchMessages($shutdown = TRUE) {
+    if (empty(self::$logs[$this->log_entry->lid]) && $shutdown) {
       drupal_register_shutdown_function(array($this, 'catchMessagesShutdown'));
     }
     self::$logs[$this->log_entry->lid] = $this;
@@ -621,8 +621,8 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    *
    * Log errors if any.
    */
-  public function catchMessagesShutdown($force = FALSE) {
-    if (!$force && ($this->finished || empty(self::$logs[$this->log_entry->lid]))) {
+  public function catchMessagesShutdown() {
+    if ($this->finished || empty(self::$logs[$this->log_entry->lid])) {
       unset(self::$logs[$this->log_entry->lid]);
       return;
     }

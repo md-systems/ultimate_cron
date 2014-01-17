@@ -154,12 +154,12 @@ class UltimateCronJob {
   /**
    * Unlock job.
    */
-  public function unlock($lock_id = NULL) {
+  public function unlock($lock_id = NULL, $manual = FALSE) {
     if (!$lock_id) {
       $lock_id = $this->isLocked();
     }
     if ($lock_id) {
-      return $this->getPlugin('launcher')->unlock($lock_id);
+      return $this->getPlugin('launcher')->unlock($lock_id, $manual);
     }
   }
 

@@ -885,9 +885,18 @@ function ultimate_cron_run_scheduled($redirect = TRUE) {
 /**
  * Implements hook_background_process_shutdown().
  */
-function ultimate_cron_background_process_shutdown($process) {
+function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL) {
+  // Some sanity checking.
+  if (!$process || !is_object($process) || empty($process->callback)) {
+    return;
+  }
   // We only handle the legacy callback here.
   if ($process->callback != 'ultimate_cron_background_process_legacy_callback') {
+    return;
+  }
+
+  if ($msg == 'ULTIMATE_CRON_MANUAL_UNLOCK') {
+    // Closing the log is handled elsewhere.
     return;
   }
 
@@ -897,7 +906,9 @@ function ultimate_cron_background_process_shutdown($process) {
 
   $log = $job->loadLog($lock_id);
   $log->finished = FALSE;
-  $log->catchMessagesShutdown(TRUE);
+  $log->catchMessages(FALSE);
+  watchdog('ultimate_cron', $msg, array(), WATCHDOG_ERROR);
+  $log->catchMessagesShutdown();
 }
 
 /**
