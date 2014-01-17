@@ -248,6 +248,11 @@ function ultimate_cron_job_load($name) {
  * Export UI load all callback.
  */
 function ultimate_cron_job_load_all($reset = FALSE) {
+  static $cache = NULL;
+  if (!$reset && isset($cache)) {
+    return $cache;
+  }
+
   $jobs = ultimate_cron_job_load_all_export_ui($reset);
   $schema = ctools_export_get_schema('ultimate_cron_job');
   $export = $schema['export'];
@@ -285,7 +290,8 @@ function ultimate_cron_job_load_all($reset = FALSE) {
     $jobs[$name]->hook = $hook;
   }
 
-  return $jobs;
+  $cache = $jobs;
+  return $cache;
 }
 
 
@@ -787,7 +793,8 @@ function ultimate_cron_get_hooks($reset = FALSE) {
   // Allow other to manipulate the hook list.
   drupal_alter('cron', $hooks);
 
-  return $hooks;
+  $cache = $hooks;
+  return $cache;
 }
 
 // ---------- CRON RULE FUNCTIONS ----------
