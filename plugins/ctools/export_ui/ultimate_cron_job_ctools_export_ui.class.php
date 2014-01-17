@@ -88,6 +88,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $header = array(
       t('Started'),
       t('Duration'),
+      t('User'),
       t('Initial message'),
       t('Message'),
       t('Status'),
@@ -127,6 +128,13 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
           '@end_time' => format_date((int) $log_entry->end_time, 'custom', 'Y-m-d H:i:s'),
         )) : '',
       );
+
+      $username = t('anonymous') . ' (0)';
+      if ($log_entry->uid) {
+        $user = user_load($log_entry->uid);
+        $username = $user ? $user->name . " ($user->uid)": t('N/A');
+      }
+      $rows[$log_entry->lid]['data'][] = array('data' => $username, 'class' => array('ctools-export-ui-user'));
 
       $rows[$log_entry->lid]['data'][] = array('data' => '<pre>' . $log_entry->init_message . '</pre>', 'class' => array('ctools-export-ui-init-message'));
       $rows[$log_entry->lid]['data'][] = array('data' => '<pre>' . $log_entry->message . '</pre>', 'class' => array('ctools-export-ui-message'));
@@ -387,10 +395,17 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     // Started and duration.
     $log_entry = $item->loadLatestLog()->log_entry;
     $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
+
+    $username = t('anonymous') . ' (0)';
+    if ($log_entry->uid) {
+      $user = user_load($log_entry->uid);
+      $username = $user ? $user->name . " ($user->uid)": t('N/A');
+    }
+
     $this->rows[$name]['data'][] = array(
       'data' => $start_time,
       'class' => array('ctools-export-ui-last-start-time'),
-      'title' => $log_entry->init_message,
+      'title' => $log_entry->init_message . ' ' . t('by') . " $username",
     );
 
     $duration = NULL;

@@ -45,7 +45,9 @@ class UltimateCronCacheLogger extends UltimateCronLogger {
       $this->log_entry = $cache->data;
     }
     else {
+      global $user;
       $this->log_entry->lid = NULL;
+      $this->log_entry->uid = NULL;
       $this->log_entry->start_time = 0;
       $this->log_entry->end_time = 0;
       $this->log_entry->init_message = '';

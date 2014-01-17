@@ -26,7 +26,6 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
    */
   public function defaultSettings() {
     return array(
-      'lock_timeout' => 3600,
       'poorman_interval' => 60,
       'poorman_page_flush' => TRUE,
     );
@@ -38,23 +37,6 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
   public function settingsForm(&$form, &$form_state, $job = NULL) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
-
-    if (!$job) {
-      $elements['jobs'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Jobs'),
-      );
-    }
-
-    $elements['jobs']['lock_timeout'] = array(
-      '#parents' => array('settings', $this->type, $this->name, 'lock_timeout'),
-      '#title' => t("Job lock timeout"),
-      '#type' => 'textfield',
-      '#default_value' => $values['lock_timeout'],
-      '#description' => t('Number of seconds to keep lock on job.'),
-      '#fallback' => TRUE,
-      '#required' => TRUE,
-    );
 
     if (!$job) {
       $elements['poorman'] = array(
@@ -79,6 +61,11 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
         '#default_value' => $values['poorman_page_flush'],
         '#description' => t('Perform early page flush to avoid end users waiting for cron run.'),
         '#fallback' => TRUE,
+      );
+    }
+    else {
+      $elements['no_settings'] = array(
+        '#markup' => '<p>' . t('This plugin has no settings.') . '</p>',
       );
     }
   }

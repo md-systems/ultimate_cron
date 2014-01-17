@@ -17,13 +17,15 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     return array(
       'max_execution_time' => 3600,
       'max_launch_threads' => 1,
-    );
+    ) + parent::defaultSettings();
   }
 
   /**
    * Settings form for the crontab scheduler.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
+    parent::settingsForm($form, $form_state, $job);
+
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
@@ -45,11 +47,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
         '#required' => TRUE,
         '#element_validate' => array('element_validate_number'),
       );
-    }
-    else {
-      $elements['no_settings'] = array(
-        '#markup' => '<p>' . t('This plugin has no settings.') . '</p>',
-      );
+      unset($elements['no_settings']);
     }
   }
 
@@ -85,11 +83,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       ));
     }
     else {
-      global $user;
-      $username = $user->uid ? $user->name : t('Anonymous');
-      $init_message = t('Launched by @username', array(
-        '@username' => $username,
-      ));
+      $init_message = t('Launched manually');
     }
     $log = $job->startLog($lock_id, $init_message);
 

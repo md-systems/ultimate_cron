@@ -98,6 +98,13 @@ function ultimate_cron_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'uid' => array(
+        'description' => 'User ID',
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'init_message' => array(
         'description' => 'Initial message',
         'type' => 'text',
@@ -481,7 +488,13 @@ function ultimate_cron_update_7200() {
     'type' => 'text',
     'not null' => FALSE,
   ));
-
+  db_add_field('ultimate_cron_log', 'uid', array(
+    'description' => 'User ID',
+    'type' => 'int',
+    'size' => 'normal',
+    'not null' => TRUE,
+    'default' => 0,
+  ));
   db_add_index('ultimate_cron_log', 'idx_last', array(
     'name',
     'start_time',

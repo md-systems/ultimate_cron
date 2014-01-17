@@ -65,6 +65,7 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
           'name' => $this->log_entry->name,
           'start_time' => $this->log_entry->start_time,
           'end_time' => $this->log_entry->end_time,
+          'uid' => $this->log_entry->uid,
           'init_message' => $this->log_entry->init_message,
           'message' => $this->log_entry->message,
           'severity' => $this->log_entry->severity
@@ -113,7 +114,9 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
       $this->log_entry = $log_entry;
     }
     else {
+      global $user;
       $this->log_entry->lid = NULL;
+      $this->log_entry->uid = $user->uid;
       $this->log_entry->start_time = 0;
       $this->log_entry->end_time = 0;
       $this->log_entry->init_message = '';

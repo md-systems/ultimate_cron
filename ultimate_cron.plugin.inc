@@ -358,7 +358,12 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
       $form_state['values']['settings'][$plugin_type][$name] += ultimate_cron_blank_values($defaults);
 
       $plugin->settingsForm($form, $form_state, $job);
-      $plugin->fallbackalize($form['settings'][$plugin_type][$name], $form_state['default_values']['settings'][$plugin_type][$name], FALSE);
+      if (empty($form['settings'][$plugin_type][$name]['no_settings'])) {
+        $plugin->fallbackalize($form['settings'][$plugin_type][$name], $form_state['default_values']['settings'][$plugin_type][$name], FALSE);
+      }
+      else {
+        unset($form['settings'][$plugin_type][$name]);
+      }
     }
   }
 
@@ -414,6 +419,12 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    */
   abstract public function launch($job);
 
+  public function defaultSettings() {
+    return array(
+      'lock_timeout' => 3600,
+    ) + parent::defaultSettings();
+  }
+
   /**
    * Generate lock key for job.
    */
@@ -424,7 +435,10 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
   /**
    * Lock job.
    */
-  public function lock($job, $timeout = 30.0) {
+  public function lock($job) {
+    $settings = $job->getSettings($this->type);
+    $timeout = $settings['lock_timeout'];
+
     $locker = new UltimateCronLock();
     if ($lock_id = $locker->lock($this->lockKey($job), $timeout)) {
       $lock_id = $this->name . '-' . $lock_id;
@@ -478,6 +492,23 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
   }
 
   /**
+   * Settings form.
+   */
+  public function settingsForm(&$form, &$form_state, $job = NULL) {
+    $elements = &$form['settings'][$this->type][$this->name];
+    $values = &$form_state['values']['settings'][$this->type][$this->name];
+
+    $elements['lock_timeout'] = array(
+      '#title' => t("Job lock timeout"),
+      '#type' => 'textfield',
+      '#default_value' => $values['lock_timeout'],
+      '#description' => t('Number of seconds to keep lock on job.'),
+      '#fallback' => TRUE,
+      '#required' => TRUE,
+    );
+  }
+
+  /**
    * Launch scheduled cron jobs.
    */
   static public function launchJobs($jobs) {
@@ -499,9 +530,11 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    * Constructor.
    */
   public function __construct($name, $plugin) {
+    global $user;
     parent::__construct($name, $plugin);
     $this->log_entry = new stdClass();
     $this->log_entry->lid = NULL;
+    $this->log_entry->uid = $user->uid;
     $this->log_entry->start_time = 0;
     $this->log_entry->end_time = 0;
     $this->log_entry->init_message = '';
@@ -513,8 +546,11 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    * Initialize a new log entry.
    */
   public function initialize($lock_id, $job, $init_message = '') {
+    global $user;
+
     $this->log_entry = new stdClass();
     $this->log_entry->lid = $lock_id;
+    $this->log_entry->uid = $user->uid;
     $this->log_entry->start_time = microtime(TRUE);
     $this->log_entry->end_time = 0;
     $this->log_entry->init_message = $init_message;

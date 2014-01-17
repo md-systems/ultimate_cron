@@ -162,11 +162,8 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       ));
     }
     else {
-      global $user;
-      $username = $user->uid ? $user->name : t('Anonymous');
-      $init_message = t('Launched at service host @name by @username', array(
+      $init_message = t('Launched manually at service host @name', array(
         '@name' => $service_host,
-        '@username' => $username,
       ));
     }
 
