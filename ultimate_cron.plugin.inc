@@ -418,7 +418,7 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    * Generate lock key for job.
    */
   public function lockKey($job) {
-    return 'uc:' . $job->name;
+    return $job->name;
   }
 
   /**
@@ -427,6 +427,7 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
   public function lock($job, $timeout = 30.0) {
     $locker = new UltimateCronLock();
     if ($lock_id = $locker->lock($this->lockKey($job), $timeout)) {
+      $lock_id = $this->name . '-' . $lock_id;
       return $lock_id;
     }
     return FALSE;
@@ -436,6 +437,7 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    * Unlock job.
    */
   public function unlock($lock_id) {
+    list($launcher, $lock_id) = explode('-', $lock_id, 2);
     $locker = new UltimateCronLock();
     return $locker->unlock($lock_id);
   }
@@ -445,7 +447,8 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    */
   public function isLocked($job) {
     $locker = new UltimateCronLock();
-    return $locker->isLocked($this->lockKey($job));
+    $lock_id = $locker->isLocked($this->lockKey($job));
+    return $lock_id ? $this->name . '-' . $lock_id : $lock_id;
   }
 
   /**

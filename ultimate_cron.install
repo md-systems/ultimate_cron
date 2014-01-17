@@ -447,19 +447,6 @@ function ultimate_cron_update_7200() {
   // Don't need the old one anymore.
   db_drop_table('ultimate_cron');
 
-  // Make sure we don't get clashing lock ids.
-  $serial_start = db_query("SELECT MAX(lid) FROM {ultimate_cron_log}")->fetchField();
-  if ($serial_start) {
-    db_insert('ultimate_cron_lock')
-      ->fields(array(
-        'lid' => $serial_start + 1,
-        'current' => $serial_start + 1,
-        'name' => 'migrate:boundary',
-        'expire' => time(),
-      ))
-      ->execute();
-  }
-
   // Update log table to new format.
   db_drop_field('ultimate_cron_log', 'exec_status');
   db_drop_index('ultimate_cron_log', 'idx_last');
