@@ -156,12 +156,12 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   /**
    * Get log entries.
    */
-  public function getLogEntries($job) {
+  public function getLogEntries($job, $limit = 10) {
     $logs = db_select('ultimate_cron_log', 'l')
       ->fields('l')
       ->extend('PagerDefault')
       ->condition('l.name', $job->name)
-      ->limit(10)
+      ->limit($limit)
       ->orderBy('l.start_time', 'DESC')
       ->execute()
       ->fetchAll();

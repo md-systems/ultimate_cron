@@ -525,7 +525,7 @@ function ultimate_cron_queue_cron($job, $arguments) {
     $queue->deleteItem($item);
     $items++;
   }
-
+sleep(30);
   watchdog($job->hook['module'], 'Processed @items items from queue @queue', array(
     '@items' => $items,
     '@queue' => $arguments['queue_name'],

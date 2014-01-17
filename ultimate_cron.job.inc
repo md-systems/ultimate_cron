@@ -148,18 +148,18 @@ class UltimateCronJob {
    */
   public function lock() {
     return $this->getPlugin('launcher')->lock($this);
-
-    $settings = $this->getSettings();
-    return $this->getPlugin('launcher')->lock(
-      $this, $settings['settings']['general']['lock_timeout']
-    );
   }
 
   /**
    * Unlock job.
    */
-  public function unlock() {
-    return $this->getPlugin('launcher')->unlock($this);
+  public function unlock($lock_id = NULL) {
+    if (!$lock_id) {
+      $lock_id = $this->isLocked();
+    }
+    if ($lock_id) {
+      return $this->getPlugin('launcher')->unlock($lock_id);
+    }
   }
 
   /**
@@ -179,8 +179,8 @@ class UltimateCronJob {
   /**
    * Get log entries.
    */
-  public function getLogEntries() {
-    return $this->getPlugin('logger')->getLogEntries($this);
+  public function getLogEntries($limit = 10) {
+    return $this->getPlugin('logger')->getLogEntries($this, $limit);
   }
 
   /**
@@ -188,6 +188,13 @@ class UltimateCronJob {
    */
   public function loadLog($lock_id) {
     return $this->getPlugin('logger')->load($this, $lock_id);
+  }
+
+  /**
+   * Load latest log.
+   */
+  public function loadLatestLog() {
+    return $this->getPlugin('logger')->loadLatest($this);
   }
 
   /**

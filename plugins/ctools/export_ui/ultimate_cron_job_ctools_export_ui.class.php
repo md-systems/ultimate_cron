@@ -382,7 +382,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     );
 
     // Started and duration.
-    $log_entry = $item->getPlugin('logger')->loadLatest($item)->log_entry;
+    $log_entry = $item->loadLatestLog()->log_entry;
     $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
     $this->rows[$name]['data'][] = array(
       'data' => $start_time,
@@ -457,7 +457,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         -1 => t('no info'),
       ) + watchdog_severity_levels();
       $status = theme('image', array('path' => $file));
-      $title = $severity_levels[$log_entry->severity];
+      $title = $log_entry->message ? $log_entry->message : $severity_levels[$log_entry->severity];
     }
     $this->rows[$name]['data'][] = array(
       'data' => $status,

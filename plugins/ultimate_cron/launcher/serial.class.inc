@@ -86,11 +86,17 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     }
     else {
       global $user;
+      $username = $user->uid ? $user->name : t('Anonymous');
       $init_message = t('Launched by @username', array(
-        '@username' => $user->name,
+        '@username' => $username,
       ));
     }
     $log = $job->startLog($lock_id, $init_message);
+
+    drupal_set_message(t('@name: @init_message', array(
+      '@name' => $job->name,
+      '@init_message' => $init_message,
+    )));
 
     // Run job.
     try {

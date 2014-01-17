@@ -163,9 +163,10 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     }
     else {
       global $user;
+      $username = $user->uid ? $user->name : t('Anonymous');
       $init_message = t('Launched at service host @name by @username', array(
         '@name' => $service_host,
-        '@username' => $user->name,
+        '@username' => $username,
       ));
     }
 
@@ -175,6 +176,11 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     $log->unCatchMessages();
 
     $process->execute('ultimate_cron_background_process_legacy_callback', array($job->name, $log->log_entry->lid));
+
+    drupal_set_message(t('@name: @init_message', array(
+      '@name' => $job->name,
+      '@init_message' => $init_message,
+    )));
   }
 
   /**

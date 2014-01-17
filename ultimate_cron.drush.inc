@@ -10,65 +10,86 @@
 function ultimate_cron_drush_command() {
   $items = array();
 
-  $items['cron-list'] = array(
-    'description' => "List cron jobs.",
+  $items['cron-logs'] = array(
+    'description' => "Show a cron jobs logs",
     'arguments' => array(
-      'type' => 'The type of jobs to list (all, running, enabled, disabled)',
+      'name' => 'Job to show logs for',
     ),
     'options' => array(
-      'module' => 'Only show jobs from comma separated list of modules',
+      'limit' => 'Number of log entries to show',
+      'compact' => 'Only show the first line of each log entry',
     ),
     'examples' => array(
-      'drush cron-list running',
+      'drush cron-logs node_cron --limit=20' => 'Show 20 last logs for the node_cron job',
+    ),
+  );
+
+  $items['cron-list'] = array(
+    'description' => "List cron jobs",
+    'options' => array(
+      'module' => 'Comma separated list of modules to show jobs from',
+      'enabled' => 'Show enabled jobs',
+      'disabled' => 'Show enabled jobs',
+      'status' => 'Comma separated list of statuses to show jobs from',
+      'verbose' => 'Show verbose information',
+      'name' => 'Show name instead of title',
+      'scheduled' => 'Show scheduled jobs',
+    ),
+    'examples' => array(
+      'drush cron-list --status=running --module=node' => 'Show jobs from the node module that are currently running',
     ),
     'aliases' => array('cl'),
   );
 
   $items['cron-run'] = array(
-    'description' => "Run cron job.",
+    'description' => "Run cron job",
     'arguments' => array(
-      'function' => 'Function to run',
-    ),
-    'options' => array(
-      'cli' => "Don't spawn a background process through http",
-      'check-rule' => "Check rule to determine if job should run",
-      'logfile' => "File to log to when spawning cli processes"
+      'name' => 'Job to run',
     ),
     'examples' => array(
-      'drush cron-run node_cron',
+      'drush cron-run node_cron' => 'Run the node_cron job',
     ),
     'aliases' => array('cr'),
   );
 
   $items['cron-enable'] = array(
-    'description' => "Enable cron job.",
+    'description' => "Enable cron job",
     'arguments' => array(
-      'function' => 'Function to enable',
+      'name' => 'Job to enable',
+    ),
+    'options' => array(
+      'all' => 'Enabled all jobs',
     ),
     'examples' => array(
-      'drush cron-enable node_cron',
+      'drush cron-enable node_cron' => 'Enable the node_cron job',
     ),
     'aliases' => array('ce'),
   );
 
   $items['cron-disable'] = array(
-    'description' => "Disable cron job.",
+    'description' => "Disable cron job",
     'arguments' => array(
-      'function' => 'Function to disable',
+      'name' => 'Job to disable',
+    ),
+    'options' => array(
+      'all' => 'Enabled all jobs',
     ),
     'examples' => array(
-      'drush cron-disable node_cron',
+      'drush cron-disable node_cron' => 'Disable the node_cron job',
     ),
     'aliases' => array('cd'),
   );
 
   $items['cron-unlock'] = array(
-    'description' => "Unlock cron job.",
+    'description' => "Unlock cron job",
     'arguments' => array(
-      'function' => 'Function to unlock',
+      'name' => 'Job to unlock',
+    ),
+    'options' => array(
+      'all' => 'Enabled all jobs',
     ),
     'examples' => array(
-      'drush cron-unlock node_cron',
+      'drush cron-unlock node_cron' => 'Unlock the node_cron job',
     ),
     'aliases' => array('cu'),
   );
@@ -82,243 +103,313 @@ function ultimate_cron_drush_command() {
 function ultimate_cron_drush_help($section) {
   switch ($section) {
     case 'drush:cron-list':
-      return dt("This command will list cron jobs.");
+      return dt("This command will list cron jobs");
+
     case 'drush:cron-run':
-      return dt("This command will run a cron job.");
+      return dt("This command will run a cron job");
+
     case 'drush:cron-enable':
-      return dt("This command will enable a cron job.");
+      return dt("This command will enable a cron job");
+
     case 'drush:cron-disable':
-      return dt("This command will disable a cron job.");
+      return dt("This command will disable a cron job");
+
     case 'drush:cron-unlock':
-      return dt("This command will unlock a cron job.");
+      return dt("This command will unlock a cron job");
   }
 }
 
 /**
  * List cron jobs.
  */
-function drush_ultimate_cron_cron_list($type = 'all') {
+function drush_ultimate_cron_cron_list() {
   $module = drush_get_option('module');
+  $enabled = drush_get_option('enabled');
+  $disabled = drush_get_option('disabled');
+  $verbose = drush_get_option('verbose');
+  $statuses = drush_get_option('status');
+  $scheduled = drush_get_option('scheduled');
+  $showname = drush_get_option('name');
+
   $module = $module ? explode(",", $module) : array();
-  // Get hooks and their data
-  $hooks = ultimate_cron_get_hooks();
-  $jobs = array();
+  $statuses = $statuses ? explode(",", $statuses) : array();
 
-  $modules = array();
-  foreach ($hooks as $name => $hook) {
-    if (!$module || $module == $hook['module']) {
-      $modules[$hook['module']][$name] = $hook;
-    }
-  }
+  $jobs = ultimate_cron_job_load_all();
 
-  foreach ($hooks as $name => &$hook) {
-    if ($module && !in_array($hook['module'], $module)) {
+  $table = array();
+  $table[] = array(
+    '',
+    dt('Module'),
+    dt('Title'),
+    dt('Scheduled'),
+    dt('Started'),
+    dt('Duration'),
+    dt('Status')
+  );
+
+  foreach ($jobs as $name => $job) {
+    if ($module && !in_array($job->hook['module'], $module)) {
       continue;
     }
 
-    $hook['log'] = ultimate_cron_get_last_log_entry($name);
-
-    switch ($type) {
-      case 'enabled':
-        if (!empty($hook['enabled'])) {
-          $jobs[] = $hook;
-        }
-        break;
-
-      case 'disabled':
-        if (empty($hook['enabled'])) {
-          $jobs[] = $hook;
-        }
-        break;
-
-      case 'running':
-        if ($hook['background_process']) {
-          $jobs[] = $hook;
-        }
-        break;
-
-      case 'failed':
-        if (isset($hook['log']['status']) && $hook['log']['status'] <= WATCHDOG_ERROR) {
-          $jobs[] = $hook;
-        }
-        break;
-
-      case 'all':
-      default:
-        $jobs[] = $hook;
+    if ($enabled && !empty($job->disabled)) {
+      continue;
     }
-  }
 
-  $table = array();
-  $table[] = array('', dt('Name'), dt('Module'), dt('Callback'), dt('Rules'), dt('Start'), dt('Duration'));
-  foreach ($jobs as $hook) {
+    if ($disabled && empty($job->disabled)) {
+      continue;
+    }
+
+    if ($scheduled && !$job->schedule()) {
+      continue;
+    }
+
+
     $legend = '';
-    $progress = '';
-    if (!empty($hook['background_process'])) {
-      $legend .= 'R';
-      $hook['log']['start_time'] = $hook['background_process']->getStartTime();
-      $hook['log']['end_time'] = microtime(TRUE);
-      $progress = $hook['background_process']->getProgress();
-      $progress = $progress >= 0 ? sprintf(" (%02d%%)", $progress * 100) : '';
-    }
-    if (empty($hook['enabled'])) $legend .= 'D';
 
-    $start = isset($hook['log']['start_time']) ? format_date((int)$hook['log']['start_time'], 'custom', 'Y-m-d H:i:s') : dt('N/A');
-    $end = isset($hook['log']['end_time']) ? gmdate('H:i:s', (int)($hook['log']['end_time'] - $hook['log']['start_time'])) : dt('N/A');
-    $table[] = array($legend, $hook['name'], $hook['module'], $hook['callback'], implode("\n", $hook['rules']), $start, $end . $progress);
+    if (!empty($job->disabled)) {
+      $legend .= 'D';
+    }
+
+    $lock_id = $job->isLocked();
+    $log_entry = $job->loadLatestLog()->log_entry;
+
+    if ($lock_id && $log_entry->lid == $lock_id) {
+      $legend .= 'R';
+      $status = dt('running');
+    }
+    elseif ($log_entry->start_time && !$log_entry->end_time) {
+      $status = dt('unfinished');
+    }
+    else {
+      $severity_levels = array(
+        -1 => dt('no info'),
+      ) + watchdog_severity_levels();
+      $status = $severity_levels[$log_entry->severity];
+    }
+    if ($statuses && !in_array($status, $statuses)) {
+      continue;
+    }
+
+    $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
+
+    $duration = NULL;
+    if ($log_entry->start_time && $log_entry->end_time) {
+      $duration = (int) ($log_entry->end_time - $log_entry->start_time);
+    }
+    elseif ($log_entry->start_time) {
+      $duration = (int) (microtime(TRUE) - $log_entry->start_time);
+    }
+
+    switch (TRUE) {
+      case $duration >= 86400:
+        $format = 'd H:i:s';
+        break;
+
+      case $duration >= 3600:
+        $format = 'H:i:s';
+        break;
+
+      default:
+        $format = 'i:s';
+    }
+    $duration = isset($duration) ? gmdate($format, $duration) : t('N/A');
+
+    $table[$name][] = $legend;
+    $table[$name][] = $job->getModuleName();
+    $table[$name][] = $showname ? $job->name : $job->title;
+    $table[$name][] = $job->getPlugin('scheduler')->getScheduledLabel($job);
+    $table[$name][] = $start_time;
+    $table[$name][] = $duration;
+    $table[$name][] = $status;
+
+    if ($verbose) {
+      $table['verbose:' . $name][] = '';
+      $table['verbose:' . $name][] = '';
+      $table['verbose:' . $name][] = $job->name;
+      $table['verbose:' . $name][] = $log_entry->init_message;
+      $table['verbose:' . $name][] = '';
+      $table['verbose:' . $name][] = $log_entry->message;
+    }
   }
   drush_print_table($table);
 }
 
 /**
- * Run cron job(s)
+ * List cron jobs.
  */
-function drush_ultimate_cron_cron_run($name = NULL) {
-  $cli = drush_get_option('cli');
-  $check_rule = drush_get_option('check-rule');
-  $logfile = drush_get_option('logfile');
-  $logfile = is_string($logfile) ? $logfile : '/dev/null';
-
-  // Get global options
-  $options = drush_get_context('cli');
-  $cmd_options = '';
-
-  // Determine new parameter string for sub-requests
-  $passthru = array('root', 'php', 'uri', 'simulate');
-  foreach ($options as $key => $option) {
-    if (in_array($key, $passthru)) {
-      $cmd_options .= ' --' . $key . '=' . escapeshellarg($option);
-    }
+function drush_ultimate_cron_cron_logs($name = NULL) {
+  $job = ultimate_cron_job_load($name);
+  if (!$job) {
+    return drush_set_error(dt('@name not found', array('@name' => $name)));
   }
 
-  if ($name == 'all') {
-    if ($cli) {
-      $hooks = ultimate_cron_get_hooks();
-      $schedule = ultimate_cron_get_schedule($hooks);
-      foreach ($schedule as $name => $hook) {
-        if (!empty($options['simulate'])) {
-          // Dry-run ...
-          drush_print(dt('[!name]: Simulated launch @ !ts', array('!ts' => date('Y-m-d H:i:s'), '!name' => $name)));
-          continue;
-        }
+  $compact = drush_get_option('compact');
+  $limit = drush_get_option('limit');
+  $limit = $limit ? $limit : 10;
 
-        drush_print(dt('[!name]: Launching @ !ts', array('!ts' => date('Y-m-d H:i:s'), '!name' => $name)));
-        $cmd = $_SERVER['SCRIPT_FILENAME'] . " cron-run $name --cli " . ($check_rule ? '--check-rule' : '');
-        exec("$cmd >> " . escapeshellarg($logfile) . " 2>&1 &");
-      }
-      drush_print(dt('[!ts] Launced !jobs jobs', array('!ts' => date('Y-m-d H:i:s'), '!jobs' => count($schedule))));
+  $table = array();
+  $table[] = array(
+    '',
+    dt('Started'),
+    dt('Duration'),
+    dt('Initial message'),
+    dt('Message'),
+    dt('Status'),
+  );
 
-      // Update drupals cron timestamp, but don't clear the cache for all variables!
-      if (empty($options['simulate'])) {
-        _ultimate_cron_variable_set('cron_last', time());
-      }
-      return;
+  $lock_id = $job->isLocked();
+  $log_entries = $job->getLogEntries($limit);
+
+  foreach ($log_entries as $log_entry) {
+    $legend = '';
+    if ($lock_id && $log_entry->lid == $lock_id) {
+      $legend .= 'R';
+      $status = dt('running');
+    }
+    elseif ($log_entry->start_time && !$log_entry->end_time) {
+      $status = dt('unfinished');
     }
     else {
-      if (empty($options['simulate'])) {
-        ultimate_cron_cron_run(TRUE);
-      }
-      $messages = drupal_get_messages();
-      foreach ($messages['status'] as $message) {
-        drush_print(strip_tags($message));
-      }
-      return;
+      $severity_levels = array(
+        -1 => dt('no info'),
+      ) + watchdog_severity_levels();
+      $status = $severity_levels[$log_entry->severity];
     }
-  }
 
-  $hooks = ultimate_cron_get_hooks();
-  if (!isset($hooks[$name])) {
-    return drush_set_error(dt('[!name]: not found', array('!name' => $name)));
-  }
+    $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
 
-  $hook = $hooks[$name];
-
-  // When run manually don't double check the rules
-  if (drush_get_option('check-rule')) {
-    if (!ultimate_cron_hook_should_run($hook)) {
-      drush_print(dt("[!name]: not sceduled to run at this time", array('!name' => $name)));
-      return;
+    $duration = NULL;
+    if ($log_entry->start_time && $log_entry->end_time) {
+      $duration = (int) ($log_entry->end_time - $log_entry->start_time);
     }
+    elseif ($log_entry->start_time) {
+      $duration = (int) (microtime(TRUE) - $log_entry->start_time);
+    }
+
+    switch (TRUE) {
+      case $duration >= 86400:
+        $format = 'd H:i:s';
+        break;
+
+      case $duration >= 3600:
+        $format = 'H:i:s';
+        break;
+
+      default:
+        $format = 'i:s';
+    }
+    $duration = isset($duration) ? gmdate($format, $duration) : t('N/A');
+
+    $table[$log_entry->lid][] = $legend;
+    $table[$log_entry->lid][] = $start_time;
+    $table[$log_entry->lid][] = $duration;
+    if ($compact) {
+      $table[$log_entry->lid][] = reset(explode("\n", $log_entry->init_message));
+      $table[$log_entry->lid][] = reset(explode("\n", $log_entry->message));
+    }
+    else {
+      $table[$log_entry->lid][] = $log_entry->init_message;
+      $table[$log_entry->lid][] = $log_entry->message;
+    }
+    $table[$log_entry->lid][] = $status;
   }
+  drush_print_table($table);
+}
 
-
-  if ($cli) {
-    $start = microtime(TRUE);
-    $result = ultimate_cron_run_hook_cli($hook, TRUE);
+/**
+ * Run cron job(s).
+ */
+function drush_ultimate_cron_cron_run($name = NULL) {
+  if (!$name) {
+    ultimate_cron_run_scheduled(FALSE);
   }
   else {
-    $result = ultimate_cron_run_hook($hook, TRUE);
-  }
-
-
-  if ($result === FALSE) {
-    return drush_set_error(dt('[!name]: could not start (already running?)', array('!name' => $name)));
-  }
-
-  if ($cli) {
-    $log = ultimate_cron_get_last_log_entry($name);
-    if ($log['start'] >= $start && !empty($log['msg'])) {
-      drush_print("[$name]: " . $log['msg']);
+    $job = ultimate_cron_job_load($name);
+    if (!$job) {
+      return drush_set_error(dt('@name not found', array('@name' => $name)));
     }
-    #drush_print(dt('!name finished', array('!name' => $name)));
-    return $result ? NULL : drush_set_error(dt('[!name]: could not start (service unavailable)', array('!name' => $name)));
-  }
-
-  if ($result === NULL) {
-    return drush_set_error(dt('[!name]: could not start (service unavailable)', array('!name' => $name)));
-  }
-  else {
-    drush_print(dt('!name started', array('!name' => $name)));
+    $job->launch();
   }
 }
 
 /**
- * Enable a cron job
+ * Enable a cron job.
  */
-function drush_ultimate_cron_cron_enable($name, $enabled = TRUE) {
-  $hooks = ultimate_cron_get_hooks();
-  if (!isset($hooks[$name])) {
-    return drush_set_error(dt('"!name" not found', array('!name' => $name)));
-  }
-  $settings = ultimate_cron_load($name);
-  if (!$settings) {
-    $settings = new stdClass();
-    $settings->name = $name;
-  }
-  $settings->settings = $settings->settings ? $settings->settings : array();
-  $settings->settings['enabled'] = $enabled;
-  ultimate_cron_save($settings);
-  drush_print(dt('!name !enabled', array('!name' => $name, '!enabled' => $enabled ? dt('enabled') : dt('disabled'))));
-}
-
-/**
- * Disable a cron job
- */
-function drush_ultimate_cron_cron_disable($name) {
-  drush_ultimate_cron_cron_enable($name, FALSE);
-}
-
-/**
- * Unlock a cron job
- */
-function drush_ultimate_cron_cron_unlock($name) {
-  $hooks = ultimate_cron_get_hooks();
-  if (!isset($hooks[$name])) {
-    return drush_set_error(dt('"!name" not found', array('!name' => $name)));
-  }
-  $hook = $hooks[$name];
-
-  if (!$hook['background_process']) {
-    drush_print(dt('Cron job !name is not running', array('!name' => $name)));
+function drush_ultimate_cron_cron_enable($name = NULL) {
+  if (!$name) {
+    if (!drush_get_option('all')) {
+      return drush_set_error(dt('No job specified?'));
+    }
+    foreach (ultimate_cron_job_load_all() as $job) {
+      drush_ultimate_cron_cron_enable($job->name);
+    }
     return;
   }
-
-  // Unlock the process
-  if ($hook['background_process']->log(t('Manually unlocked by "Drush"'))->unlock()) {
-    drush_print(dt('Cron job !name unlocked (process handle: !handle)', array('!handle' => $hook['background_process']->getHandle(), '!name' => $name)));
-  }
-  else {
-    drush_set_error(dt('Could not unlock cron job !name (process handle: !handle)', array('!handle' => $hook['background_process']->getHandle(), '!name' => $name)));
-  }
+  ctools_include('export');
+  ctools_export_set_status('ultimate_cron_job', $name, FALSE);
+  drush_print(dt('@name enabled', array('@name' => $name)));
 }
 
+/**
+ * Disable a cron job.
+ */
+function drush_ultimate_cron_cron_disable($name = NULL) {
+  if (!$name) {
+    if (!drush_get_option('all')) {
+      return drush_set_error(dt('No job specified?'));
+    }
+    foreach (ultimate_cron_job_load_all() as $job) {
+      drush_ultimate_cron_cron_disable($job->name);
+    }
+    return;
+  }
+  ctools_include('export');
+  ctools_export_set_status('ultimate_cron_job', $name, TRUE);
+  drush_print(dt('@name disabled', array('@name' => $name)));
+}
+
+/**
+ * Unlock a cron job.
+ */
+function drush_ultimate_cron_cron_unlock($name = NULL) {
+  if (!$name) {
+    if (!drush_get_option('all')) {
+      return drush_set_error(dt('No job specified?'));
+    }
+    foreach (ultimate_cron_job_load_all() as $job) {
+      if ($job->isLocked()) {
+        drush_ultimate_cron_cron_unlock($job->name);
+      }
+    }
+    return;
+  }
+  $job = ultimate_cron_job_load($name);
+  if (!$job) {
+    return drush_set_error(dt('@name not found', array('@name' => $name)));
+  }
+
+  $lock_id = $job->isLocked();
+  if (!$lock_id) {
+    return drush_set_error(dt('@name is not running', array('@name' => $name)));
+  }
+
+  $log = $job->getPlugin('logger')->load($job, $lock_id);
+  $log->finished = FALSE;
+  $log->catchMessages();
+  global $user;
+  watchdog('ultimate_cron', '@name manually unlocked by user @username (@uid)', array(
+    '@name' => $job->name,
+    '@username' => $user->name,
+    '@uid' => $user->uid,
+  ), WATCHDOG_WARNING);
+  $log->finish();
+
+  // Unlock the process.
+  if ($job->unlock($lock_id)) {
+    drush_print(dt('Cron job @name unlocked', array('@name' => $name)));
+  }
+  else {
+    drush_set_error(dt('Could not unlock cron job @name', array('@name' => $name)));
+  }
+}
