@@ -274,6 +274,14 @@ function ultimate_cron_job_load_all($reset = FALSE) {
       $jobs[$name]->export_type = EXPORT_IN_CODE | EXPORT_IN_DATABASE;
     }
 
+    // We do alot of += on arrays. Let's make sure we have an array to begin with.
+    $plugin_types = ctools_plugin_get_plugin_type_info();
+    foreach (array_keys($plugin_types['ultimate_cron']) as $plugin_type) {
+      $jobs[$name]->settings += array(
+        $plugin_type => array(),
+      );
+    }
+
     $jobs[$name]->hook = $hook;
   }
 

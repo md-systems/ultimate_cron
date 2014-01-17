@@ -259,8 +259,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     $item->log_entry = $item->loadLatestLog()->log_entry;
     $item->lock_id = $item->isLocked();
-    // dpm($item, $item->name);
-    // dpm($form_state['values']['status']);
+
     if ($form_state['values']['status'] == 'running') {
       if (!$item->lock_id) {
         return TRUE;
