@@ -90,7 +90,7 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
         // Row was not updated, someone must have beaten us to it.
         // Let's create a new log entry.
         $lid = $this->log_entry->lid . '-' . uniqid('', TRUE);
-        $this->log_entry->message = t('Lock #@original_lid was already closed and logged. Creating a new log entry @lid', array(
+        $this->log_entry->message = t('Lock #@original_lid was already closed and logged. Creating a new log entry #@lid', array(
           '@original_lid' => $this->log_entry->lid,
           '@lid' => $lid,
         )) . "\n" . $this->log_entry->message;
