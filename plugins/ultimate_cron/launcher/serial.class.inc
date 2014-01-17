@@ -121,35 +121,45 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     // If infinite max execution, then we use a day for the lock.
     $lock_timeout = $lock_timeout ? $lock_timeout : 86400;
 
-    // Find a free slot, try for 3 seconds.
-    $lock = FALSE;
-    $delay = 3 * 1000000;
-    $sleep = 25000;
+    if (!empty($_GET['thread'])) {
+      $thread = intval($_GET['thread']);
+      if ($thread < 1 || $thread > $settings['max_launch_threads']) {
+        watchdog('serial_launcher', "Invalid thread available for starting launch thread", array(), WATCHDOG_WARNING);
+        return;
+      }
+      $lock = lock_acquire($lock_name, $lock_timeout);
+    }
+    else {
+      // Find a free thread, try for 3 seconds.
+      $lock = FALSE;
+      $delay = 3 * 1000000;
+      $sleep = 25000;
 
-    while ($delay > 0) {
-      for ($slot = 1; $slot <= $settings['max_launch_threads']; $slot++) {
-        $lock_name = 'ultimate_cron_serial_launcher_' . $slot;
-        if (lock_may_be_available($lock_name)) {
-          if ($lock = lock_acquire($lock_name, $lock_timeout)) {
-            break 2;
+      while ($delay > 0) {
+        for ($thread = 1; $thread <= $settings['max_launch_threads']; $thread++) {
+          $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
+          if (lock_may_be_available($lock_name)) {
+            if ($lock = lock_acquire($lock_name, $lock_timeout)) {
+              break 2;
+            }
           }
+          usleep($sleep);
+          // After each sleep, increase the value of $sleep until it reaches
+          // 500ms, to reduce the potential for a lock stampede.
+          $delay = $delay - $sleep;
+          $sleep = min(500000, $sleep + 25000, $delay);
         }
-        usleep($sleep);
-        // After each sleep, increase the value of $sleep until it reaches
-        // 500ms, to reduce the potential for a lock stampede.
-        $delay = $delay - $sleep;
-        $sleep = min(500000, $sleep + 25000, $delay);
       }
     }
 
     if (!$lock) {
-      watchdog('serial_launcher', "No free slots available for starting launch thread", array(), WATCHDOG_WARNING);
+      watchdog('serial_launcher', "No free threads available for launching jobs", array(), WATCHDOG_WARNING);
       return;
     }
 
-    watchdog('serial_launcher', "Cron thread %slot started", array('%slot' => $slot), WATCHDOG_INFO);
+    watchdog('serial_launcher', "Cron thread %thread started", array('%thread' => $thread), WATCHDOG_INFO);
 
-    self::$currentThread = $slot;
+    self::$currentThread = $thread;
     foreach ($jobs as $job) {
       $job->launch();
     }
