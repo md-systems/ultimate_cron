@@ -670,50 +670,58 @@ function ultimate_cron_get_hook($name, $reset = FALSE) {
  *   Job definitions.
  */
 function ultimate_cron_get_module_hooks($module) {
-  $items = module_invoke($module, 'cronapi', NULL);
+  $items = array();
+  if (module_hook($module, 'cronapi')) {
+    $items = module_invoke($module, 'cronapi', NULL);
 
-  $items = $items ? $items : array();
+    if (!is_array($items)) {
+      $items = array();
 
-  if (!is_array($items)) {
-    // API Version 1.x
-    $list = module_invoke($module, 'cronapi', 'list');
-    if (!$list) {
-      $list = array();
-    }
-    foreach ($list as $name => $title) {
-      $items[$name] = array('title' => $title);
-    }
-    foreach ($items as $name => &$item) {
-      $item['api_version'] = 1;
-      $rules = module_invoke($module, 'cronapi', 'rule', $name);
-      $rules = $rules ? $rules : array();
+      // API Version 1.x
+      $list = module_invoke($module, 'cronapi', 'list');
 
-      $settings = (array) module_invoke($module, 'cronapi', 'settings', $name);
-      if (empty($settings['rules']) && $rules) {
-        $settings['rules'] = $rules;
+      if (!$list) {
+        $list = array();
       }
+      foreach ($list as $name => $title) {
+        $items[$name] = array('title' => $title);
+      }
+      foreach ($items as $name => &$item) {
+        $item['api_version'] = 1;
+        $rules = module_invoke($module, 'cronapi', 'rule', $name);
+        $rules = $rules ? $rules : array();
 
-      if (!empty($settings['rules'])) {
-        $settings['scheduler'] = array(
-          'scheduler' => 'crontab',
-          'crontab' => array(
-            'rules' => $settings['rules']
-          ),
+        $settings = (array) module_invoke($module, 'cronapi', 'settings', $name);
+        if (empty($settings['rules']) && $rules) {
+          $settings['rules'] = $rules;
+        }
+
+        if (!empty($settings['rules'])) {
+          $settings['scheduler'] = array(
+            'scheduler' => 'crontab',
+            'crontab' => array(
+              'rules' => $settings['rules']
+            ),
+          );
+          unset($settings['rules']);
+        }
+
+        $settings += array(
+          'configure' => module_invoke($module, 'cronapi', 'configure', $name),
         );
-        unset($settings['rules']);
+        $item += $settings;
       }
-
-      $settings += array(
-        'configure' => module_invoke($module, 'cronapi', 'configure', $name),
-      );
-      $item += $settings;
     }
   }
 
   // Add hook_cron() if applicable.
-  if (empty($items["{$module}_cron"]) && module_hook($module, 'cron')) {
+  if (module_hook($module, 'cron')) {
+    if (empty($items["{$module}_cron"])) {
+      $items["{$module}_cron"] = array();
+    }
+
     $info = system_get_info('module', $module);
-    $items["{$module}_cron"] = array(
+    $items["{$module}_cron"] += array(
       'module' => $module,
       'title' => 'Default cron handler',
       'configure' => empty($info['configure']) ? NULL : $info['configure'],
