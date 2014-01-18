@@ -7,6 +7,14 @@
 class UltimateCronJob {
   static public $signals;
 
+  public function peekSignal($signal) {
+    if (isset(self::$signals[$this->name][$signal])) {
+      return TRUE;
+    }
+
+    return ultimate_cron_peek_signal($this->name, $signal);
+  }
+
   public function getSignal($signal) {
     if (isset(self::$signals[$this->name][$signal])) {
       unset(self::$signals[$this->name][$signal]);
@@ -32,7 +40,7 @@ class UltimateCronJob {
 
   public function clearSignals() {
     unset(self::$signals[$this->name]);
-    ultimate_cron_clear_signal($this->name);
+    ultimate_cron_clear_signals($this->name);
   }
 
   /**
@@ -177,7 +185,7 @@ class UltimateCronJob {
    * Launch job.
    */
   public function launch() {
-    $job->clearSignals();
+    $this->clearSignals();
     return $this->getPlugin('launcher')->launch($this);
   }
 

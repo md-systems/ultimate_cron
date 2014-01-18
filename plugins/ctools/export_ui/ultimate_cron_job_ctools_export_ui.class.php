@@ -23,7 +23,6 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
   public function build_operations($item) {
     $allowed_operations = parent::build_operations($item);
     unset($allowed_operations['clone']);
-    // dpm($allowed_operations);
     if ($lock_id = $item->isLocked()) {
       unset($allowed_operations['run']);
       $allowed_operations['unlock']['href'] .= '/' . $lock_id;

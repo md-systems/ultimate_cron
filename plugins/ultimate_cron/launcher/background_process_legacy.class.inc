@@ -25,13 +25,12 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * Use ajax for run, since we're launching in the background.
    */
   public function build_operations_alter($job, &$allowed_operations) {
-    // dpm($allowed_operations);
     if (!empty($allowed_operations['run'])) {
       $allowed_operations['run']['attributes'] = array('class' => array('use-ajax'));
     }
     else {
       $settings = $job->getSettings('launcher');
-      if ($settings['daemonize']) {
+      if ($settings['daemonize'] && !$job->peekSignal('end_daemonize')) {
         $allowed_operations['end_daemonize'] = array(
           'title' => t('Kill daemon'),
           'href' => 'admin/config/system/cron/jobs/list/' . $job->name . '/custom/' . $this->type . '/' . $this->name . '/end_daemonize',

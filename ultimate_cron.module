@@ -908,6 +908,15 @@ function stripped_debug_backtrace() {
   return $debug;
 }
 
+function ultimate_cron_peek_signal($name, $signal) {
+  return db_select('ultimate_cron_signal', 's')
+    ->fields('s', array('job_name'))
+    ->condition('job_name', $name)
+    ->condition('signal_name', $signal)
+    ->execute()
+    ->fetchField();
+}
+
 function ultimate_cron_get_signal($name, $signal) {
   $claimed = db_update('ultimate_cron_signal')
     ->fields(array('claimed' => 1))

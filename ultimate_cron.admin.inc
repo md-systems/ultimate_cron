@@ -49,7 +49,12 @@ function ultimate_cron_plugin_settings($form, &$form_state, $plugin_type, $name)
     return $form;
   }
 
-  $plugin->fallbackalize($form['settings'][$plugin_type][$name], $form_state['default_values']['settings'][$plugin_type][$name], TRUE);
+  $plugin->fallbackalize(
+    $form['settings'][$plugin_type][$name],
+    $form_state['values']['settings'][$plugin_type][$name],
+    $form_state['default_values']['settings'][$plugin_type][$name],
+    TRUE
+  );
   $form = system_settings_form($form);
   $form['#validate'] = empty($form['#validate']) ? array() : $form['#validate'];
   $form['#submit'] = empty($form['#submit']) ? array() : $form['#submit'];

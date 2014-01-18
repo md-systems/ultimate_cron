@@ -67,7 +67,7 @@ function ultimate_cron_background_process_legacy_callback($name, $lock_id) {
     if ($settings['daemonize']) {
       $keepalive = TRUE;
       $expire = microtime(TRUE) + (float) $settings['daemonize_interval'];
-      while (microtime(TRUE) < $expire) {
+      do {
         if ($job->getSignal('end_daemonize')) {
           watchdog('ultimate_cron', 'end daemonize signal recieved', array(), WATCHDOG_WARNING);
           $keepalive = FALSE;
@@ -78,7 +78,7 @@ function ultimate_cron_background_process_legacy_callback($name, $lock_id) {
         if ($settings['daemonize_delay']) {
           usleep(((float) $settings['daemonize_delay']) * 1000000);
         }
-      }
+      } while (microtime(TRUE) < $expire);
 
       if ($keepalive) {
         background_process_keepalive();

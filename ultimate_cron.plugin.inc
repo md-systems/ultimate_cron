@@ -85,6 +85,9 @@ class UltimateCronPlugin {
       return;
     }
     foreach (element_children($elements) as $child) {
+      if (empty($child) || empty($elements[$child]) || is_numeric($child)) {
+        continue;
+      }
       $this->cleanForm($elements[$child], $values[$child]);
       if (!empty($elements[$child]['#markup'])) {
         unset($values[$child]);
@@ -162,8 +165,7 @@ class UltimateCronPlugin {
 
     // Default values for current selection. If selection differs from current job, then
     // take the job (or hook) into account.
-    $defaults = $current_plugin->name == $original_plugin ? $current_plugin->getDefaultSettings($job) : $current_plugin->getDefaultSettings();
-
+    $defaults = $current_plugin->name == $original_plugin ? $job->getSettings($current_plugin->type) : $current_plugin->getDefaultSettings($job);
 
     // Plugin settings fieldset with vertical tab reference.
     $form['settings'][$plugin_type] = array(
@@ -223,7 +225,12 @@ class UltimateCronPlugin {
 
     $current_plugin->settingsForm($form, $form_state, $job);
     if (empty($form['settings'][$plugin_type][$current_plugin->name]['no_settings'])) {
-      $current_plugin->fallbackalize($form['settings'][$plugin_type][$current_plugin->name], $form_state['default_values']['settings'][$plugin_type][$current_plugin->name], FALSE);
+      $current_plugin->fallbackalize(
+        $form['settings'][$plugin_type][$current_plugin->name], 
+        $form_state['values']['settings'][$plugin_type][$current_plugin->name], 
+        $form_state['default_values']['settings'][$plugin_type][$current_plugin->name], 
+        FALSE
+      );
     }
   }
 
@@ -281,22 +288,38 @@ class UltimateCronPlugin {
    * @param boolean $remove_non_fallbacks
    *   If TRUE, non fallback elements will be removed.
    */
-  public function fallbackalize(&$elements, $defaults, $remove_non_fallbacks = FALSE) {
+  public function fallbackalize(&$elements, &$values, $defaults, $remove_non_fallbacks = FALSE) {
     if (empty($elements)) {
       return;
     }
     foreach (element_children($elements) as $child) {
       $element = &$elements[$child];
-      $this->fallbackalize($element, empty($element['#tree']) ? $defaults : $defaults[$child], $remove_non_fallbacks);
+      if (empty($element['#tree'])) {
+        $param_values = &$values;
+        $param_defaults = &$defaults;
+      }
+      else {
+        $param_values = &$values[$child];
+        $param_defaults = &$defaults[$child];
+      }
+      $this->fallbackalize($element, $param_values, $param_defaults, $remove_non_fallbacks);
+
       if (empty($element['#type']) || $element['#type'] == 'fieldset') {
         continue;
       }
 
       if (!empty($element['#fallback'])) {
         if (!$remove_non_fallbacks) {
-          if ($element['#type'] == 'select' && empty($element['#multiple'])) {
+          if ($element['#type'] == 'radios') {
+            $label = $element['#options'][$defaults[$child]];
             $element['#options'] = array(
-              '' => t('Default (@default)', array('@default' => $this->settingsLabel($child, $defaults[$child]))),
+              '' => t('Default (@default)', array('@default' => $label)),
+            ) + $element['#options'];
+          }
+          elseif ($element['#type'] == 'select' && empty($element['#multiple'])) {
+            $label = $element['#options'][$defaults[$child]];
+            $element['#options'] = array(
+              '' => t('Default (@default)', array('@default' => $label)),
             ) + $element['#options'];
           }
           elseif ($defaults[$child] !== '') {
@@ -308,7 +331,8 @@ class UltimateCronPlugin {
       elseif (!empty($element['#type']) && $remove_non_fallbacks) {
         unset($elements[$child]);
       }
-      elseif ($element['#default_value'] === '') {
+      elseif (!isset($element['#default_value']) || $element['#default_value'] === '') {
+        $values[$child] = $defaults[$child];
         $element['#default_value'] = $defaults[$child];
       }
     }
@@ -377,7 +401,12 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
 
       $plugin->settingsForm($form, $form_state, $job);
       if (empty($form['settings'][$plugin_type][$name]['no_settings'])) {
-        $plugin->fallbackalize($form['settings'][$plugin_type][$name], $form_state['default_values']['settings'][$plugin_type][$name], FALSE);
+        $plugin->fallbackalize(
+          $form['settings'][$plugin_type][$name],
+          $form_state['values']['settings'][$plugin_type][$name],
+          $form_state['default_values']['settings'][$plugin_type][$name],
+          FALSE
+        );
       }
       else {
         unset($form['settings'][$plugin_type][$name]);

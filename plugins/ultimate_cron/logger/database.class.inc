@@ -4,13 +4,19 @@
  * Database logger for Ultimate Cron.
  */
 
+define('ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_DISABLED', 0);
+define('ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE', 1);
+define('ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN', 2);
+
 class UltimateCronDatabaseLogger extends UltimateCronLogger {
   /**
    * Default settings.
    */
   public function defaultSettings() {
     return array(
-      'logs_expire' => 86400 * 14,
+      'method' => ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN,
+      'expire' => 86400 * 14,
+      'retain' => 1000,
     );
   }
 
@@ -20,9 +26,34 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   public function cleanup($job) {
     $settings = $job->getSettings('logger');
 
-    // Is cleanup disabled?
-    if (!$settings['logs_expire']) {
-      return;
+    switch ($settings['method']) {
+      case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_DISABLED:
+        return;
+
+      case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE:
+        $expire = $settings['expire'];
+        // Let's not delete more than ONE BILLION log entries :-o.
+        $max = 10000000000;
+        $chunk = 100;
+        break;
+
+      case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN:
+        $expire = 0;
+        $max = db_query("SELECT COUNT(lid) FROM {ultimate_cron_log} WHERE name = :name", array(
+          ':name' => $job->name,
+        ))->fetchField();
+        $max -= $settings['retain'];
+        if ($max <= 0) {
+          return;
+        }
+        $chunk = min($max, 100);
+        break;
+
+      default:
+        watchdog('ultimate_cron', 'Invalid cleanup method: @method', array(
+          '@method' => $settings['method'],
+        ));
+        return;
     }
 
     // Chunked delete.
@@ -31,17 +62,21 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
       $lids = db_select('ultimate_cron_log', 'l')
         ->fields('l', array('lid'))
         ->condition('l.name', $job->name)
-        ->condition('l.start_time', microtime(TRUE) - $settings['logs_expire'], '<')
-        ->range(0, 100)
+        ->condition('l.start_time', microtime(TRUE) - $expire, '<')
+        ->range(0, $chunk)
+        ->orderBy('l.start_time', 'ASC')
+        ->orderBy('l.end_time', 'ASC')
         ->execute()
         ->fetchAll(PDO::FETCH_COLUMN);
       if ($lids) {
         $count += count($lids);
+        $max -= count($lids);
+        $chunk = min($max, 100);
         db_delete('ultimate_cron_log')
           ->condition('lid', $lids, 'IN')
           ->execute();
       }
-    } while ($lids);
+    } while ($lids && $max > 0);
     if ($count) {
       watchdog('database_logger', '@count log entries removed for job @name', array(
         '@count' => $count,
@@ -177,13 +212,51 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
-    $elements['logs_expire'] = array(
-      '#type' => 'textfield',
-      '#title' => t('Log entry expiration'),
-      '#description' => t('Remove log entries older than X seconds. (0 = disabled)'),
-      '#default_value' => $values['logs_expire'],
+    $elements['method'] = array(
+      '#type' => 'radios',
+      '#title' => t('Log entry cleanup method'),
+      '#description' => t('Select which method to use for cleaning up logs'),
+      '#options' => array(
+        ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_DISABLED => t('Disabled'),
+        ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE => t('Remove logs older than a specified age'),
+        ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN => t('Retain only a specific amount of log entries'),
+      ),
+      '#default_value' => $values['method'],
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
+
+    $elements['expire'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Log entry expiration'),
+      '#description' => t('Remove log entries older than X seconds'),
+      '#default_value' => $values['expire'],
+      '#fallback' => TRUE,
+      '#required' => TRUE,
+      '#states' => array(
+        'visible' => array(
+          ':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]' => array(
+            'value' => ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE,
+          ),
+        )
+      ),
+    );
+
+    $elements['retain'] = array(
+      '#type' => 'textfield',
+      '#title' => t('Retain logs'),
+      '#description' => t('Retain X amount of log entries'),
+      '#default_value' => $values['retain'],
+      '#fallback' => TRUE,
+      '#required' => TRUE,
+      '#states' => array(
+        'visible' => array(
+          ':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]' => array(
+            'value' => ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN,
+          ),
+        )
+      ),
+    );
+
   }
 }
