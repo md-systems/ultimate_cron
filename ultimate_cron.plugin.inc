@@ -33,6 +33,12 @@ class UltimateCronPlugin {
   }
 
   /**
+   * Custom action for plugins.
+   */
+  public function custom_page($js, $input, $item, $action) {
+  }
+
+  /**
    * Allow plugins to alter the allowed operations for a job.
    */
   public function build_operations_alter(&$allowed_operations) {
@@ -594,6 +600,20 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     $this->log_entry->message .= t($log_entry['message'], $log_entry['variables']) . "\n";
     if ($this->log_entry->severity < 0 || $this->log_entry->severity > $log_entry['severity']) {
       $this->log_entry->severity = $log_entry['severity'];
+    }
+    // Make sure that message don't become too big.
+    $size = 2000;
+    if (mb_strlen($this->log_entry->message) > $size) {
+      while (mb_strlen($this->log_entry->message) > $size) {
+        $firstline = strpos($this->log_entry->message, "\n");
+        if ($firstline === FALSE) {
+          // Only one line? That's a big line ... truncate it!
+          $this->log_entry->message = mb_substr($this->log_entry->message, -$size);
+          break;
+        }
+        $this->log_entry->message = substr($this->log_entry->message, $firstline + 1);
+      }
+      $this->log_entry->message = '.....' . $this->log_entry->message;
     }
   }
 

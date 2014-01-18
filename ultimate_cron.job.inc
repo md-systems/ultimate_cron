@@ -25,6 +25,16 @@ class UltimateCronJob {
     }
   }
 
+  public function clearSignal($signal) {
+    unset(self::$signals[$this->name][$signal]);
+    ultimate_cron_clear_signal($this->name, $signal);
+  }
+
+  public function clearSignals() {
+    unset(self::$signals[$this->name]);
+    ultimate_cron_clear_signal($this->name);
+  }
+
   /**
    * Get job settings.
    */
@@ -97,6 +107,14 @@ class UltimateCronJob {
   }
 
   /**
+   * Custom action for plugins.
+   */
+  public function custom_page($js, $input, $item, $plugin_type, $plugin_name, $action) {
+    $plugin = ultimate_cron_plugin_load($plugin_type, $plugin_name);
+    return $plugin->custom_page($js, $input, $item, $action);
+  }
+
+  /**
    * Allow a job to alter the allowed operations on it in the Export UI.
    */
   public function build_operations_alter(&$allowed_operations) {
@@ -159,6 +177,7 @@ class UltimateCronJob {
    * Launch job.
    */
   public function launch() {
+    $job->clearSignals();
     return $this->getPlugin('launcher')->launch($this);
   }
 
@@ -166,8 +185,7 @@ class UltimateCronJob {
    * Lock job.
    */
   public function lock() {
-    $settings = $this->getSettings('settings');
-    return $this->getPlugin('launcher')->lock($this, $settings['general']['lock_timeout']);
+    return $this->getPlugin('launcher')->lock($this);
   }
 
   /**

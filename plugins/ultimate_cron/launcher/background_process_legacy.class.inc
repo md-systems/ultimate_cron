@@ -11,11 +11,33 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   static private $currentThread = NULL;
 
   /**
+   * Custom action for plugins.
+   */
+  public function custom_page($js, $input, $item, $action) {
+    switch ($action) {
+      case 'end_daemonize':
+        $item->sendSignal('end_daemonize', TRUE);
+        return;
+    }
+  }
+
+  /**
    * Use ajax for run, since we're launching in the background.
    */
   public function build_operations_alter($job, &$allowed_operations) {
+    // dpm($allowed_operations);
     if (!empty($allowed_operations['run'])) {
       $allowed_operations['run']['attributes'] = array('class' => array('use-ajax'));
+    }
+    else {
+      $settings = $job->getSettings('launcher');
+      if ($settings['daemonize']) {
+        $allowed_operations['end_daemonize'] = array(
+          'title' => t('Kill daemon'),
+          'href' => 'admin/config/system/cron/jobs/list/' . $job->name . '/custom/' . $this->type . '/' . $this->name . '/end_daemonize',
+          'attributes' => array('class' => array('use-ajax')),
+        );
+      }
     }
   }
 
@@ -27,7 +49,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       'service_group' => variable_get('background_process_default_service_group', ''),
       'daemonize' => FALSE,
       'daemonize_interval' => 10,
-      'daemonize_delay' => 0,
+      'daemonize_delay' => 1,
     );
   }
 

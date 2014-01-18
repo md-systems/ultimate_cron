@@ -60,6 +60,16 @@ $plugin = array(
         'access arguments' => array(),
         'type' => MENU_VISIBLE_IN_BREADCRUMB,
       ),
+      'custom' => array(
+        'path' => 'list/%ctools_export_ui/custom',
+        'title' => 'Custom action',
+        'page callback' => 'ctools_export_ui_switcher_page',
+        'page arguments' => array('ultimate_cron_job_ctools_export_ui', 'custom', 6),
+        'load arguments' => array('ultimate_cron_job_ctools_export_ui'),
+        'access callback' => TRUE,
+        'access arguments' => array(),
+        'type' => MENU_VISIBLE_IN_BREADCRUMB,
+      ),
     ),
   ),
 
@@ -69,6 +79,7 @@ $plugin = array(
     'unlock'  => array('title' => t('Unlock'), 'ajax' => TRUE, 'token' => TRUE),
     // 'kill' => array('title' => t('Kill')),
     'logs' => array('title' => t('Logs')),
+    // 'custom' => array('title' => t('Custom actions')),
   ),
 
   'handler' => array(
