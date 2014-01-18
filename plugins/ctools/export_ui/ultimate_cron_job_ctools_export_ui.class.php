@@ -182,7 +182,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       $rows[$log_entry->lid]['data'][] = array(
         'data' => $status,
         'class' => array('ctools-export-ui-status'),
-        'title' => $title,
+        'title' => strip_tags($title),
       );
 
     }
@@ -419,7 +419,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $this->rows[$name]['data'][] = array(
       'data' => $start_time,
       'class' => array('ctools-export-ui-last-start-time'),
-      'title' => $log_entry->init_message . ' ' . t('by') . " $username",
+      'title' => strip_tags($log_entry->init_message) . ' ' . t('by') . " $username",
     );
 
     $duration = NULL;
@@ -494,7 +494,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $this->rows[$name]['data'][] = array(
       'data' => $status,
       'class' => array('ctools-export-ui-status'),
-      'title' => $title,
+      'title' => strip_tags($title),
     );
 
 
