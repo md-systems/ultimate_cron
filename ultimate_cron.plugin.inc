@@ -226,9 +226,9 @@ class UltimateCronPlugin {
     $current_plugin->settingsForm($form, $form_state, $job);
     if (empty($form['settings'][$plugin_type][$current_plugin->name]['no_settings'])) {
       $current_plugin->fallbackalize(
-        $form['settings'][$plugin_type][$current_plugin->name], 
-        $form_state['values']['settings'][$plugin_type][$current_plugin->name], 
-        $form_state['default_values']['settings'][$plugin_type][$current_plugin->name], 
+        $form['settings'][$plugin_type][$current_plugin->name],
+        $form_state['values']['settings'][$plugin_type][$current_plugin->name],
+        $form_state['default_values']['settings'][$plugin_type][$current_plugin->name],
         FALSE
       );
     }
@@ -466,6 +466,9 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    */
   abstract public function launch($job);
 
+  /**
+   * Default settings.
+   */
   public function defaultSettings() {
     return array(
       'lock_timeout' => 3600,
@@ -667,7 +670,10 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     unset($class::$logs[$this->log_entry->lid]);
   }
 
-  function isCatched() {
+  /**
+   * Check if we're already catching messages.
+   */
+  public function isCatched() {
     $class = get_class($this);
     return !empty($class::$logs[$this->log_entry->lid]);
   }
@@ -681,6 +687,9 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     }
   }
 
+  /**
+   * Shutdown handler wrapper for catching messages.
+   */
   static public function catchMessagesShutdownWrapper($class) {
     if ($class::$logs) {
       foreach ($class::$logs as $lid => $log) {

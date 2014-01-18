@@ -7,14 +7,19 @@
 class UltimateCronJob {
   static public $signals;
 
+  /**
+   * Get a signal without affecting it.
+   */
   public function peekSignal($signal) {
     if (isset(self::$signals[$this->name][$signal])) {
       return TRUE;
     }
-
     return ultimate_cron_peek_signal($this->name, $signal);
   }
 
+  /**
+   * Get a signal and clear it if found.
+   */
   public function getSignal($signal) {
     if (isset(self::$signals[$this->name][$signal])) {
       unset(self::$signals[$this->name][$signal]);
@@ -24,6 +29,9 @@ class UltimateCronJob {
     return ultimate_cron_get_signal($this->name, $signal);
   }
 
+  /**
+   * Send a signal.
+   */
   public function sendSignal($signal, $persist = FALSE) {
     if ($persist) {
       ultimate_cron_set_signal($this->name, $signal);
@@ -33,11 +41,17 @@ class UltimateCronJob {
     }
   }
 
+  /**
+   * Clear a signal.
+   */
   public function clearSignal($signal) {
     unset(self::$signals[$this->name][$signal]);
     ultimate_cron_clear_signal($this->name, $signal);
   }
 
+  /**
+   * Send all signal for the job.
+   */
   public function clearSignals() {
     unset(self::$signals[$this->name]);
     ultimate_cron_clear_signals($this->name);
