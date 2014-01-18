@@ -8,5 +8,6 @@ files[] = tests/rules.test
 files[] = ultimate_cron.lock.inc
 files[] = ultimate_cron.job.inc
 files[] = ultimate_cron.plugin.inc
+files[] = ultimate_cron.background_process_legacy.inc
 
 configure = admin/config/system/cron/settings
