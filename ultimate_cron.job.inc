@@ -106,7 +106,7 @@ class UltimateCronJob {
       case 1:
         $args = array($this->hook);
         $args = array_merge($args, $this->hook['callback_arguments']);
-        if (!is_callable($this->hook['callback'])) {
+        if (is_callable($this->hook['callback'])) {
           return call_user_func_array($this->hook['callback'], array(
             $this->name, $this->hook
           ));
