@@ -282,10 +282,21 @@ function ultimate_cron_job_load_all($reset = FALSE) {
 
     // We do alot of += on arrays. Let's make sure we have an array to begin with.
     $plugin_types = ctools_plugin_get_plugin_type_info();
-    foreach (array_keys($plugin_types['ultimate_cron']) as $plugin_type) {
-      $jobs[$name]->settings += array(
-        $plugin_type => array(),
-      );
+    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+      $class = $info['defaults']['static']['class'];
+      if ($class::$multiple) {
+        $plugins = ultimate_cron_plugin_load_all($plugin_type);
+        foreach ($plugins as $plugin) {
+          if (!isset($jobs[$name]->settings[$plugin_type][$plugin->name])) {
+            $jobs[$name]->settings[$plugin_type][$plugin->name] = array();
+          }
+        }
+      }
+      else {
+        if (!isset($jobs[$name]->settings[$plugin_type])) {
+          $jobs[$name]->settings[$plugin_type] = array();
+        }
+      }
     }
 
     $jobs[$name]->hook = $hook;
@@ -540,7 +551,7 @@ function ultimate_cron_queue_cron($job, $arguments) {
     $queue->deleteItem($item);
     $items++;
   }
-sleep(30);
+
   watchdog($job->hook['module'], 'Processed @items items from queue @queue', array(
     '@items' => $items,
     '@queue' => $arguments['queue_name'],
@@ -889,4 +900,38 @@ function ultimate_cron_run_scheduled($redirect = TRUE) {
   if ($redirect) {
     drupal_goto('admin/config/system/cron');
   }
+}
+
+function stripped_debug_backtrace() {
+  $debug = debug_backtrace();
+  foreach ($debug as &$d) unset($d['args'], $d['object']);
+  return $debug;
+}
+
+function ultimate_cron_get_signal($name, $signal) {
+  $claimed = db_update('ultimate_cron_signal')
+    ->fields(array('claimed' => 1))
+    ->condition('job_name', $name)
+    ->condition('signal_name', $signal)
+    ->condition('claimed', 0)
+    ->execute();
+  if ($claimed) {
+    db_delete('ultimate_cron_signal')
+      ->condition('job_name', $name)
+      ->condition('signal_name', $signal)
+      ->condition('claimed', 1)
+      ->execute();
+    return TRUE;
+  }
+  return FALSE;
+}
+
+function ultimate_cron_set_signal($name, $signal) {
+  return db_merge('ultimate_cron_signal')
+    ->key(array(
+      'job_name' => $name,
+      'signal_name' => $signal,
+    ))
+    ->fields(array('claimed' => 0))
+    ->execute();
 }

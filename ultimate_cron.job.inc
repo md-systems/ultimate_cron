@@ -5,6 +5,26 @@
  */
 
 class UltimateCronJob {
+  static public $signals;
+
+  public function getSignal($signal) {
+    if (isset(self::$signals[$this->name][$signal])) {
+      unset(self::$signals[$this->name][$signal]);
+      return TRUE;
+    }
+
+    return ultimate_cron_get_signal($this->name, $signal);
+  }
+
+  public function sendSignal($signal, $persist = FALSE) {
+    if ($persist) {
+      ultimate_cron_set_signal($this->name, $signal);
+    }
+    else {
+      self::$signals[$this->name][$signal] = TRUE;
+    }
+  }
+
   /**
    * Get job settings.
    */
@@ -69,7 +89,6 @@ class UltimateCronJob {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $name => $plugin) {
         if ($plugin->isValid($this)) {
-          $settings += array($name => array());
           $settings[$name] += $plugin->getDefaultSettings($this);
         }
       }

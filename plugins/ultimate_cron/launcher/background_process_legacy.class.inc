@@ -25,6 +25,9 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   public function defaultSettings() {
     return array(
       'service_group' => variable_get('background_process_default_service_group', ''),
+      'daemonize' => FALSE,
+      'daemonize_interval' => 10,
+      'daemonize_delay' => 0,
     );
   }
 
@@ -64,6 +67,31 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       '#description' => t('Service group to use for this job.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
+    );
+
+    $elements['daemonize'] = array(
+      '#title' => t('Daemonize'),
+      '#type' => 'checkbox',
+      '#default_value' => $values['daemonize'],
+      '#description' => t('Relaunch job immediately after it is finished.'),
+    );
+    $elements['daemonize_interval'] = array(
+      '#title' => t('Interval'),
+      '#type' => 'textfield',
+      '#default_value' => $values['daemonize_interval'],
+      '#description' => t('Seconds to run the job in the same thread before relaunching.'),
+      '#states' => array(
+        'visible' => array(':input[name="settings[' . $this->type . '][' . $this->name . '][daemonize]"]' => array('checked' => TRUE))
+      ),
+    );
+    $elements['daemonize_delay'] = array(
+      '#title' => t('Delay'),
+      '#type' => 'textfield',
+      '#default_value' => $values['daemonize_delay'],
+      '#description' => t('Delay in seconds between in job execution.'),
+      '#states' => array(
+        'visible' => array(':input[name="settings[' . $this->type . '][' . $this->name . '][daemonize]"]' => array('checked' => TRUE))
+      ),
     );
   }
 

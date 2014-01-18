@@ -167,6 +167,27 @@ function ultimate_cron_schema() {
     ),
   );
 
+  $schema['ultimate_cron_signal'] = array(
+    'description' => 'Signals',
+    'fields' => array(
+      'job_name' => array(
+        'description' => 'Name of job',
+        'type' => 'varchar',
+        'length' => 255,
+      ),
+      'signal_name' => array(
+        'description' => 'Name of signal',
+        'type' => 'varchar',
+        'length' => 255,
+      ),
+      'claimed' => array(
+        'description' => 'Is signal claimed',
+        'type' => 'bool',
+      ),
+    ),
+    'primary key' => array('job_name', 'signal_name'),
+  );
+
   return $schema;
 }
 
@@ -412,8 +433,10 @@ function ultimate_cron_update_7107(&$context) {
 function ultimate_cron_update_7200() {
   $schema = drupal_get_schema('ultimate_cron_lock', TRUE);
   db_create_table('ultimate_cron_lock', $schema);
-  $schema = drupal_get_schema('ultimate_cron_job', TRUE);
+  $schema = drupal_get_schema('ultimate_cron_job');
   db_create_table('ultimate_cron_job', $schema);
+  $schema = drupal_get_schema('ultimate_cron_signal');
+  db_create_table('ultimate_cron_signal', $schema);
 
   // New table is ready. Let's migrate the settings.
   ctools_include('export');

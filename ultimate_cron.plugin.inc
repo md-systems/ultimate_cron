@@ -75,6 +75,9 @@ class UltimateCronPlugin {
    * Clean form of empty fallback values.
    */
   public function cleanForm($elements, &$values) {
+    if (empty($elements)) {
+      return;
+    }
     foreach (element_children($elements) as $child) {
       $this->cleanForm($elements[$child], $values[$child]);
       if (!empty($elements[$child]['#markup'])) {
@@ -299,6 +302,9 @@ class UltimateCronPlugin {
       elseif (!empty($element['#type']) && $remove_non_fallbacks) {
         unset($elements[$child]);
       }
+      elseif ($element['#default_value'] === '') {
+        $element['#default_value'] = $defaults[$child];
+      }
     }
   }
 }
@@ -343,6 +349,7 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
 
     $weight = 10;
     $form_state['default_values']['settings'][$plugin_type] = array();
+    $form['settings'][$plugin_type]['#tree'] = TRUE;
     foreach ($plugins as $name => $plugin) {
       $form_state['default_values']['settings'][$plugin_type] += array($name => array());
       $form_state['values']['settings'][$plugin_type] += array($name => array());
@@ -350,7 +357,7 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
         '#title' => $plugin->title,
         '#group' => 'settings_tabs',
         '#type' => 'fieldset',
-        // '#tree' => TRUE,
+        '#tree' => TRUE,
         '#visible' => TRUE,
         '#collapsible' => TRUE,
         '#collapsed' => TRUE,
@@ -593,18 +600,27 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   /**
    * Begin capturing messages.
    */
-  public function catchMessages($shutdown = TRUE) {
-    if (empty(self::$logs[$this->log_entry->lid]) && $shutdown) {
-      drupal_register_shutdown_function(array($this, 'catchMessagesShutdown'));
+  public function catchMessages() {
+    $class = get_class($this);
+    if (empty($class::$logs)) {
+      // Since we may already be inside a drupal_register_shutdown_function()
+      // we cannot use that. Use PHPs register_shutdown_function() instead.
+      register_shutdown_function(array($class, 'catchMessagesShutdownWrapper'), $class);
     }
-    self::$logs[$this->log_entry->lid] = $this;
+    $class::$logs[$this->log_entry->lid] = $this;
   }
 
   /**
    * End message capturing.
    */
   public function unCatchMessages() {
-    unset(self::$logs[$this->log_entry->lid]);
+    $class = get_class($this);
+    unset($class::$logs[$this->log_entry->lid]);
+  }
+
+  function isCatched() {
+    $class = get_class($this);
+    return !empty($class::$logs[$this->log_entry->lid]);
   }
 
   /**
@@ -616,17 +632,26 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     }
   }
 
+  static public function catchMessagesShutdownWrapper($class) {
+    if ($class::$logs) {
+      foreach ($class::$logs as $lid => $log) {
+        $log->catchMessagesShutdown();
+      }
+    }
+  }
+
   /**
    * PHP shutdown function callback.
    *
    * Log errors if any.
    */
   public function catchMessagesShutdown() {
-    if ($this->finished || empty(self::$logs[$this->log_entry->lid])) {
-      unset(self::$logs[$this->log_entry->lid]);
+    $class = get_class($this);
+    unset($class::$logs[$this->log_entry->lid]);
+
+    if ($this->finished) {
       return;
     }
-    unset(self::$logs[$this->log_entry->lid]);
 
     // Get error messages.
     $error = error_get_last();
