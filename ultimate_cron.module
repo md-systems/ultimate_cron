@@ -903,19 +903,31 @@ function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL)
     return;
   }
 
-  if ($msg == 'ULTIMATE_CRON_MANUAL_UNLOCK') {
-    // Closing the log is handled elsewhere.
+  // Close the Ultimate Cron log entry.
+  list ($name, $lock_id) = $process->args;
+
+  if (!empty($GLOBALS['background_process_legacy_dont_log'][$lock_id])) {
     return;
   }
 
-  // Close the Ultimate Cron log entry.
-  list ($name, $lock_id) = $process->args;
+  // Rewrite message to conform with Ultimate Cron style, if this is
+  // a manual unlock.
+  global $user;
+  if ($msg == t('Manually unlocked by !name', array('!name' => $user->name))) {
+    $username = $user->uid ? $user->name : t('anonymous');
+    $msg = t('@name manually unlocked by user @username (@uid)', array(
+      '@name' => $name,
+      '@username' => $username,
+      '@uid' => $user->uid,
+    ));
+  }
+
   $job = ultimate_cron_job_load($name);
 
   $log = $job->loadLog($lock_id);
   $log->finished = FALSE;
   $log->catchMessages(FALSE);
-  watchdog('ultimate_cron', $msg, array(), WATCHDOG_ERROR);
+  watchdog('ultimate_cron', $msg, array(), WATCHDOG_WARNING);
   $log->catchMessagesShutdown();
 }
 
@@ -937,6 +949,7 @@ function ultimate_cron_background_process_legacy_callback($name, $lock_id) {
     watchdog('ultimate_cron', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);
   }
 
+  $GLOBALS['background_process_legacy_dont_log'][$lock_id] = TRUE;
   $job->unlock($lock_id);
   $log->finish();
 }

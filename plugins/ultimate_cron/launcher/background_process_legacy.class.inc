@@ -118,8 +118,10 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * Unlock background process.
    */
   public function unlock($lock_id, $manual = FALSE) {
-    $msg = $manual ? 'ULTIMATE_CRON_MANUAL_UNLOCK' : NULL;
-    return background_process_unlock($lock_id, $msg);
+    if ($manual) {
+      $GLOBALS['background_process_legacy_dont_log'][$lock_id] = TRUE;
+    }
+    return background_process_unlock($lock_id);
   }
 
   /**

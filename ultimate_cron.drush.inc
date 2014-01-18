@@ -477,19 +477,19 @@ function drush_ultimate_cron_cron_unlock($name = NULL) {
     return drush_set_error(dt('@name is not running', array('@name' => $name)));
   }
 
-  $log = $job->getPlugin('logger')->load($job, $lock_id);
-  $log->finished = FALSE;
-  $log->catchMessages();
-  global $user;
-  watchdog('ultimate_cron', '@name manually unlocked by user @username (@uid)', array(
-    '@name' => $job->name,
-    '@username' => $user->name,
-    '@uid' => $user->uid,
-  ), WATCHDOG_WARNING);
-  $log->finish();
-
   // Unlock the process.
-  if ($job->unlock($lock_id)) {
+  if ($job->unlock($lock_id, TRUE)) {
+    $log = $job->loadLog($lock_id);
+    $log->finished = FALSE;
+    $log->catchMessages();
+    global $user;
+    watchdog('ultimate_cron', '@name manually unlocked by user @username (@uid)', array(
+      '@name' => $job->name,
+      '@username' => $user->name,
+      '@uid' => $user->uid,
+    ), WATCHDOG_WARNING);
+    $log->finish();
+
     drush_print(dt('Cron job @name unlocked', array('@name' => $name)));
   }
   else {

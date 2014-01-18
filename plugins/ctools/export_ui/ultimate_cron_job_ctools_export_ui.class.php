@@ -63,9 +63,10 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       $log->finished = FALSE;
       $log->catchMessages();
       global $user;
+      $username = $user->uid ? $user->name : t('anonymous');
       watchdog('ultimate_cron', '@name manually unlocked by user @username (@uid)', array(
         '@name' => $item->name,
-        '@username' => $user->name,
+        '@username' => $username,
         '@uid' => $user->uid,
       ), WATCHDOG_WARNING);
       $log->finish();
