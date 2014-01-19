@@ -420,8 +420,10 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
     $form_state['default_values']['settings'][$plugin_type] = array();
     $form['settings'][$plugin_type]['#tree'] = TRUE;
     foreach ($plugins as $name => $plugin) {
-      $form_state['default_values']['settings'][$plugin_type] += array($name => array());
-      $form_state['values']['settings'][$plugin_type] += array($name => array());
+      $form_state['default_values']['settings'][$plugin_type][$name] = array();
+      if (empty($form_state['values']['settings'][$plugin_type][$name])) {
+        $form_state['values']['settings'][$plugin_type][$name] = array();
+      }
       $form['settings'][$plugin_type][$name] = array(
         '#title' => $plugin->title,
         '#group' => 'settings_tabs',
