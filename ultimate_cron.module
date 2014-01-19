@@ -15,8 +15,6 @@
  */
 
 
-// module_load_include('nagios.inc', 'ultimate_cron');
-
 include dirname(__FILE__) . '/ultimate_cron.poorman.inc';
 include dirname(__FILE__) . '/ultimate_cron.lock.inc';
 include dirname(__FILE__) . '/ultimate_cron.job.inc';
