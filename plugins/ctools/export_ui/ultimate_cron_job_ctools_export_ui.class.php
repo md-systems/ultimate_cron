@@ -21,11 +21,12 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
    * Ensure that we cannot clone from the operations link list.
    */
   public function build_operations($item) {
+    $item->lock_id = isset($item->lock_id) ? $item->lock_id : $item->isLocked();
     $allowed_operations = parent::build_operations($item);
     unset($allowed_operations['clone']);
-    if ($lock_id = $item->isLocked()) {
+    if ($item->lock_id) {
       unset($allowed_operations['run']);
-      $allowed_operations['unlock']['href'] .= '/' . $lock_id;
+      $allowed_operations['unlock']['href'] .= '/' . $item->lock_id;
     }
     else {
       unset($allowed_operations['unlock']);
@@ -109,7 +110,8 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       t('Message'),
       t('Status'),
     );
-    $lock_id = $item->isLocked();
+
+    $item->lock_id = isset($item->lock_id) ? $item->lock_id : $item->isLocked();
     $rows = array();
     foreach ($log_entries as $log_entry) {
       $rows[$log_entry->lid]['data'] = array();
@@ -156,7 +158,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       $rows[$log_entry->lid]['data'][] = array('data' => '<pre>' . $log_entry->message . '</pre>', 'class' => array('ctools-export-ui-message'));
 
       // Status.
-      if ($lock_id && $log_entry->lid == $lock_id) {
+      if ($item->lock_id && $log_entry->lid == $item->lock_id) {
         $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
         $status = theme('image', array('path' => $file));
         $title = t('running');
@@ -276,7 +278,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     }
 
     $item->log_entry = $item->loadLatestLog()->log_entry;
-    $item->lock_id = $item->isLocked();
+    $item->lock_id = isset($item->lock_id) ? $item->lock_id : $item->isLocked();
 
     if ($form_state['values']['status'] == 'running') {
       if (!$item->lock_id) {
@@ -467,8 +469,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     );
 
     // Status.
-    $lock_id = $item->lock_id;
-    if ($lock_id && $log_entry->lid == $lock_id) {
+    if ($item->lock_id && $log_entry->lid == $item->lock_id) {
       $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
       $status = theme('image', array('path' => $file));
       $title = t('running');
