@@ -110,6 +110,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
    */
   public function throttle($job) {
     if (!empty($job->hook['queue_master'])) {
+      // We always base the threads on the master.
       $job = ultimate_cron_job_load($job->hook['queue_master']);
     }
     $settings = $job->getSettings('settings');

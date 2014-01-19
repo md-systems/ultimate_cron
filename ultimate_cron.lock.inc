@@ -108,13 +108,21 @@ class UltimateCronLock {
   /**
    * Cleanup expired logs.
    */
-  public function cleanup() {
+  static public function cleanup() {
     $count = 0;
     $now = microtime(TRUE);
+
+    $now = microtime(TRUE);
+    db_update('ultimate_cron_lock')
+      ->expression('current', 'lid')
+      ->condition('expire', $now, '<=')
+      ->execute();
+
     do {
       $lids = db_select('ultimate_cron_lock', 'l')
         ->fields('l', array('lid'))
-        ->condition('expire', $now, '<=')
+        ->where('l.current = l.lid')
+        // ->condition('expire', $now, '<=')
         ->range(0, 100)
         ->execute()
         ->fetchAll(PDO::FETCH_COLUMN);

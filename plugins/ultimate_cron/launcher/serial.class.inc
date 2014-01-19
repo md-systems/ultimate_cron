@@ -104,10 +104,53 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     $log->finish();
   }
 
+  static public function findFreeThread($lock, $lock_timeout = NULL, $timeout = 3) {
+    $plugin = ultimate_cron_plugin_load('launcher', 'serial');
+    $settings = $plugin->getDefaultSettings();
+
+    // Find a free thread, try for 3 seconds.
+    $delay = $timeout * 1000000;
+    $sleep = 25000;
+
+    $locker = new UltimateCronLock();
+
+    do {
+      for ($thread = 1; $thread <= $settings['max_launch_threads']; $thread++) {
+        if ($thread == self::$currentThread) {
+          continue;
+        }
+
+        $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
+        if (!$locker->isLocked($lock_name)) {
+          if ($lock) {
+            if ($locker->lock($lock_name, $lock_timeout)) {
+              error_log("Locked: $thread");
+              return TRUE;
+            }
+          }
+          else {
+            error_log("Available: $thread");
+            return $thread;
+          }
+        }
+        if ($delay > 0) {
+          error_log("Sleep: $sleep ($delay)");
+          usleep($sleep);
+          // After each sleep, increase the value of $sleep until it reaches
+          // 500ms, to reduce the potential for a lock stampede.
+          $delay = $delay - $sleep;
+          $sleep = min(500000, $sleep + 25000, $delay);
+        }
+      }
+    } while ($delay > 0);
+    return FALSE;
+  }
+
   /**
    * Launch manager.
    */
-  static public function launchJobs($jobs) {
+  static public function launchJobs($jobs, $launch_poorman = FALSE) {
+    error_log(__FUNCTION__);
     $plugin = ultimate_cron_plugin_load('launcher', 'serial');
     $settings = $plugin->getDefaultSettings();
 
@@ -127,32 +170,16 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
         watchdog('serial_launcher', "Invalid thread available for starting launch thread", array(), WATCHDOG_WARNING);
         return;
       }
-      $lock = lock_acquire($lock_name, $lock_timeout);
+      $locker = new UltimateCronLock();
+      $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
+      $timeout = $launch_poorman ? 0 : 3;
+      $thread = $locker->lock($lock_name, $lock_timeout, $timeout) ? $thread : FALSE;
     }
     else {
-      // Find a free thread, try for 3 seconds.
-      $lock = FALSE;
-      $delay = 3 * 1000000;
-      $sleep = 25000;
-
-      while ($delay > 0) {
-        for ($thread = 1; $thread <= $settings['max_launch_threads']; $thread++) {
-          $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
-          if (lock_may_be_available($lock_name)) {
-            if ($lock = lock_acquire($lock_name, $lock_timeout)) {
-              break 2;
-            }
-          }
-          usleep($sleep);
-          // After each sleep, increase the value of $sleep until it reaches
-          // 500ms, to reduce the potential for a lock stampede.
-          $delay = $delay - $sleep;
-          $sleep = min(500000, $sleep + 25000, $delay);
-        }
-      }
+      $thread = self::findFreeThread(TRUE, $lock_timeout, 0);
     }
 
-    if (!$lock) {
+    if (!$thread) {
       watchdog('serial_launcher', "No free threads available for launching jobs", array(), WATCHDOG_WARNING);
       return;
     }
@@ -160,10 +187,61 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     watchdog('serial_launcher', "Cron thread %thread started", array('%thread' => $thread), WATCHDOG_INFO);
 
     self::$currentThread = $thread;
+
+    // Pre-emptively launch new poormans cron
+    if ($launch_poorman) {
+      ultimate_cron_poorman_page_flush();
+
+      $thread = self::findFreeThread(FALSE, $lock_timeout, 0);
+      error_log(self::$currentThread . " - PRE POORMAN THREAD: $thread");
+      if ($thread) {
+        ultimate_cron_trigger_poorman();
+      }
+    }
+
     foreach ($jobs as $job) {
       if ($job->schedule()) {
         $job->launch();
       }
     }
+
+    // "Post-emptively" launch new poormans cron
+    if ($launch_poorman) {
+      $thread = self::findFreeThread(FALSE, $lock_timeout, 0);
+      error_log(self::$currentThread . " - POST POORMAN THREAD: $thread");
+      if ($thread) {
+        ultimate_cron_trigger_poorman();
+      }
+    }
+  }
+
+  /**
+   * Launch manager.
+   */
+  static public function launchPoorman($class, $jobs) {
+    error_log(__FUNCTION__);
+    return $class::launchJobs($jobs, TRUE);
+
+    $plugin = ultimate_cron_plugin_load('launcher', 'serial');
+    $settings = $plugin->getDefaultSettings();
+
+    // Set proper max execution time.
+    $max_execution_time = ini_get('max_execution_time');
+    if ($max_execution_time && $max_execution_time < $settings['max_execution_time']) {
+      set_time_limit($settings['max_execution_time']);
+    }
+    $lock_timeout = max($max_execution_time, $settings['max_execution_time']);
+
+    // If infinite max execution, then we use a day for the lock.
+    $lock_timeout = $lock_timeout ? $lock_timeout : 86400;
+
+    $thread = self::findFreeThread(FALSE);
+
+    if (!$thread) {
+      watchdog('serial_launcher', "No free threads available for launching jobs", array(), WATCHDOG_WARNING);
+      return;
+    }
+
+    watchdog('serial_launcher', "Poorman cron thread %thread started", array('%thread' => $thread), WATCHDOG_INFO);
   }
 }

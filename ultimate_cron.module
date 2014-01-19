@@ -17,9 +17,11 @@
 
 // module_load_include('nagios.inc', 'ultimate_cron');
 
+include dirname(__FILE__) . '/ultimate_cron.poorman.inc';
 include dirname(__FILE__) . '/ultimate_cron.lock.inc';
 include dirname(__FILE__) . '/ultimate_cron.job.inc';
 include dirname(__FILE__) . '/ultimate_cron.plugin.inc';
+include dirname(__FILE__) . '/ultimate_cron.signal.inc';
 include dirname(__FILE__) . '/ultimate_cron.background_process_legacy.inc';
 
 /**
@@ -52,21 +54,6 @@ if (!function_exists('_out_of_memory_protection')) {
     // Reset internal array pointer just in case ...
     reset($callbacks);
   }
-}
-
-/**
- * Output buffer callback for poormans cron early page flush.
- */
-function _ultimate_cron_poormans_page_flush($content) {
-  if (!empty($GLOBALS['poorman_active'])) {
-    $size = strlen($content);
-    header("Content-Length: $size");
-    header("Connection: close");
-  }
-  return $content;
-}
-if (!drupal_is_cli() && $_SERVER['REQUEST_METHOD'] == 'GET') {
-  ob_start('_ultimate_cron_poormans_page_flush');
 }
 
 // ---------- CTOOLS INTEGRATION ----------
@@ -186,9 +173,14 @@ function ultimate_cron_plugin_load($plugin_type, $name) {
 }
 
 /**
- * Load all callback for launchers.
+ * Load all callback for plugins.
  */
 function ultimate_cron_plugin_load_all($plugin_type) {
+  static $cache = array();
+  if (isset($cache[$plugin_type])) {
+    return $cache[$plugin_type];
+  }
+
   ctools_include('plugins');
   $plugin_infos = ctools_get_plugins('ultimate_cron', $plugin_type);
   $plugins = array();
@@ -197,7 +189,8 @@ function ultimate_cron_plugin_load_all($plugin_type) {
       $plugins[$name] = $object;
     }
   }
-  return $plugins;
+  $cache[$plugin_type] = $plugins;
+  return $cache[$plugin_type];
 }
 
 /**
@@ -344,34 +337,6 @@ function ultimate_cron_exit($dest = NULL) {
 }
 
 /**
- * Launch poormans cron if applicable.
- */
-function ultimate_cron_poorman() {
-  $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
-  $cron_last = variable_get('cron_last', 0);
-  if ($settings['poorman_interval'] && ($cron_last < time() - $settings['poorman_interval'])) {
-    // Thundering herd protection should be done in the launcher.
-
-    if ($settings['poorman_page_flush']) {
-      ignore_user_abort();
-      $GLOBALS['poorman_active'] = TRUE;
-      while (ob_get_level() > 0) {
-        ob_end_flush();
-      }
-      flush();
-
-      // FastCGI may need another way of letting the client know, that
-      // we're done with it.
-      if (function_exists('fastcgi_finish_request')) {
-        fastcgi_finish_request();
-      }
-    }
-
-    ultimate_cron_run_scheduled(FALSE);
-  }
-}
-
-/**
  * Implements hook_help().
  */
 function ultimate_cron_help($path, $arg) {
@@ -402,6 +367,15 @@ function ultimate_cron_menu() {
     'access arguments' => array('administer ultimate cron'),
     'type' => MENU_LOCAL_TASK,
     'file' => 'ultimate_cron.admin.inc',
+  );
+
+  $items['admin/config/system/cron/poorman'] = array(
+    'title' => 'Poormans cron',
+    'description' => 'Trigger poormans cron',
+    'page callback' => 'ultimate_cron_poorman_page',
+    'access callback' => TRUE,
+    'type' => MENU_CALLBACK,
+    'file' => 'ultimate_cron.poorman.inc',
   );
 
   ctools_include('plugins');
@@ -514,6 +488,10 @@ function ultimate_cron_cronapi() {
   $items['ultimate_cron_cleanup_log'] = array(
     'title' => t('Cleanup Ultimate Cron log entries'),
     'callback' => array('UltimateCronLogger', 'cleanupLogs'),
+  );
+  $items['ultimate_cron_cleanup_locks'] = array(
+    'title' => t('Cleanup Ultimate Cron locks'),
+    'callback' => array('UltimateCronLock', 'cleanup'),
   );
 
   // Grab the defined cron queues.
@@ -895,22 +873,26 @@ function ultimate_cron_blank_values($array) {
  * Run scheduled jobs.
  */
 function ultimate_cron_run_scheduled($redirect = TRUE) {
-  $schedule = array();
-  foreach (ultimate_cron_job_load_all() as $name => $job) {
-    $class = get_class($job->getPlugin('launcher'));
-    $schedule[$class][$name] = $job;
-  }
+  error_log(__FUNCTION__);
+  if (!variable_get('maintenance_mode', 0)) {
+    $schedule = array();
+    foreach (ultimate_cron_job_load_all() as $name => $job) {
+      $class = get_class($job->getPlugin('launcher'));
+      $schedule[$class][$name] = $job;
+    }
 
-  _ultimate_cron_variable_save('cron_last', time());
+    _ultimate_cron_variable_save('cron_last', time());
 
-  foreach ($schedule as $class => $jobs) {
-    $class::launchJobs($jobs);
-  }
+    foreach ($schedule as $class => $jobs) {
+      $class::launchJobs($jobs);
+    }
 
-  if ($redirect) {
-    drupal_goto('admin/config/system/cron');
+    if ($redirect) {
+      drupal_goto('admin/config/system/cron');
+    }
   }
 }
+
 
 function stripped_debug_backtrace() {
   $debug = debug_backtrace();
@@ -918,52 +900,3 @@ function stripped_debug_backtrace() {
   return $debug;
 }
 
-function ultimate_cron_peek_signal($name, $signal) {
-  return db_select('ultimate_cron_signal', 's')
-    ->fields('s', array('job_name'))
-    ->condition('job_name', $name)
-    ->condition('signal_name', $signal)
-    ->execute()
-    ->fetchField();
-}
-
-function ultimate_cron_get_signal($name, $signal) {
-  $claimed = db_update('ultimate_cron_signal')
-    ->fields(array('claimed' => 1))
-    ->condition('job_name', $name)
-    ->condition('signal_name', $signal)
-    ->condition('claimed', 0)
-    ->execute();
-  if ($claimed) {
-    db_delete('ultimate_cron_signal')
-      ->condition('job_name', $name)
-      ->condition('signal_name', $signal)
-      ->condition('claimed', 1)
-      ->execute();
-    return TRUE;
-  }
-  return FALSE;
-}
-
-function ultimate_cron_set_signal($name, $signal) {
-  return db_merge('ultimate_cron_signal')
-    ->key(array(
-      'job_name' => $name,
-      'signal_name' => $signal,
-    ))
-    ->fields(array('claimed' => 0))
-    ->execute();
-}
-
-function ultimate_cron_clear_signal($name, $signal) {
-  db_delete('ultimate_cron_signal')
-    ->condition('job_name', $name)
-    ->condition('signal_name', $signal)
-    ->execute();
-}
-
-function ultimate_cron_clear_signals($name) {
-  db_delete('ultimate_cron_signal')
-    ->condition('job_name', $name)
-    ->execute();
-}

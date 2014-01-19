@@ -588,6 +588,19 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
     }
   }
 
+  /**
+   * Launch scheduled cron jobs.
+   */
+  static public function launchPoorman($class, $jobs) {
+    $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
+    $cron_last = variable_get('cron_last', 0);
+    $time = time();
+    if ($settings['poorman_interval'] && ($cron_last < time() - $settings['poorman_interval'])) {
+      error_log("LAUNCHING POORMAN: $class");
+      // return $class::launchJobs($jobs, TRUE);
+    }
+  }
+
 }
 
 abstract class UltimateCronLogger extends UltimateCronPlugin {
