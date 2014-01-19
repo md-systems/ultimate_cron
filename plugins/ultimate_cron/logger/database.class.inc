@@ -9,6 +9,20 @@ define('ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE', 2);
 define('ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN', 3);
 
 class UltimateCronDatabaseLogger extends UltimateCronLogger {
+  public $options = array();
+
+  /**
+   * Constructor.
+   */
+  public function __construct($name, $plugin) {
+    parent::__construct($name, $plugin);
+    $this->options['method'] = array(
+      ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_DISABLED => t('Disabled'),
+      ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE => t('Remove logs older than a specified age'),
+      ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN => t('Retain only a specific amount of log entries'),
+    );
+  }
+
   /**
    * Default settings.
    */
@@ -206,57 +220,108 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   }
 
   /**
+   * Label for setting.
+   */
+  public function settingsLabel($name, $value) {
+    switch ($name) {
+      case 'method':
+        return $this->options[$name][$value];
+    }
+    return parent::settingsLabel($name, $value);
+
+  }
+
+  /**
    * Settings form.
    */
-  public function settingsForm(&$form, &$form_state) {
+  public function settingsForm(&$form, &$form_state, $job = NULL) {
     $elements = &$form['settings'][$this->type][$this->name];
+    $defaults = &$form_state['default_values']['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
     $elements['method'] = array(
-      '#type' => 'radios',
+      '#type' => 'select',
       '#title' => t('Log entry cleanup method'),
       '#description' => t('Select which method to use for cleaning up logs'),
-      '#options' => array(
-        ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_DISABLED => t('Disabled'),
-        ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE => t('Remove logs older than a specified age'),
-        ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN => t('Retain only a specific amount of log entries'),
-      ),
+      '#options' => $this->options['method'],
       '#default_value' => $values['method'],
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
 
-    $elements['expire'] = array(
+    $states = array('expire' => array(), 'retain' => array());
+
+    if ($job) {
+      $states['expire'] = array(
+        '#states' => array(
+          'visible' => array(
+            ':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]' => array(
+              'value' => ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE,
+            ),
+          ),
+          'enabled' => array(
+            ':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]' => array(
+              'value' => ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE,
+            ),
+          )
+        ),
+      );
+
+      $states['retain'] = array(
+        '#states' => array(
+          'visible' => array(
+            ':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]' => array(
+              'value' => ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN,
+            ),
+          ),
+          'enabled' => array(
+            ':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]' => array(
+              'value' => ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN,
+            ),
+          ),
+        ),
+      );
+    }
+
+    $elements['method_expire'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Remove logs older than a specified age'),
+    ) + $states['expire'];
+    $elements['method_expire']['expire'] = array(
+      '#parents' => array('settings', $this->type, $this->name, 'expire'),
       '#type' => 'textfield',
       '#title' => t('Log entry expiration'),
       '#description' => t('Remove log entries older than X seconds'),
       '#default_value' => $values['expire'],
       '#fallback' => TRUE,
       '#required' => TRUE,
-      '#states' => array(
-        'visible' => array(
-          ':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]' => array(
-            'value' => ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE,
-          ),
-        )
-      ),
     );
 
-    $elements['retain'] = array(
+    $elements['method_retain'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Retain only a specific amount of log entries'),
+    ) + $states['retain'];
+    $elements['method_retain']['retain'] = array(
+      '#parents' => array('settings', $this->type, $this->name, 'retain'),
       '#type' => 'textfield',
       '#title' => t('Retain logs'),
       '#description' => t('Retain X amount of log entries'),
       '#default_value' => $values['retain'],
       '#fallback' => TRUE,
       '#required' => TRUE,
-      '#states' => array(
-        'visible' => array(
-          ':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]' => array(
-            'value' => ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN,
-          ),
-        )
-      ),
     );
 
+    if ($job) {
+      if ($defaults['method'] == ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE) {
+        $elements['method_default'] = $elements['method_expire'];
+        $elements['method_default']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+        $elements['method_default']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+      }
+      if ($defaults['method'] == ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN) {
+        $elements['method_default'] = $elements['method_retain'];
+        $elements['method_default']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+        $elements['method_default']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+      }
+    }
   }
 }

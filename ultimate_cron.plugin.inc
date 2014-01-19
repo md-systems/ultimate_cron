@@ -109,7 +109,13 @@ class UltimateCronPlugin {
       if (empty($child) || empty($elements[$child]) || is_numeric($child)) {
         continue;
       }
-      $this->cleanForm($elements[$child], $values[$child]);
+      if (empty($element['#tree'])) {
+        $param_values = &$values;
+      }
+      else {
+        $param_values = &$values[$child];
+      }
+      $this->cleanForm($elements[$child], $param_values);
       if (!empty($elements[$child]['#markup'])) {
         unset($values[$child]);
       }
@@ -186,7 +192,7 @@ class UltimateCronPlugin {
 
     // Default values for current selection. If selection differs from current job, then
     // take the job (or hook) into account.
-    $defaults = $current_plugin->name == $original_plugin ? $job->getSettings($current_plugin->type) : $current_plugin->getDefaultSettings($job);
+    $defaults = $current_plugin->name == $original_plugin ? $current_plugin->getDefaultSettings($job) : $current_plugin->getDefaultSettings();
 
     // Plugin settings fieldset with vertical tab reference.
     $form['settings'][$plugin_type] = array(
@@ -332,7 +338,7 @@ class UltimateCronPlugin {
       if (!empty($element['#fallback'])) {
         if (!$remove_non_fallbacks) {
           if ($element['#type'] == 'radios') {
-            $label = $element['#options'][$defaults[$child]];
+            $label = $this->settingsLabel($child, $defaults[$child]);
             $element['#options'] = array(
               '' => t('Default (@default)', array('@default' => $label)),
             ) + $element['#options'];
