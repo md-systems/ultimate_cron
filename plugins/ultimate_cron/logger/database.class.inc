@@ -295,7 +295,7 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
       '#default_value' => $values['expire'],
       '#fallback' => TRUE,
       '#required' => TRUE,
-    );
+    ) + $states['expire'];;
 
     $elements['method_retain'] = array(
       '#type' => 'fieldset',
@@ -309,19 +309,43 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
       '#default_value' => $values['retain'],
       '#fallback' => TRUE,
       '#required' => TRUE,
-    );
+    ) + $states['retain'];;
 
     if ($job) {
       if ($defaults['method'] == ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE) {
         $elements['method_default'] = $elements['method_expire'];
         $elements['method_default']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
         $elements['method_default']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+        $elements['method_default']['expire']['method']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+        $elements['method_default']['expire']['method']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
       }
       if ($defaults['method'] == ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN) {
         $elements['method_default'] = $elements['method_retain'];
         $elements['method_default']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
         $elements['method_default']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+        $elements['method_default']['retain']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+        $elements['method_default']['retain']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
       }
+    }
+  }
+
+  function settingsFormSubmit($form, &$form_state, $job = NULL) {
+    $method = $form_state['values']['settings'][$this->type][$this->name]['method'] ? $form_state['values']['settings'][$this->type][$this->name]['method'] : $form_state['default_values']['settings'][$this->type][$this->name]['method'];
+
+    // Cleanup form (can this be done elsewhere?)
+    switch ($method) {
+      case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_DISABLED:
+        unset($form_state['values']['settings'][$this->type][$this->name]['expire']);
+        unset($form_state['values']['settings'][$this->type][$this->name]['retain']);
+        break;
+
+      case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE:
+        unset($form_state['values']['settings'][$this->type][$this->name]['retain']);
+        break;
+
+      case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN:
+        unset($form_state['values']['settings'][$this->type][$this->name]['expire']);
+        break;
     }
   }
 }

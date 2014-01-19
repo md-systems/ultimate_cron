@@ -120,7 +120,8 @@ class UltimateCronPlugin {
         unset($values[$child]);
       }
       elseif (
-        empty($values[$child]) &&
+        isset($values[$child]) &&
+        !$values[$child] &&
         !empty($elements[$child]['#fallback']) &&
         $values[$child] !== '0'
       ) {
