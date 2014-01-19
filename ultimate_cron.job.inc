@@ -183,24 +183,27 @@ class UltimateCronJob {
    * Invoke the jobs callback.
    */
   public function invoke() {
+    module_invoke_all('cron_pre_invoke', $this);
     switch ($this->hook['api_version']) {
       case 1:
         $args = array($this->hook);
         $args = array_merge($args, $this->hook['callback_arguments']);
         if (is_callable($this->hook['callback'])) {
-          return call_user_func_array($this->hook['callback'], array(
+          $result = call_user_func_array($this->hook['callback'], array(
             $this->name, $this->hook
           ));
+          break;
         }
         else {
-          return module_invoke($this->hook['module'], 'cronapi', 'execute', $this->name, $this->hook);
+          $result = module_invoke($this->hook['module'], 'cronapi', 'execute', $this->name, $this->hook);
+          break;
         }
 
       case 2:
         $result = call_user_func_array($this->hook['callback'], array(
           $this, $this->hook['callback_arguments']
         ));
-        return $result;
+        break;
 
       default:
         throw new Exception(t('Could not invoke cron job @name. Wrong API version (@api_version)', array(
@@ -208,13 +211,18 @@ class UltimateCronJob {
           '@api_version' => $this->hook['api_version'],
         )));
     }
+    module_invoke_all('cron_post_invoke', $this);
+    return $result;
   }
 
   /**
    * Check job schedule.
    */
   public function schedule() {
-    return empty($this->disabled) && $this->getPlugin('scheduler')->schedule($this);
+    module_invoke_all('cron_pre_schedule', $this);
+    $result = empty($this->disabled) && $this->getPlugin('scheduler')->schedule($this);
+    module_invoke_all('cron_post_schedule', $this);
+    return $result;
   }
 
   /**
@@ -222,7 +230,10 @@ class UltimateCronJob {
    */
   public function launch() {
     $this->clearSignals();
-    return $this->getPlugin('launcher')->launch($this);
+    module_invoke_all('cron_pre_launch', $this);
+    $result = $this->getPlugin('launcher')->launch($this);
+    module_invoke_all('cron_post_launch', $this);
+    return $result;
   }
 
   /**
@@ -255,7 +266,10 @@ class UltimateCronJob {
    * Run job.
    */
   public function run() {
-    return $this->getPlugin('launcher')->run($this);
+    module_invoke_all('cron_pre_run', $this);
+    $result = $this->getPlugin('launcher')->run($this);
+    module_invoke_all('cron_post_launch', $this);
+    return $result;
   }
 
   /**
