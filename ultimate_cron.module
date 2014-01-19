@@ -245,6 +245,53 @@ function ultimate_cron_job_load($name) {
   return $jobs[$name];
 }
 
+function ultimate_cron_prepare_job($name, $hook, $job = NULL) {
+  $schema = ctools_export_get_schema('ultimate_cron_job');
+  $export = $schema['export'];
+  $status = variable_get($export['status'], array());
+
+  if (!$job) {
+    $job = ctools_export_crud_new('ultimate_cron_job');
+    $job->name = $name;
+    $job->title = $hook['title'];
+    $job->description = $hook['description'];
+    $job->table = 'ultimate_cron_job';
+    $job->export_type = EXPORT_IN_CODE;
+    $job->{$export['export type string']} = t('Default');
+    if (isset($status[$job->{$export['key']}])) {
+      $job->disabled = $status[$job->{$export['key']}];
+    }
+    if (!isset($job->disabled)) {
+      $job->disabled = !$hook['enabled'];
+    }
+  }
+  else {
+    $job->{$export['export type string']} = t('Overridden');
+    $job->export_type = EXPORT_IN_CODE | EXPORT_IN_DATABASE;
+  }
+
+  // We do alot of += on arrays. Let's make sure we have an array to begin with.
+  $plugin_types = ctools_plugin_get_plugin_type_info();
+  foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+    $class = $info['defaults']['static']['class'];
+    if ($class::$multiple) {
+      $plugins = ultimate_cron_plugin_load_all($plugin_type);
+      foreach ($plugins as $plugin) {
+        if (!isset($job->settings[$plugin_type][$plugin->name])) {
+          $job->settings[$plugin_type][$plugin->name] = array();
+        }
+      }
+    }
+    else {
+      if (!isset($job->settings[$plugin_type])) {
+        $job->settings[$plugin_type] = array();
+      }
+    }
+  }
+  $job->hook = $hook;
+  return $job;
+}
+
 /**
  * Export UI load all callback.
  */
@@ -255,54 +302,14 @@ function ultimate_cron_job_load_all($reset = FALSE) {
   }
 
   $jobs = ultimate_cron_job_load_all_export_ui($reset);
-  $schema = ctools_export_get_schema('ultimate_cron_job');
-  $export = $schema['export'];
-  $status = variable_get($export['status'], array());
 
   foreach (ultimate_cron_get_hooks($reset) as $name => $hook) {
-    if (!isset($jobs[$name])) {
-      $jobs[$name] = ctools_export_crud_new('ultimate_cron_job');
-      $jobs[$name]->name = $name;
-      $jobs[$name]->title = $hook['title'];
-      $jobs[$name]->description = $hook['description'];
-      $jobs[$name]->table = 'ultimate_cron_job';
-      $jobs[$name]->export_type = EXPORT_IN_CODE;
-      $jobs[$name]->{$export['export type string']} = t('Default');
-      if (isset($status[$jobs[$name]->{$export['key']}])) {
-        $jobs[$name]->disabled = $status[$jobs[$name]->{$export['key']}];
-      }
-      if (!isset($jobs[$name]->disabled)) {
-        $jobs[$name]->disabled = !$hook['enabled'];
-      }
-    }
-    else {
-      $jobs[$name]->{$export['export type string']} = t('Overridden');
-      $jobs[$name]->export_type = EXPORT_IN_CODE | EXPORT_IN_DATABASE;
-    }
-
-    // We do alot of += on arrays. Let's make sure we have an array to begin with.
-    $plugin_types = ctools_plugin_get_plugin_type_info();
-    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
-      $class = $info['defaults']['static']['class'];
-      if ($class::$multiple) {
-        $plugins = ultimate_cron_plugin_load_all($plugin_type);
-        foreach ($plugins as $plugin) {
-          if (!isset($jobs[$name]->settings[$plugin_type][$plugin->name])) {
-            $jobs[$name]->settings[$plugin_type][$plugin->name] = array();
-          }
-        }
-      }
-      else {
-        if (!isset($jobs[$name]->settings[$plugin_type])) {
-          $jobs[$name]->settings[$plugin_type] = array();
-        }
-      }
-    }
-
-    $jobs[$name]->hook = $hook;
+    $jobs[$name] = ultimate_cron_prepare_job($name, $hook, isset($jobs[$name]) ? $jobs[$name] : NULL);
   }
 
   $cache = $jobs;
+  UltimateCronPlugin::hook_cron_alter($cache);
+
   return $cache;
 }
 
@@ -528,6 +535,7 @@ function ultimate_cron_cronapi() {
       ),
       'tags' => array('queue'),
       'module' => $info['module'],
+      'queue' => $name,
     );
   }
   return $items;
@@ -546,7 +554,9 @@ function ultimate_cron_queue_cron($job, $arguments) {
   $items = 0;
   $settings = $job->getPluginSettings('settings');
 
-  while (time() < $end && $item = $queue->claimItem($settings['queue']['queue_lease_time'])) {
+  $job->getPlugin('settings', 'queue')->throttle($job);
+
+  while (time() < $end && $item = $queue->claimItem($settings['queue']['lease_time'])) {
     $function($item->data);
     $queue->deleteItem($item);
     $items++;

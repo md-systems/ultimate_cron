@@ -8,6 +8,28 @@ class UltimateCronJob {
   static public $signals;
 
   /**
+   * Invoke plugin cron_alter().
+   */
+  public function cron_alter() {
+    $plugin_types = ctools_plugin_get_plugin_type_info();
+    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+      $class = $info['defaults']['static']['class'];
+      if ($class::$multiple) {
+        $plugins = ultimate_cron_plugin_load_all($plugin_type);
+        foreach ($plugins as $plugin) {
+          if ($plugin->isValid($this)) {
+            $plugin->cron_alter($this);
+          }
+        }
+      }
+      else {
+        $plugin = $this->getPlugin($plugin_type);
+        $plugin->cron_alter($this);
+      }
+    }
+  }
+
+  /**
    * Get a signal without affecting it.
    */
   public function peekSignal($signal) {
@@ -192,7 +214,7 @@ class UltimateCronJob {
    * Check job schedule.
    */
   public function schedule() {
-    return $this->getPlugin('scheduler')->schedule($this);
+    return empty($this->disabled) && $this->getPlugin('scheduler')->schedule($this);
   }
 
   /**

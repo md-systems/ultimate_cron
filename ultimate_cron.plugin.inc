@@ -33,6 +33,27 @@ class UltimateCronPlugin {
   }
 
   /**
+   * Invoke hook_cron_alter() on plugins.
+   */
+  final static public function hook_cron_alter(&$jobs) {
+    $plugin_types = ctools_plugin_get_plugin_type_info();
+    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+      $plugins = ultimate_cron_plugin_load_all($plugin_type);
+      foreach ($plugins as $plugin) {
+        if ($plugin->isValid()) {
+          $plugin->cron_alter($jobs);
+        }
+      }
+    }
+  }
+
+  /**
+   * hook_cron_alter() for plugins.
+   */
+  public function cron_alter($jobs) {
+  }
+
+  /**
    * Custom action for plugins.
    */
   public function custom_page($js, $input, $item, $action) {
@@ -41,7 +62,7 @@ class UltimateCronPlugin {
   /**
    * Allow plugins to alter the allowed operations for a job.
    */
-  public function build_operations_alter(&$allowed_operations) {
+  public function build_operations_alter($job, &$allowed_operations) {
   }
 
   /**
@@ -317,7 +338,7 @@ class UltimateCronPlugin {
             ) + $element['#options'];
           }
           elseif ($element['#type'] == 'select' && empty($element['#multiple'])) {
-            $label = $element['#options'][$defaults[$child]];
+            $label = $this->settingsLabel($child, $defaults[$child]);
             $element['#options'] = array(
               '' => t('Default (@default)', array('@default' => $label)),
             ) + $element['#options'];

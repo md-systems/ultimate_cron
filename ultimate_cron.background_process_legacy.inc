@@ -80,7 +80,10 @@ function ultimate_cron_background_process_legacy_callback($name, $lock_id) {
         }
       } while (microtime(TRUE) < $expire);
 
-      if ($keepalive) {
+      // Refresh disabled value.
+      $job = ultimate_cron_job_load($name);
+
+      if ($keepalive && empty($job->disabled)) {
         background_process_keepalive();
 
         // Save a copy of the log.
