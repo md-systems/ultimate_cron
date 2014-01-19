@@ -12,7 +12,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
    * Implements hook_build_operations_alter().
    */
   public function build_operations_alter($job, &$allowed_operations) {
-    if (in_array('queue_thread', $job->hook['tags'])) {
+    if (!empty($job->hook['queue_master'])) {
       unset($allowed_operations['edit']);
       unset($allowed_operations['disable']);
       unset($allowed_operations['enable']);
@@ -35,7 +35,6 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
             $hook['queue_master'] = $job->name;
             $hook['name'] = $name;
             $hook['title'] .= " (#$i)";
-            $hook['tags'][] = 'queue_thread';
             $new_jobs[$name] = ultimate_cron_prepare_job($name, $hook);
             $new_jobs[$name]->settings = $settings;
             // $new_jobs[$name]->disabled = isset($job->disabled) ? $job->disabled : NULL;
