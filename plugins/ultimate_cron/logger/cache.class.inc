@@ -18,7 +18,7 @@ class UltimateCronCacheLogger extends UltimateCronLogger {
   /**
    * Cleanup logs.
    */
-  public function cleanup($job) {
+  public function cleanup() {
   }
 
   /**

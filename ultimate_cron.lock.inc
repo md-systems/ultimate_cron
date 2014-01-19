@@ -34,7 +34,7 @@ class UltimateCronLock {
     // First, ensure cleanup.
     if (!isset(self::$locks)) {
       self::$locks = array();
-      drupal_register_shutdown_function(array(self, 'shutdown'));
+      drupal_register_shutdown_function(array('UltimateCronLock', 'shutdown'));
     }
 
     try {

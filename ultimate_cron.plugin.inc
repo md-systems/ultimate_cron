@@ -197,7 +197,9 @@ class UltimateCronPlugin {
     $original_plugin = !empty($job->settings[$plugin_type]['name']) ? $job->settings[$plugin_type]['name'] : $job->hook[$plugin_type]['name'];
 
     // Ensure blank array.
-    $form_state['values']['settings'][$plugin_type] += array($current_plugin->name => array());
+    if (empty($form_state['values']['settings'][$plugin_type][$current_plugin->name])) {
+      $form_state['values']['settings'][$plugin_type][$current_plugin->name] = array();
+    }
 
     // Default values for current selection. If selection differs from current job, then
     // take the job (or hook) into account.
@@ -251,7 +253,7 @@ class UltimateCronPlugin {
       '#tree' => TRUE,
       '#type' => 'fieldset',
       '#title' => $current_plugin->title,
-      '#description' => $current_plugin->description . ' ' . $default_settings_link,
+      '#description' => $current_plugin->description,
       '#prefix' => '<div id="' . $wrapper . '">',
       '#suffix' => '</div>',
     );
@@ -267,6 +269,7 @@ class UltimateCronPlugin {
         $form_state['default_values']['settings'][$plugin_type][$current_plugin->name],
         FALSE
       );
+      $form['settings'][$plugin_type][$current_plugin->name]['#description'] .= ' ' . $default_settings_link;
     }
   }
 

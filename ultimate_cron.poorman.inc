@@ -11,11 +11,51 @@ function _ultimate_cron_poormans_page_flush($content) {
   }
   return $content;
 }
-if (!drupal_is_cli() && $_SERVER['REQUEST_METHOD'] == 'GET') {
+if (ultimate_cron_poorman_capable()) {
   ob_start('_ultimate_cron_poormans_page_flush');
 }
 
+/**
+ * Determines if poormans cron can run on this page.
+ */
+function ultimate_cron_poorman_capable() {  
+  static $capable;
+  if (isset($capable)) {
+    return $capable;
+  }
 
+  if (!drupal_is_cli() && $_SERVER['REQUEST_METHOD'] == 'GET') {
+    $capable = TRUE;
+  }
+  else {
+    $capable = FALSE;
+  }
+  return $capable;
+}
+
+/**
+ * Implements hook_exit().
+ */
+function ultimate_cron_exit($dest = NULL) {
+  // No need for poorman until site is installed.
+  if (variable_get('install_task') != 'done') {
+    return;
+  }
+
+  // We're picky about when we run poormans cron, because
+  // we may want to flush the output buffer.
+  if (ultimate_cron_poorman_capable()) {
+    // Register our own Poormans Cron handler.
+    $callbacks = &drupal_register_shutdown_function();
+    array_unshift($callbacks, array('callback' => 'ultimate_cron_poorman', 'arguments' => array()));
+    // Reset internal array pointer just in case ...
+    reset($callbacks);
+  }
+}
+
+/**
+ * Page callback for running cron jobs.
+ */
 function ultimate_cron_poorman_page() {
   error_log("POORMAN PAGE");
   if (!isset($_GET['cron_key']) || variable_get('cron_key', 'drupal') != $_GET['cron_key']) {
@@ -23,6 +63,35 @@ function ultimate_cron_poorman_page() {
     drupal_access_denied();
   }
   return 'POORMANS CRON';
+}
+
+/**
+ * Launch poormans cron if applicable (shutdown handler).
+ */
+function ultimate_cron_poorman() {
+  return;
+  ultimate_cron_run_poorman();
+  return;
+
+  error_log(__FUNCTION__);
+  $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
+  $cron_last = variable_get('cron_last', 0);
+  error_log("CHECKING");
+  $time = time();
+  error_log("last: " . format_date($cron_last, 'custom', 'Y-m-d H:i:s'));
+  error_log("time: " . format_date($time, 'custom', 'Y-m-d H:i:s'));
+  error_log("intv: " . $settings['poorman_interval']);
+
+  if ($settings['poorman_interval'] && ($cron_last < time() - $settings['poorman_interval'])) {
+    error_log("LAUNCHING");
+    // Thundering herd protection should be done in the launcher.
+
+    // ultimate_cron_poorman_run();
+  }
+  if ($settings['poorman_interval']) {
+  }
+
+  // ultimate_cron_poorman_run();
 }
 
 /**
@@ -63,35 +132,6 @@ function ultimate_cron_poorman_page_flush() {
       fastcgi_finish_request();
     }
   }
-}
-
-/**
- * Launch poormans cron if applicable (shutdown handler).
- */
-function ultimate_cron_poorman() {
-  return;
-  ultimate_cron_run_poorman();
-  return;
-
-  error_log(__FUNCTION__);
-  $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
-  $cron_last = variable_get('cron_last', 0);
-  error_log("CHECKING");
-  $time = time();
-  error_log("last: " . format_date($cron_last, 'custom', 'Y-m-d H:i:s'));
-  error_log("time: " . format_date($time, 'custom', 'Y-m-d H:i:s'));
-  error_log("intv: " . $settings['poorman_interval']);
-
-  if ($settings['poorman_interval'] && ($cron_last < time() - $settings['poorman_interval'])) {
-    error_log("LAUNCHING");
-    // Thundering herd protection should be done in the launcher.
-
-    // ultimate_cron_poorman_run();
-  }
-  if ($settings['poorman_interval']) {
-  }
-
-  // ultimate_cron_poorman_run();
 }
 
 function ultimate_cron_trigger_poorman() {

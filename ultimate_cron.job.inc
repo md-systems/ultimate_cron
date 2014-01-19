@@ -135,7 +135,9 @@ class UltimateCronJob {
 
     if (!$class::$multiple) {
       $plugin = $this->getPlugin($plugin_type);
-      $settings += array($plugin->name => array());
+      if (empty($settings[$plugin->name])) {
+        $settings[$plugin->name] = array();
+      }
       $settings['name'] = $plugin->name;
       $settings[$plugin->name] += $plugin->getDefaultSettings($this);
     }

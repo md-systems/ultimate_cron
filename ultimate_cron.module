@@ -315,26 +315,6 @@ function ultimate_cron_init() {
 }
 
 /**
- * Implements hook_exit().
- */
-function ultimate_cron_exit($dest = NULL) {
-  // No need for poorman until site is installed.
-  if (variable_get('install_task') != 'done') {
-    return;
-  }
-
-  // We're picky about when we run poormans cron, because
-  // we may want to flush the output buffer.
-  if (!drupal_is_cli() && $_SERVER['REQUEST_METHOD'] == 'GET') {
-    // Register our own Poormans Cron handler.
-    $callbacks = &drupal_register_shutdown_function();
-    array_unshift($callbacks, array('callback' => 'ultimate_cron_poorman', 'arguments' => array()));
-    // Reset internal array pointer just in case ...
-    reset($callbacks);
-  }
-}
-
-/**
  * Implements hook_help().
  */
 function ultimate_cron_help($path, $arg) {
@@ -479,7 +459,7 @@ function ultimate_cron_cron_queue_info() {
  */
 function ultimate_cron_plugin_cleanup($job, $arguments) {
   $plugin_type = $arguments['plugin_type'];
-  $plugin_type = $arguments['name'];
+  $name = $arguments['name'];
   $plugin = ultimate_cron_plugin_load($plugin_type, $name);
   $plugin->cleanup();
 }
