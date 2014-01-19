@@ -12,16 +12,16 @@ class UltimateCronLock {
   /**
    * Shutdown handler for releasing locks.
    */
-  public function shutdown() {
+  static public function shutdown() {
     foreach (array_keys(self::$locks) as $lock_id) {
-      $this->unlock($lock_id);
+      self::unlock($lock_id);
     }
   }
 
   /**
    * Dont release lock on shutdown.
    */
-  public function persist($lock_id) {
+  static public function persist($lock_id) {
     if (isset(self::$locks)) {
       unset(self::$locks[$lock_id]);
     }
@@ -30,17 +30,17 @@ class UltimateCronLock {
   /**
    * Acquire lock.
    */
-  public function lock($name, $timeout = 30.0) {
+  static public function lock($name, $timeout = 30.0) {
     // First, ensure cleanup.
     if (!isset(self::$locks)) {
       self::$locks = array();
-      drupal_register_shutdown_function(array($this, 'shutdown'));
+      drupal_register_shutdown_function(array(self, 'shutdown'));
     }
 
     try {
       // First we ensure that previous locks are "removed"
       // if they are expired.
-      $this->expire($name);
+      self::expire($name);
 
       // Ensure that the timeout is at least 1 ms.
       $timeout = max($timeout, 0.001);
@@ -68,7 +68,7 @@ class UltimateCronLock {
    * Release lock if applicable.
    */
   public function expire($name) {
-    if ($lock_id = $this->isLocked($name)) {
+    if ($lock_id = self::isLocked($name)) {
       $now = microtime(TRUE);
       db_update('ultimate_cron_lock')
         ->expression('current', 'lid')
@@ -87,7 +87,7 @@ class UltimateCronLock {
       ->condition('lid', $lock_id)
       ->condition('current', 0)
       ->execute();
-    $this->persist($lock_id);
+    self::persist($lock_id);
     return $unlocked;
   }
 

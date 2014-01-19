@@ -112,8 +112,6 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     $delay = $timeout * 1000000;
     $sleep = 25000;
 
-    $locker = new UltimateCronLock();
-
     do {
       for ($thread = 1; $thread <= $settings['max_launch_threads']; $thread++) {
         if ($thread == self::$currentThread) {
@@ -121,9 +119,9 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
         }
 
         $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
-        if (!$locker->isLocked($lock_name)) {
+        if (!UltimateCronLock::isLocked($lock_name)) {
           if ($lock) {
-            if ($locker->lock($lock_name, $lock_timeout)) {
+            if (UltimateCronLock::lock($lock_name, $lock_timeout)) {
               error_log("Locked: $thread");
               return TRUE;
             }
@@ -170,10 +168,10 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
         watchdog('serial_launcher', "Invalid thread available for starting launch thread", array(), WATCHDOG_WARNING);
         return;
       }
-      $locker = new UltimateCronLock();
+
       $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
       $timeout = $launch_poorman ? 0 : 3;
-      $thread = $locker->lock($lock_name, $lock_timeout, $timeout) ? $thread : FALSE;
+      $thread = UltimateCronLock::lock($lock_name, $lock_timeout, $timeout) ? $thread : FALSE;
     }
     else {
       $thread = self::findFreeThread(TRUE, $lock_timeout, 0);

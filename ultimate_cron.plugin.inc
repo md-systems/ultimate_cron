@@ -98,6 +98,9 @@ class UltimateCronPlugin {
     return TRUE;
   }
 
+  public function cleanup() {
+  }
+
   /**
    * Clean form of empty fallback values.
    */
@@ -517,8 +520,7 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
     $settings = $job->getSettings($this->type);
     $timeout = $settings['lock_timeout'];
 
-    $locker = new UltimateCronLock();
-    if ($lock_id = $locker->lock($this->lockKey($job), $timeout)) {
+    if ($lock_id = UltimateCronLock::lock($this->lockKey($job), $timeout)) {
       $lock_id = $this->name . '-' . $lock_id;
       return $lock_id;
     }
@@ -530,16 +532,14 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    */
   public function unlock($lock_id, $manual = FALSE) {
     list($launcher, $lock_id) = explode('-', $lock_id, 2);
-    $locker = new UltimateCronLock();
-    return $locker->unlock($lock_id);
+    return UltimateCronLock::unlock($lock_id);
   }
 
   /**
    * Check if job is locked.
    */
   public function isLocked($job) {
-    $locker = new UltimateCronLock();
-    $lock_id = $locker->isLocked($this->lockKey($job));
+    $lock_id = UltimateCronLock::isLocked($this->lockKey($job));
     return $lock_id ? $this->name . '-' . $lock_id : $lock_id;
   }
 
@@ -608,6 +608,9 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
     }
   }
 
+  function cleanup() {
+    UltimateCronLock::cleanup();
+  }
 }
 
 abstract class UltimateCronLogger extends UltimateCronPlugin {
@@ -787,16 +790,6 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
       $this->watchdog($log_entry);
     }
     $this->finish();
-  }
-
-  /**
-   * Clean up logs.
-   */
-  static public function cleanupLogs() {
-    $jobs = ultimate_cron_job_load_all();
-    foreach ($jobs as $job) {
-      $job->getPlugin('logger')->cleanup($job);
-    }
   }
 }
 

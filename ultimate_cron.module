@@ -474,11 +474,14 @@ function ultimate_cron_cron_queue_info() {
   return array();
 }
 
+/**
+ * Plugin clean cron job.
+ */
 function ultimate_cron_plugin_cleanup($job, $arguments) {
   $plugin_type = $arguments['plugin_type'];
-  $plugins = ultimate_cron_plugin_load_all($plugin_type);
-  error_log("Cleaning up for $plugin_type");
-  // $plugin->cleanup();
+  $plugin_type = $arguments['name'];
+  $plugin = ultimate_cron_plugin_load($plugin_type, $name);
+  $plugin->cleanup();
 }
 
 /**
@@ -492,25 +495,21 @@ function ultimate_cron_cronapi() {
   ctools_include('plugins');
   $plugin_types = ctools_plugin_get_plugin_type_info();
   foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
-    $items['ultimate_cron_plugin_' . $plugin_type . '_cleanup'] = array(
-      'title' => t('Ultimate Cron @type cleanup', array(
-        '@type' => $info['defaults']['static']['title plural proper'],
-      )),
-      'callback' => 'ultimate_cron_plugin_cleanup',
-      'callback_arguments' => array('plugin_type' => $plugin_type),
-    );
+    foreach (ultimate_cron_plugin_load_all($plugin_type) as $name => $plugin) {
+      $items["ultimate_cron_plugin_{$plugin_type}_{$name}_cleanup"] = array(
+        'title' => t('Ultimate Cron @type @title cleanup', array(
+          '@type' => $info['defaults']['static']['title plural proper'],
+          '@title' => $plugin->title,
+        )),
+        'callback' => 'ultimate_cron_plugin_cleanup',
+        'callback_arguments' => array(
+          'plugin_type' => $plugin_type,
+          'name' => $name,
+        ),
+      );
+    }
   }
 
-/*
-  $items['ultimate_cron_cleanup_log'] = array(
-    'title' => t('Cleanup Ultimate Cron log entries'),
-    'callback' => array('UltimateCronLogger', 'cleanupLogs'),
-  );
-  $items['ultimate_cron_cleanup_locks'] = array(
-    'title' => t('Cleanup Ultimate Cron locks'),
-    'callback' => array('UltimateCronLock', 'cleanup'),
-  );
-*/
   // Grab the defined cron queues.
   $queues = _ultimate_cron_get_queues();
 

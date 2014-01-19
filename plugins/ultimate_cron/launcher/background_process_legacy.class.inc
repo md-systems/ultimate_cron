@@ -232,6 +232,9 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     )));
   }
 
+  public function cleanup() {
+  }
+
   /**
    * Launch manager.
    */

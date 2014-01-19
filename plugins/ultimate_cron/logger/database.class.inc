@@ -37,7 +37,17 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   /**
    * Cleanup logs.
    */
-  public function cleanup($job) {
+  public function cleanup() {
+    $jobs = ultimate_cron_job_load_all();
+    foreach ($jobs as $job) {
+      $this->cleanupJob($job);
+    }
+  }
+
+  /**
+   * Cleanup logs for a single job.
+   */
+  public function cleanupJob($job) {
     $settings = $job->getSettings('logger');
 
     switch ($settings['method']) {
@@ -329,7 +339,10 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
     }
   }
 
-  function settingsFormSubmit($form, &$form_state, $job = NULL) {
+  /**
+   * Submit handler.
+   */
+  public function settingsFormSubmit($form, &$form_state, $job = NULL) {
     if (!$job) {
       return;
     }
