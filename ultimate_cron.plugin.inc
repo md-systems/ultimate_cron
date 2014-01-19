@@ -88,7 +88,12 @@ class UltimateCronPlugin {
    * Get label for a specific setting.
    */
   public function settingsLabel($name, $value) {
-    return $value;
+    if (is_array($value)) {
+      return implode(', ', $value);
+    }
+    else {
+      return $value;
+    }
   }
 
   /**

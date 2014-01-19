@@ -19,17 +19,6 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   }
 
   /**
-   * Label for settings.
-   */
-  public function settingsLabel($name, $value) {
-    switch ($name) {
-      case 'rules':
-        return $value ? implode(', ', $value) : '';
-    }
-    return parent::settingsLabel($name, $value);
-  }
-
-  /**
    * Label for schedule.
    */
   public function getScheduledLabel($job) {
