@@ -330,6 +330,10 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   }
 
   function settingsFormSubmit($form, &$form_state, $job = NULL) {
+    if (!$job) {
+      return;
+    }
+
     $method = $form_state['values']['settings'][$this->type][$this->name]['method'] ? $form_state['values']['settings'][$this->type][$this->name]['method'] : $form_state['default_values']['settings'][$this->type][$this->name]['method'];
 
     // Cleanup form (can this be done elsewhere?)
