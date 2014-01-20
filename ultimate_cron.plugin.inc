@@ -736,7 +736,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
       error_log("REGISTER SHUTDOWN CATCH MESSAGES FOR: $class");
       // Since we may already be inside a drupal_register_shutdown_function()
       // we cannot use that. Use PHPs register_shutdown_function() instead.
-      register_shutdown_function(array($class, 'catchMessagesShutdownWrapper'), $class);
+      ultimate_cron_register_shutdown_function(array($class, 'catchMessagesShutdownWrapper'), $class);
     }
     $class::$logs[$this->log_entry->lid] = $this;
   }

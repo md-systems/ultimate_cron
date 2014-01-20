@@ -429,9 +429,10 @@ function drush_ultimate_cron_cron_enable($name = NULL) {
     }
     return;
   }
-  ctools_include('export');
-  ctools_export_set_status('ultimate_cron_job', $name, FALSE);
-  drush_print(dt('@name enabled', array('@name' => $name)));
+  $job = ultimate_cron_job_load($name);
+  if ($job->enable()) {
+    drush_print(dt('@name enabled', array('@name' => $name)));
+  }
 }
 
 /**
@@ -447,9 +448,10 @@ function drush_ultimate_cron_cron_disable($name = NULL) {
     }
     return;
   }
-  ctools_include('export');
-  ctools_export_set_status('ultimate_cron_job', $name, TRUE);
-  drush_print(dt('@name disabled', array('@name' => $name)));
+  $job = ultimate_cron_job_load($name);
+  if ($job->disable()) {
+    drush_print(dt('@name disabled', array('@name' => $name)));
+  }
 }
 
 /**

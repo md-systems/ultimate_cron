@@ -26,34 +26,48 @@ include dirname(__FILE__) . '/ultimate_cron.background_process_legacy.inc';
  * Memory exhaust protection.
  * To reduce the risk of shutdown handlers failing, we reserve 2MiB of memory
  */
-if (!function_exists('_out_of_memory_protection')) {
-  $GLOBALS['__RESERVED_MEMORY'] = str_repeat('0', 1024 * 1024 * 2);
+$GLOBALS['__RESERVED_MEMORY'] = str_repeat('0', 1024 * 1024 * 2);
+$GLOBALS['ultimate_cron_shutdown_functions'] = array();
 
-  /**
-   * Unleash the memory.
-   */
-  function _out_of_memory_protection() {
-    unset($GLOBALS['__RESERVED_MEMORY']);
-  }
-
-  // The minor overhead in _drupal_shutdown_function() can mean the
-  // difference between life and death for our shutdown handlers in
-  // a memory exhaust situation. We want our shutdown handler to be
-  // called as early as possible. If no callbacks have been registrered
-  // yet, we use PHPs built-in register_shutdown_function() otherwise
-  // we ensure, that we are the first in the list of Drupals registered
-  // shutdown functions.
-  $callbacks = &drupal_register_shutdown_function();
-  if (empty($callbacks)) {
-    register_shutdown_function('_out_of_memory_protection');
-  }
-  else {
-    array_unshift($callbacks, array('callback' => '_out_of_memory_protection', 'arguments' => array()));
-    // Reset internal array pointer just in case ...
-    reset($callbacks);
+/**
+ * Unleash the memory.
+ */
+function _ultimate_cron_out_of_memory_protection() {
+  error_log("RELEASING MEMORY");
+  unset($GLOBALS['__RESERVED_MEMORY']);
+  error_log(print_r($GLOBALS['ultimate_cron_shutdown_functions'], TRUE));
+  foreach ($GLOBALS['ultimate_cron_shutdown_functions'] as $function) {
+    call_user_func_array($function['callback'], $function['arguments']);
   }
 }
 
+// The minor overhead in _drupal_shutdown_function() can mean the
+// difference between life and death for our shutdown handlers in
+// a memory exhaust situation. We want our shutdown handler to be
+// called as early as possible. If no callbacks have been registrered
+// yet, we use PHPs built-in register_shutdown_function() otherwise
+// we ensure, that we are the first in the list of Drupals registered
+// shutdown functions.
+$callbacks = &drupal_register_shutdown_function();
+if (empty($callbacks)) {
+  register_shutdown_function('_ultimate_cron_out_of_memory_protection');
+}
+else {
+  array_unshift($callbacks, array('callback' => '_ultimate_cron_out_of_memory_protection', 'arguments' => array()));
+  // Reset internal array pointer just in case ...
+  reset($callbacks);
+}
+
+
+
+function ultimate_cron_register_shutdown_function($callback) {
+  $args = func_get_args();
+  array_shift($args);
+  $GLOBALS['ultimate_cron_shutdown_functions'][] = array(
+    'callback' => $callback,
+    'arguments' => $args,
+  );
+}
 // ---------- CTOOLS INTEGRATION ----------
 
 /**
@@ -217,7 +231,8 @@ function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
     ctools_export_load_object_reset('ultimate_cron_job');
   }
   $results = ctools_export_load_object('ultimate_cron_job');
-  foreach ($results as $result) {
+  foreach ($results as $name => $result) {
+    $result->disabled = ultimate_cron_job_get_status($name);
     $result->settings = !empty($result->settings) ? $result->settings : array();
   }
   return $results;
@@ -234,7 +249,6 @@ function ultimate_cron_job_load($name) {
 function ultimate_cron_prepare_job($name, $hook, $job = NULL) {
   $schema = ctools_export_get_schema('ultimate_cron_job');
   $export = $schema['export'];
-  $status = variable_get($export['status'], array());
 
   if (!$job) {
     $job = ctools_export_crud_new('ultimate_cron_job');
@@ -244,9 +258,7 @@ function ultimate_cron_prepare_job($name, $hook, $job = NULL) {
     $job->table = 'ultimate_cron_job';
     $job->export_type = EXPORT_IN_CODE;
     $job->{$export['export type string']} = t('Default');
-    if (isset($status[$job->{$export['key']}])) {
-      $job->disabled = $status[$job->{$export['key']}];
-    }
+    $job->disabled = ultimate_cron_job_get_status($name);
     if (!isset($job->disabled)) {
       $job->disabled = !$hook['enabled'];
     }
@@ -299,6 +311,19 @@ function ultimate_cron_job_load_all($reset = FALSE) {
   return $cache;
 }
 
+function ultimate_cron_job_set_status($object, $status) {
+  if (is_object($object)) {
+    $name = $object->name;
+  }
+  else {
+    $name = $object;
+  }
+  variable_set('default_ultimate_cron_job_' . $name, $status ? TRUE : FALSE);
+}
+
+function ultimate_cron_job_get_status($name) {
+  return variable_get('default_ultimate_cron_job_' . $name, NULL);
+}
 
 // ---------- HOOKS ----------
 

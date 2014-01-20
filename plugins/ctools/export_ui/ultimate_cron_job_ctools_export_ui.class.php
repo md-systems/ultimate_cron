@@ -37,6 +37,14 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         'href' => $item->hook['configure'],
       );
     }
+
+    if (!empty($item->hook['immutable'])) {
+      unset($allowed_operations['edit']);
+      unset($allowed_operations['disable']);
+      unset($allowed_operations['enable']);
+      unset($allowed_operations['export']);
+    }
+
     $item->build_operations_alter($allowed_operations);
     return $allowed_operations;
   }

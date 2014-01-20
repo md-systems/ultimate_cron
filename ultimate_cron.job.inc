@@ -155,6 +155,24 @@ class UltimateCronJob {
     return $settings;
   }
 
+  function enable() {
+    if (empty($this->hook['immutable'])) {
+      ctools_include('export');
+      ctools_export_crud_enable('ultimate_cron_job', $this);
+      return TRUE;
+    }
+    return FALSE;
+  }
+
+  function disable() {
+    if (empty($this->hook['immutable'])) {
+      ctools_include('export');
+      ctools_export_crud_disable('ultimate_cron_job', $this);
+      return TRUE;
+    }
+    return FALSE;
+  }
+
   /**
    * Custom action for plugins.
    */

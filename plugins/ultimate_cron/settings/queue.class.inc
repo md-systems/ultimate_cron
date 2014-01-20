@@ -9,19 +9,6 @@
  */
 class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
   /**
-   * Implements hook_build_operations_alter().
-   */
-  public function build_operations_alter($job, &$allowed_operations) {
-    $settings = $job->getSettings('settings');
-    if (!empty($settings['queue']['master'])) {
-      unset($allowed_operations['edit']);
-      unset($allowed_operations['disable']);
-      unset($allowed_operations['enable']);
-      unset($allowed_operations['export']);
-    }
-  }
-
-  /**
    * Implements hook_cron_alter().
    */
   public function cron_alter(&$jobs) {
@@ -36,8 +23,9 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
             $hook['settings']['queue']['master'] = $job->name;
             $hook['name'] = $name;
             $hook['title'] .= " (#$i)";
+            $hook['immutable'] = TRUE;
             $new_jobs[$name] = ultimate_cron_prepare_job($name, $hook);
-            $new_jobs[$name]->settings = $settings;
+            $new_jobs[$name]->settings += $settings;
           }
         }
       }
@@ -129,8 +117,8 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       $items = $queue->numberOfItems();
       for ($i = 2; $i <= $settings['queue']['threads']; $i++) {
         $name = $job->name . '_' . $i;
-        $status = $items > ($i - 1) * $settings['queue']['threshold'];
-        ctools_export_set_status('ultimate_cron_job', $name, !$status);
+        $status = !empty($job->disabled) || ($items > ($i - 1) * $settings['queue']['threshold']);
+        ultimate_cron_job_set_status($name, !$status);
       }
     }
   }
