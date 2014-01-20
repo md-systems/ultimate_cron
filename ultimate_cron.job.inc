@@ -206,7 +206,6 @@ class UltimateCronJob {
    * Invoke the jobs callback.
    */
   public function invoke() {
-    error_log("job->invoke");
     module_invoke_all('cron_pre_invoke', $this);
     switch ($this->hook['api_version']) {
       case 1:
@@ -258,7 +257,6 @@ class UltimateCronJob {
   public function launch() {
     $this->clearSignals();
     module_invoke_all('cron_pre_launch', $this);
-    error_log("job->launch");
     $result = $this->getPlugin('launcher')->launch($this);
     module_invoke_all('cron_post_launch', $this);
     return $result;
@@ -294,7 +292,6 @@ class UltimateCronJob {
    * Run job.
    */
   public function run() {
-    error_log("job->run");
     module_invoke_all('cron_pre_run', $this);
     $result = $this->getPlugin('launcher')->run($this);
     module_invoke_all('cron_post_launch', $this);

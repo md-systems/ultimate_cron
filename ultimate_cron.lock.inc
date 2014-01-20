@@ -95,7 +95,6 @@ class UltimateCronLock {
    * Check if lock is taken.
    */
   public function isLocked($name) {
-    // dpm(stripped_debug_backtrace());
     $now = microtime(TRUE);
     $result = db_select('ultimate_cron_lock', 'l')
       ->fields('l', array('lid', 'expire'))

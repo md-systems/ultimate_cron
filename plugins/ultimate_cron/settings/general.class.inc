@@ -8,26 +8,12 @@
  * General settings plugin class.
  */
 class UltimateCronGeneralSettings extends UltimateCronSettings {
-  public $poorman_intervals = array(
-    60,
-    300,
-    600,
-    1800,
-    3600,
-    10800,
-    21600,
-    43200,
-    86400,
-    604800
-  );
-
   /**
    * Default settings.
    */
   public function defaultSettings() {
     return array(
-      'poorman_interval' => 60,
-      'poorman_page_flush' => TRUE,
+      'poorman' => FALSE,
     );
   }
 
@@ -40,26 +26,10 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
 
     if (!$job) {
       $elements['poorman'] = array(
-        '#type' => 'fieldset',
-        '#title' => t('Poormans Cron'),
-      );
-      $options = array(0 => t('Never')) + drupal_map_assoc($this->poorman_intervals, 'format_interval');
-      $elements['poorman']['poorman_interval'] = array(
-        '#parents' => array('settings', $this->type, $this->name, 'poorman_interval'),
-        '#type' => 'select',
-        '#title' => t('Poormans Cron interval'),
-        '#default_value' => $values['poorman_interval'],
-        '#description' => t('Trigger Poormans Cron every'),
-        '#options' => $options,
-        '#fallback' => TRUE,
-        '#required' => TRUE,
-      );
-      $elements['poorman']['poorman_page_flush'] = array(
-        '#parents' => array('settings', $this->type, $this->name, 'poorman_page_flush'),
         '#type' => 'checkbox',
-        '#title' => t('Poormans Cron page flush'),
-        '#default_value' => $values['poorman_page_flush'],
-        '#description' => t('Perform early page flush to avoid end users waiting for cron run.'),
+        '#title' => t('Poormans Cron'),
+        '#default_value' => $values['poorman'],
+        '#description' => t('Enable Poormans Cron'),
         '#fallback' => TRUE,
       );
     }

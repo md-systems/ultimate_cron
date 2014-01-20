@@ -565,7 +565,6 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    * Run the job.
    */
   public function run($job) {
-    error_log("launcer->run");
     $php_self = NULL;
     try {
       // Signal to whomever might be listening, that we're cron!
@@ -613,19 +612,6 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
       if ($job->schedule()) {
         $job->launch();
       }
-    }
-  }
-
-  /**
-   * Launch scheduled cron jobs.
-   */
-  public function launchPoorman($jobs) {
-    $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
-    $cron_last = variable_get('cron_last', 0);
-    $time = time();
-    if ($settings['poorman_interval'] && ($cron_last < time() - $settings['poorman_interval'])) {
-      error_log("LAUNCHING POORMAN: $class");
-      // return $class::launchJobs($jobs, TRUE);
     }
   }
 
@@ -693,7 +679,6 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    */
   public function finish() {
     if (!$this->finished) {
-      error_log("FINISH");
       $this->unCatchMessages();
       $this->log_entry->end_time = microtime(TRUE);
       $this->finished = TRUE;
@@ -729,11 +714,9 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    * Begin capturing messages.
    */
   public function catchMessages() {
-    error_log(__FUNCTION__);
     $class = get_class($this);
     if (!isset($class::$logs)) {
       $class::$logs = array();
-      error_log("REGISTER SHUTDOWN CATCH MESSAGES FOR: $class");
       // Since we may already be inside a drupal_register_shutdown_function()
       // we cannot use that. Use PHPs register_shutdown_function() instead.
       ultimate_cron_register_shutdown_function(array($class, 'catchMessagesShutdownWrapper'), $class);
@@ -772,7 +755,6 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    * Shutdown handler wrapper for catching messages.
    */
   static public function catchMessagesShutdownWrapper($class) {
-    error_log("CATCH WRAPPER $class");
     if ($class::$logs) {
       foreach ($class::$logs as $lid => $log) {
         $log->catchMessagesShutdown();

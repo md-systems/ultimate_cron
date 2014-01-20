@@ -33,7 +33,7 @@ $GLOBALS['ultimate_cron_shutdown_functions'] = array();
  * Unleash the memory.
  */
 function _ultimate_cron_out_of_memory_protection() {
-  error_log("RELEASING MEMORY");
+  // error_log("RELEASING MEMORY");
   unset($GLOBALS['__RESERVED_MEMORY']);
   // error_log(print_r($GLOBALS['ultimate_cron_shutdown_functions'], TRUE));
   foreach ($GLOBALS['ultimate_cron_shutdown_functions'] as $function) {
@@ -58,8 +58,9 @@ else {
   reset($callbacks);
 }
 
-
-
+/**
+ * Register a shutdown function.
+ */
 function ultimate_cron_register_shutdown_function($callback) {
   $args = func_get_args();
   array_shift($args);
@@ -173,7 +174,6 @@ function ultimate_cron_ctools_plugin_type() {
  */
 function ultimate_cron_ctools_plugin_instance($name, $plugin) {
   $class = ctools_plugin_get_class($plugin, 'handler');
-  // return $class ? new $class($name, $plugin) : FALSE;
   return $class ? $class::factory($class, $name, $plugin) : FALSE;
 }
 
@@ -246,6 +246,9 @@ function ultimate_cron_job_load($name) {
   return $jobs[$name];
 }
 
+/**
+ * Prepare a UltimateCronJob object with hook data, etc.
+ */
 function ultimate_cron_prepare_job($name, $hook, $job = NULL) {
   $schema = ctools_export_get_schema('ultimate_cron_job');
   $export = $schema['export'];
@@ -311,6 +314,9 @@ function ultimate_cron_job_load_all($reset = FALSE) {
   return $cache;
 }
 
+/**
+ * Export UI set status callback.
+ */
 function ultimate_cron_job_set_status($object, $status) {
   if (is_object($object)) {
     $name = $object->name;
@@ -321,6 +327,9 @@ function ultimate_cron_job_set_status($object, $status) {
   variable_set('default_ultimate_cron_job_' . $name, $status ? TRUE : FALSE);
 }
 
+/**
+ * Get status "callback".
+ */
 function ultimate_cron_job_get_status($name) {
   return variable_get('default_ultimate_cron_job_' . $name, NULL);
 }
@@ -898,34 +907,52 @@ function ultimate_cron_blank_values($array) {
  * Run scheduled jobs.
  */
 function ultimate_cron_run_scheduled($redirect = TRUE) {
-  error_log(__FUNCTION__);
   if (!variable_get('maintenance_mode', 0)) {
-    $schedule = array();
-    foreach (ultimate_cron_job_load_all() as $name => $job) {
-      $job->log_entry = $job->loadLatestLog();
-      $plugin = $job->getPlugin('launcher');
-      $schedule[$plugin->name]['plugin'] = $plugin;
-      $schedule[$plugin->name]['jobs'][$name] = $job;
+    $launchers = array();
+    foreach (ultimate_cron_job_load_all() as $job) {
+      $launchers[$job->getPlugin('launcher')->name] = TRUE;
     }
-
-    foreach ($schedule as $plugins) {
-      usort($plugins['jobs'], '_ultimate_cron_sort_jobs_by_start_time');
-      $plugins['plugin']->launchJobs($plugins['jobs']);
+    if ($redirect || count($launchers) > 1) {
+      foreach (array_keys($launchers) as $launcher) {
+        $plugin = ultimate_cron_plugin_load('launcher', $launcher);
+        ultimate_cron_poorman_launcher($plugin->name);
+        drupal_set_message(t('Launcher @title invoked', array(
+          '@title' => $plugin->title,
+        )));
+      }
     }
-
+    elseif ($launchers) {
+      reset($launchers);
+      list ($launcher) = each($launchers);
+      ultimate_cron_run_launcher($launcher);
+      exit;
+    }
+    else {
+      drupal_set_message(t('No launchers to invoke?'), 'error');
+    }
     if ($redirect) {
       drupal_goto('admin/config/system/cron');
     }
   }
+  else {
+    drupal_set_message(t('Cannot launch scheduled jobs while in maintenance mode!'), 'error');
+  }
 }
 
+/**
+ * Custom sort callback for sorting by start time.
+ */
 function _ultimate_cron_sort_jobs_by_start_time($a, $b) {
   return $a->log_entry->start_time == $b->log_entry->start_time ? 0 : ($a->log_entry->start_time > $b->log_entry->start_time ? 1 : -1);
 }
 
+/**
+ * Stripped debug backtrace.
+ *
+ * For debugging purposes of course ...
+ */
 function stripped_debug_backtrace() {
   $debug = debug_backtrace();
   foreach ($debug as &$d) unset($d['args'], $d['object']);
   return $debug;
 }
-

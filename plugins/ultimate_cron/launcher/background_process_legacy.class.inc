@@ -8,7 +8,7 @@
  * Ultimate Cron launcher plugin class.
  */
 class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
-  static private $currentThread = NULL;
+  public $scheduledLaunch = FALSE;
 
   /**
    * Custom action for plugins.
@@ -208,7 +208,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
 
     $service_host = $process->determineServiceHost();
 
-    if (self::$currentThread) {
+    if ($this->scheduledLaunch) {
       $init_message = t('Launched at service host @name', array(
         '@name' => $service_host,
       ));
@@ -232,6 +232,11 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     )));
   }
 
+  /**
+   * Launcher cleanup.
+   *
+   * Nothing to do here. Background Process will handle its own cleanup.
+   */
   public function cleanup() {
   }
 
@@ -239,25 +244,11 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * Launch manager.
    */
   public function launchJobs($jobs) {
-    self::$currentThread = 1;
+    $this->scheduledLaunch = TRUE;
     foreach ($jobs as $job) {
       if ($job->schedule()) {
         $job->launch();
       }
     }
   }
-
-  /**
-   * Launch manager.
-   */
-  public function launchPoorman($jobs) {
-    ultimate_cron_poorman_page_flush();
-    self::$currentThread = 1;
-    foreach ($jobs as $job) {
-      if ($job->schedule()) {
-        $job->launch();
-      }
-    }
-  }
-
 }

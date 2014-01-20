@@ -1,4 +1,8 @@
 <?php
+/**
+ * @file
+ * Poormans cron functions.
+ */
 
 /**
  * Output buffer callback for poormans cron early page flush.
@@ -42,6 +46,11 @@ function ultimate_cron_exit($dest = NULL) {
     return;
   }
 
+  $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
+  if (!$settings['poorman']) {
+    return;
+  }
+
   // We're picky about when we run poormans cron, because
   // we may want to flush the output buffer.
   if (ultimate_cron_poorman_capable()) {
@@ -70,64 +79,194 @@ function ultimate_cron_exit($dest = NULL) {
     _registry_check_code(REGISTRY_WRITE_LOOKUP_CACHE);
     drupal_cache_system_paths();
     module_implements_write_cache();
-    ultimate_cron_run_poorman();
+    ultimate_cron_launch_poorman();
     exit;
   }
 }
 
 /**
- * Launch poormans cron if applicable (shutdown handler).
+ * Launch the poormans thread.
  */
-function ultimate_cron_run_poorman() {
-  error_log(__FUNCTION__);
-  if (!variable_get('maintenance_mode', 0)) {
-    $schedule = array();
-    foreach (ultimate_cron_job_load_all() as $name => $job) {
-      $job->log_entry = $job->loadLatestLog()->log_entry;
-      $plugin = $job->getPlugin('launcher');
-      $schedule[$plugin->name]['plugin'] = $plugin;
-      $schedule[$plugin->name]['jobs'][$name] = $job;
-    }
+function ultimate_cron_launch_poorman() {
+  ultimate_cron_poorman_page_flush();
 
-    foreach ($schedule as $plugins) {
-      usort($plugins['jobs'], '_ultimate_cron_sort_jobs_by_start_time');
-      $plugins['plugin']->launchPoorman($plugins['jobs']);
+  // If poorman cron is not running, launch the poormans thread.
+  if (!UltimateCronLock::isLocked('ultimate_cron_poorman')) {
+    if (lock_acquire('ultimate_cron_poorman_launch')) {
+      ultimate_cron_poorman_launcher();
+      $expire = microtime(TRUE) + 3;
+      while (microtime(TRUE) < $expire) {
+        if (UltimateCronLock::isLocked('ultimate_cron_poorman')) {
+          return;
+        }
+        sleep(1);
+      }
     }
   }
+  else {
+    // Poormans cron is already running. Ignore.
+  }
+  return;
 }
 
-
+/**
+ * Flush the page and end the client request.
+ */
 function ultimate_cron_poorman_page_flush() {
-  error_log(__FUNCTION__);
-  $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
-  if ($settings['poorman_page_flush']) {
-    ignore_user_abort();
-    $GLOBALS['poorman_active'] = TRUE;
-    while (ob_get_level() > 0) {
-      ob_end_flush();
-    }
-    flush();
+  ignore_user_abort();
+  $GLOBALS['poorman_active'] = TRUE;
+  while (ob_get_level() > 0) {
+    ob_end_flush();
+  }
+  flush();
 
-    // FastCGI may need another way of letting the client know, that
-    // we're done with it.
-    if (function_exists('fastcgi_finish_request')) {
-      fastcgi_finish_request();
-    }
+  // FastCGI may need another way of letting the client know, that
+  // we're done with it.
+  if (function_exists('fastcgi_finish_request')) {
+    fastcgi_finish_request();
   }
 }
 
-function ultimate_cron_poorman_page() {
-  error_log(__FUNCTION__);
-  return 'TEST';
+/**
+ * Page callback for launching launcher threads.
+ */
+function ultimate_cron_poorman_page($launcher = NULL) {
+  if (!isset($_GET['cron_key']) || variable_get('cron_key', 'drupal') != $_GET['cron_key']) {
+    watchdog('cron', 'Cron could not run because an invalid key was used.', array(), WATCHDOG_NOTICE);
+    drupal_access_denied();
+    exit;
+  }
+
+  if (variable_get('maintenance_mode', 0)) {
+    // We don't do maintenance mode.
+    drupal_access_denied();
+    exit;
+  }
+
+  if (!$launcher) {
+    ultimate_cron_launch_launchers();
+  }
+  else {
+    if (!ultimate_cron_plugin_load('launcher', $launcher)) {
+      // Invalid launcher specified.
+      drupal_not_found();
+      exit;
+    }
+    ultimate_cron_run_launcher($launcher);
+  }
+  exit;
 }
 
-function ultimate_cron_trigger_poorman() {
-  error_log(__FUNCTION__);
-  $url = url('admin/config/system/cron/poorman', array(
+/**
+ * Launch the launchers.
+ */
+function ultimate_cron_launch_launchers() {
+  $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
+  if (!$settings['poorman']) {
+    return;
+  }
+
+  // Say goodbye to the client.
+  ultimate_cron_poorman_page_flush();
+
+  $lock_id = UltimateCronLock::lock('ultimate_cron_poorman', 120);
+  if (!$lock_id) {
+    // Race-condition or stale lock.
+    return;
+  }
+
+  // Wait until it's our turn (0 seconds at next minute).
+  $cron_last = variable_get('cron_last', 0);
+  $cron_next = floor(($cron_last + 60) / 60) * 60;
+  $time = time();
+  if ($time < $cron_next) {
+    $sleep = $cron_next - $time;
+    // For debugging purposes. We should really just do sleep($sleep)
+    while ($sleep--) {
+      error_log("SLEEPING1: $sleep");
+      sleep(1);
+    }
+  }
+
+  $launchers = array();
+  foreach (ultimate_cron_job_load_all() as $job) {
+    $launchers[$job->getPlugin('launcher')->name] = TRUE;
+  }
+  foreach (array_keys($launchers) as $launcher) {
+    $plugin = ultimate_cron_plugin_load('launcher', $launcher);
+    ultimate_cron_poorman_launcher($plugin->name);
+  }
+
+  // Re-launch
+  $cron_last = $time;
+  $cron_next = floor(($cron_last + 60) / 60) * 60;
+  $time = time();
+
+  // Don't waste precious CPU cycles. Wait again until it's our turn.
+  if ($time < $cron_next) {
+    $sleep = $cron_next - $time;
+    // For debugging purposes. We should really just do sleep($sleep)
+    while ($sleep--) {
+      error_log("SLEEPING2: $sleep");
+      sleep(1);
+    }
+  }
+
+  // And we're done! Unlock and relaunch.
+  UltimateCronLock::unlock($lock_id);
+  if (lock_acquire('ultimate_cron_poorman_launch')) {
+    ultimate_cron_poorman_launcher();
+  }
+  else {
+    // Race-condition or stale lock.
+  }
+}
+
+/**
+ * Run the actual jobs for the specified launcher.
+ */
+function ultimate_cron_run_launcher($launcher) {
+  $launcher = ultimate_cron_plugin_load('launcher', $launcher);
+  if (!$launcher) {
+    // Invalid launcher specified.
+    return;
+  }
+
+  // Say goodbye to the client.
+  ultimate_cron_poorman_page_flush();
+
+  // We're ready to launch the jobs for the specified launcher.
+  _ultimate_cron_variable_save('cron_last', time());
+
+  // Find jobs belonging to this launcher.
+  $jobs = array();
+  foreach (ultimate_cron_job_load_all() as $name => $job) {
+    if ($job->getPlugin('launcher')->name == $launcher->name) {
+      // Load the latest log entry, as we want to sort on last start time.
+      $job->log_entry = $job->loadLatestLog()->log_entry;
+      $jobs[$name] = $job;
+    }
+  }
+
+  // Sort the jobs and launch them.
+  // The reason we want to sort, is so that a broken job cannot block others.
+  usort($jobs, '_ultimate_cron_sort_jobs_by_start_time');
+  $launcher->launchJobs($jobs);
+}
+
+/**
+ * Send the actual HTTP request for launching threads.
+ */
+function ultimate_cron_poorman_launcher($launcher = '') {
+  $url = url('admin/config/system/cron/poorman/' . $launcher, array(
     'query' => array('cron_key' => variable_get('cron_key', 'drupal')),
     'absolute' => TRUE,
   ));
-  error_log("SLEEPING: $url");
-  drupal_http_request($url);
-  error_log("DONE");
+  $response = drupal_http_request($url);
+  if (!empty($response->error)) {
+    watchdog('ultimate_cron', 'Could not launch poorman launcher at @url. Error: @error', array(
+      '@url' => $url,
+      '@error' => $response->error,
+    ), WATCHDOG_ERROR);
+  }
 }
