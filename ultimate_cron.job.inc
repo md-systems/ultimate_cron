@@ -144,6 +144,9 @@ class UltimateCronJob {
     else {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $name => $plugin) {
+        if (empty($settings[$name])) {
+          $settings[$name] = array();
+        }
         if ($plugin->isValid($this)) {
           $settings[$name] += $plugin->getDefaultSettings($this);
         }

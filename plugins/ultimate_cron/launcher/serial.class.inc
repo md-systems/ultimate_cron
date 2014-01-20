@@ -177,6 +177,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     }
     else {
       list($thread, $lock_id) = $this->findFreeThread(TRUE, $lock_timeout, 0);
+      $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
     }
     $this->currentThread = $thread;
 
@@ -196,6 +197,12 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     foreach ($jobs as $job) {
       if ($job->schedule()) {
         $job->launch();
+        // Be friendly, and check if we still own the lock.
+        // If we don't, bail out, since someone else is handling
+        // this thread.
+        if ($lock_id !== UltimateCronLock::isLocked($lock_name)) {
+          return;
+        }
       }
     }
   }

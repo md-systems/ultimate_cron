@@ -27,10 +27,10 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
   public function cron_alter(&$jobs) {
     $new_jobs = array();
     foreach ($jobs as $job) {
-      $settings = $job->getSettings();
+      $settings = $job->getSettings('settings');
       if (isset($settings['queue']['name'])) {
-        if ($settings['settings']['queue']['throttle']) {
-          for ($i = 2; $i <= $settings['settings']['queue']['threads']; $i++) {
+        if ($settings['queue']['throttle']) {
+          for ($i = 2; $i <= $settings['queue']['threads']; $i++) {
             $name = $job->name . '_' . $i;
             $hook = $job->hook;
             $hook['settings']['queue']['master'] = $job->name;
