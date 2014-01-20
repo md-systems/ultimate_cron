@@ -129,4 +129,5 @@ function ultimate_cron_trigger_poorman() {
   ));
   error_log("SLEEPING: $url");
   drupal_http_request($url);
+  error_log("DONE");
 }

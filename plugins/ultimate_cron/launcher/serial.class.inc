@@ -226,6 +226,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
 
     // Locate available thread.
     list($thread, $lock_id) = $this->findFreeThread(TRUE, $lock_timeout, 0);
+    $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
 
     if (!$thread) {
       error_log("NO FREE THREAD FOR POORMANS CRON");
@@ -248,11 +249,19 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     if ($time < $cron_next) {
       error_log("NOT DUE YET. MUST SLEEP FOR: " . ($cron_next - $time));
       sleep($cron_next - $time + ($tread - 1));
+
+      // Re-launch cron in order to get a fresh start.
+      UltimateCronLock::unlock($lock_id);
+      ultimate_cron_trigger_poorman();
+      return;
     }
 
     watchdog('serial_launcher', "Poorman Cron thread %thread started", array('%thread' => $thread), WATCHDOG_INFO);
 
     _ultimate_cron_variable_save('cron_last', time());
+
+    // Re-launch poorman, even if we die.
+    ultimate_cron_register_shutdown_function('ultimate_cron_trigger_poorman');
 
     error_log("RUNNING JOBS");
     foreach ($jobs as $job) {
@@ -260,6 +269,12 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       if ($job->schedule()) {
         error_log("RUNNING: $job->name");
         $job->launch();
+        // Be friendly, and check if we still own the lock.
+        // If we don't, bail out, since someone else is handling
+        // this thread.
+        if ($lock_id !== UltimateCronLock::isLocked($lock_name)) {
+          return;
+        }
       }
     }
     error_log("DONE RUNNING JOBS");
@@ -273,6 +288,6 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     UltimateCronLock::unlock($lock_id);
 
     // Re-launch poormans cron.
-    ultimate_cron_trigger_poorman();
+    // ultimate_cron_trigger_poorman();
   }
 }

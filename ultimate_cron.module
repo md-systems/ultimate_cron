@@ -35,7 +35,7 @@ $GLOBALS['ultimate_cron_shutdown_functions'] = array();
 function _ultimate_cron_out_of_memory_protection() {
   error_log("RELEASING MEMORY");
   unset($GLOBALS['__RESERVED_MEMORY']);
-  error_log(print_r($GLOBALS['ultimate_cron_shutdown_functions'], TRUE));
+  // error_log(print_r($GLOBALS['ultimate_cron_shutdown_functions'], TRUE));
   foreach ($GLOBALS['ultimate_cron_shutdown_functions'] as $function) {
     call_user_func_array($function['callback'], $function['arguments']);
   }
