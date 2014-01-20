@@ -18,7 +18,7 @@ if (ultimate_cron_poorman_capable()) {
 /**
  * Determines if poormans cron can run on this page.
  */
-function ultimate_cron_poorman_capable() {  
+function ultimate_cron_poorman_capable() {
   static $capable;
   if (isset($capable)) {
     return $capable;
@@ -45,72 +45,53 @@ function ultimate_cron_exit($dest = NULL) {
   // We're picky about when we run poormans cron, because
   // we may want to flush the output buffer.
   if (ultimate_cron_poorman_capable()) {
-    // Register our own Poormans Cron handler.
-    $callbacks = &drupal_register_shutdown_function();
-    array_unshift($callbacks, array('callback' => 'ultimate_cron_poorman', 'arguments' => array()));
-    // Reset internal array pointer just in case ...
-    reset($callbacks);
-  }
-}
+    // Poormans cron needs to be the last that runs.
+    // Run remaining exit hooks, and shutdown like core does.
+    $modules = module_implements('exit');
 
-/**
- * Page callback for running cron jobs.
- */
-function ultimate_cron_poorman_page() {
-  error_log("POORMAN PAGE");
-  if (!isset($_GET['cron_key']) || variable_get('cron_key', 'drupal') != $_GET['cron_key']) {
-    watchdog('cron', 'Cron could not run because an invalid key was used.', array(), WATCHDOG_NOTICE);
-    drupal_access_denied();
+    do {
+      $module = array_shift($modules);
+    } while ($modules && ($module !== 'ultimate_cron'));
+
+    foreach ($modules as $module) {
+      module_invoke($module, 'exit', $dest);
+    }
+
+    // Commit the user session, if needed.
+    drupal_session_commit();
+
+    if (variable_get('cache', 0) && ($cache = drupal_page_set_cache())) {
+      drupal_serve_page_from_cache($cache);
+    }
+    else {
+      ob_flush();
+    }
+
+    _registry_check_code(REGISTRY_WRITE_LOOKUP_CACHE);
+    drupal_cache_system_paths();
+    module_implements_write_cache();
+    ultimate_cron_run_poorman();
+    exit;
   }
-  return 'POORMANS CRON';
 }
 
 /**
  * Launch poormans cron if applicable (shutdown handler).
  */
-function ultimate_cron_poorman() {
-  return;
-  ultimate_cron_run_poorman();
-  return;
-
-  error_log(__FUNCTION__);
-  $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
-  $cron_last = variable_get('cron_last', 0);
-  error_log("CHECKING");
-  $time = time();
-  error_log("last: " . format_date($cron_last, 'custom', 'Y-m-d H:i:s'));
-  error_log("time: " . format_date($time, 'custom', 'Y-m-d H:i:s'));
-  error_log("intv: " . $settings['poorman_interval']);
-
-  if ($settings['poorman_interval'] && ($cron_last < time() - $settings['poorman_interval'])) {
-    error_log("LAUNCHING");
-    // Thundering herd protection should be done in the launcher.
-
-    // ultimate_cron_poorman_run();
-  }
-  if ($settings['poorman_interval']) {
-  }
-
-  // ultimate_cron_poorman_run();
-}
-
-/**
- * Run scheduled jobs.
- */
 function ultimate_cron_run_poorman() {
   error_log(__FUNCTION__);
-  return;
   if (!variable_get('maintenance_mode', 0)) {
     $schedule = array();
     foreach (ultimate_cron_job_load_all() as $name => $job) {
-      $class = get_class($job->getPlugin('launcher'));
-      $schedule[$class][$name] = $job;
+      $job->log_entry = $job->loadLatestLog()->log_entry;
+      $plugin = $job->getPlugin('launcher');
+      $schedule[$plugin->name]['plugin'] = $plugin;
+      $schedule[$plugin->name]['jobs'][$name] = $job;
     }
 
-    _ultimate_cron_variable_save('cron_last', time());
-
-    foreach ($schedule as $class => $jobs) {
-      $class::launchPoorman($class, $jobs);
+    foreach ($schedule as $plugins) {
+      usort($plugins['jobs'], '_ultimate_cron_sort_jobs_by_start_time');
+      $plugins['plugin']->launchPoorman($plugins['jobs']);
     }
   }
 }
@@ -118,6 +99,7 @@ function ultimate_cron_run_poorman() {
 
 function ultimate_cron_poorman_page_flush() {
   error_log(__FUNCTION__);
+  $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
   if ($settings['poorman_page_flush']) {
     ignore_user_abort();
     $GLOBALS['poorman_active'] = TRUE;
@@ -132,6 +114,11 @@ function ultimate_cron_poorman_page_flush() {
       fastcgi_finish_request();
     }
   }
+}
+
+function ultimate_cron_poorman_page() {
+  error_log(__FUNCTION__);
+  return 'TEST';
 }
 
 function ultimate_cron_trigger_poorman() {
@@ -141,24 +128,5 @@ function ultimate_cron_trigger_poorman() {
     'absolute' => TRUE,
   ));
   error_log("SLEEPING: $url");
-  // drupal_http_request($url);
-}
-
-function ultimate_cron_poorman_run() {
-  if ($settings['poorman_page_flush']) {
-    ignore_user_abort();
-    $GLOBALS['poorman_active'] = TRUE;
-    while (ob_get_level() > 0) {
-      ob_end_flush();
-    }
-    flush();
-
-    // FastCGI may need another way of letting the client know, that
-    // we're done with it.
-    if (function_exists('fastcgi_finish_request')) {
-      fastcgi_finish_request();
-    }
-  }
-
-  ultimate_cron_run_poorman();  
+  drupal_http_request($url);
 }

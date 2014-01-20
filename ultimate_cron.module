@@ -159,7 +159,8 @@ function ultimate_cron_ctools_plugin_type() {
  */
 function ultimate_cron_ctools_plugin_instance($name, $plugin) {
   $class = ctools_plugin_get_class($plugin, 'handler');
-  return $class ? new $class($name, $plugin) : FALSE;
+  // return $class ? new $class($name, $plugin) : FALSE;
+  return $class ? $class::factory($class, $name, $plugin) : FALSE;
 }
 
 /**
@@ -174,11 +175,6 @@ function ultimate_cron_plugin_load($plugin_type, $name) {
  * Load all callback for plugins.
  */
 function ultimate_cron_plugin_load_all($plugin_type) {
-  static $cache = array();
-  if (isset($cache[$plugin_type])) {
-    return $cache[$plugin_type];
-  }
-
   ctools_include('plugins');
   $plugin_infos = ctools_get_plugins('ultimate_cron', $plugin_type);
   $plugins = array();
@@ -187,8 +183,7 @@ function ultimate_cron_plugin_load_all($plugin_type) {
       $plugins[$name] = $object;
     }
   }
-  $cache[$plugin_type] = $plugins;
-  return $cache[$plugin_type];
+  return $plugins;
 }
 
 /**
@@ -494,10 +489,13 @@ function ultimate_cron_cronapi() {
   $queues = _ultimate_cron_get_queues();
 
   foreach ($queues as $name => $info) {
+    if (!empty($info['skip on cron'])) {
+      continue;
+    }
+
     $items['queue_' . $name] = array(
       'title' => t('Queue: !name', array('!name' => $name)),
       'callback' => 'ultimate_cron_queue_cron',
-      'callback_arguments' => array('queue_name' => $name),
       'scheduler' => array(
         // 'name' => 'simple',
         'simple' => array(
@@ -507,10 +505,18 @@ function ultimate_cron_cronapi() {
           'rules' => array('* * * * *'),
         ),
       ),
+      'settings' => array(
+        'queue' => array(
+          'name' => $name,
+          'worker callback' => $info['worker callback'],
+        ),
+      ),
       'tags' => array('queue'),
       'module' => $info['module'],
-      'queue' => $name,
     );
+    if (isset($info['time'])) {
+      $items['queue_' . $name]['settings']['queue']['time'] = $info['time'];
+    }
   }
   return $items;
 }
@@ -518,18 +524,16 @@ function ultimate_cron_cronapi() {
 /**
  * Process a cron queue.
  */
-function ultimate_cron_queue_cron($job, $arguments) {
-  $queues = _ultimate_cron_get_queues();
-  $info = $queues[$arguments['queue_name']];
-
-  $function = $info['worker callback'];
-  $end = $_SERVER['REQUEST_TIME'] + (isset($info['time']) ? $info['time'] : 15);
-  $queue = DrupalQueue::get($arguments['queue_name']);
-  $items = 0;
+function ultimate_cron_queue_cron($job) {
   $settings = $job->getPluginSettings('settings');
+  $queue = DrupalQueue::get($settings['queue']['name']);
+  $function = $settings['queue']['worker callback'];
 
+  // Re-throttle.
   $job->getPlugin('settings', 'queue')->throttle($job);
 
+  $end = time() + $settings['queue']['time'];
+  $items = 0;
   while (time() < $end && $item = $queue->claimItem($settings['queue']['lease_time'])) {
     $function($item->data);
     $queue->deleteItem($item);
@@ -538,7 +542,7 @@ function ultimate_cron_queue_cron($job, $arguments) {
 
   watchdog($job->hook['module'], 'Processed @items items from queue @queue', array(
     '@items' => $items,
-    '@queue' => $arguments['queue_name'],
+    '@queue' => $settings['queue']['name'],
   ), WATCHDOG_INFO);
 
   return;
@@ -873,14 +877,15 @@ function ultimate_cron_run_scheduled($redirect = TRUE) {
   if (!variable_get('maintenance_mode', 0)) {
     $schedule = array();
     foreach (ultimate_cron_job_load_all() as $name => $job) {
-      $class = get_class($job->getPlugin('launcher'));
-      $schedule[$class][$name] = $job;
+      $job->log_entry = $job->loadLatestLog();
+      $plugin = $job->getPlugin('launcher');
+      $schedule[$plugin->name]['plugin'] = $plugin;
+      $schedule[$plugin->name]['jobs'][$name] = $job;
     }
 
-    _ultimate_cron_variable_save('cron_last', time());
-
-    foreach ($schedule as $class => $jobs) {
-      $class::launchJobs($jobs);
+    foreach ($schedule as $plugins) {
+      usort($plugins['jobs'], '_ultimate_cron_sort_jobs_by_start_time');
+      $plugins['plugin']->launchJobs($plugins['jobs']);
     }
 
     if ($redirect) {
@@ -889,6 +894,9 @@ function ultimate_cron_run_scheduled($redirect = TRUE) {
   }
 }
 
+function _ultimate_cron_sort_jobs_by_start_time($a, $b) {
+  return $a->log_entry->start_time == $b->log_entry->start_time ? 0 : ($a->log_entry->start_time > $b->log_entry->start_time ? 1 : -1);
+}
 
 function stripped_debug_backtrace() {
   $debug = debug_backtrace();

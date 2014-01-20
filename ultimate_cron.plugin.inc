@@ -11,6 +11,7 @@ class UltimateCronPlugin {
   public $plugin;
   public $settings = array();
   static public $multiple = FALSE;
+  static public $instances = array();
 
   /**
    * Constructor.
@@ -30,6 +31,13 @@ class UltimateCronPlugin {
     $this->type = $plugin['plugin type'];
     $this->key = 'ultimate_cron_plugin_' . $plugin['plugin type'] . '_' . $name . '_settings';
     $this->settings = variable_get($this->key, array());
+  }
+
+  public function factory($class, $name, $plugin) {
+    if (empty($class::$instances[$plugin['plugin type']][$name])) {
+      self::$instances[$plugin['plugin type']][$name] = new $class($name, $plugin);
+    }
+    return self::$instances[$plugin['plugin type']][$name];
   }
 
   /**
@@ -557,6 +565,7 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    * Run the job.
    */
   public function run($job) {
+    error_log("launcer->run");
     $php_self = NULL;
     try {
       // Signal to whomever might be listening, that we're cron!
@@ -599,16 +608,18 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
   /**
    * Launch scheduled cron jobs.
    */
-  static public function launchJobs($jobs) {
+  public function launchJobs($jobs) {
     foreach ($jobs as $job) {
-      $job->launch();
+      if ($job->schedule()) {
+        $job->launch();
+      }
     }
   }
 
   /**
    * Launch scheduled cron jobs.
    */
-  static public function launchPoorman($class, $jobs) {
+  public function launchPoorman($jobs) {
     $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
     $cron_last = variable_get('cron_last', 0);
     $time = time();
@@ -618,6 +629,9 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
     }
   }
 
+  /**
+   * Cleanup.
+   */
   function cleanup() {
     UltimateCronLock::cleanup();
   }
@@ -628,7 +642,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
 
   public $log_entry = NULL;
 
-  static public $logs = array();
+  static public $logs = NULL;
 
   /**
    * Constructor.
@@ -644,6 +658,13 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     $this->log_entry->init_message = '';
     $this->log_entry->message = '';
     $this->log_entry->severity = -1;
+  }
+
+  /**
+   * Logger does not allow singletons.
+   */
+  public function factory($class, $name, $plugin) {
+    return new $class($name, $plugin);
   }
 
   /**
@@ -672,6 +693,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    */
   public function finish() {
     if (!$this->finished) {
+      error_log("FINISH");
       $this->unCatchMessages();
       $this->log_entry->end_time = microtime(TRUE);
       $this->finished = TRUE;
@@ -707,8 +729,11 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    * Begin capturing messages.
    */
   public function catchMessages() {
+    error_log(__FUNCTION__);
     $class = get_class($this);
-    if (empty($class::$logs)) {
+    if (!isset($class::$logs)) {
+      $class::$logs = array();
+      error_log("REGISTER SHUTDOWN CATCH MESSAGES FOR: $class");
       // Since we may already be inside a drupal_register_shutdown_function()
       // we cannot use that. Use PHPs register_shutdown_function() instead.
       register_shutdown_function(array($class, 'catchMessagesShutdownWrapper'), $class);
@@ -736,8 +761,10 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    * Invoke loggers watchdog hooks.
    */
   final static public function hook_watchdog(array $log_entry) {
-    foreach (self::$logs as $log) {
-      $log->watchdog($log_entry);
+    if (self::$logs) {
+      foreach (self::$logs as $log) {
+        $log->watchdog($log_entry);
+      }
     }
   }
 
@@ -745,6 +772,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    * Shutdown handler wrapper for catching messages.
    */
   static public function catchMessagesShutdownWrapper($class) {
+    error_log("CATCH WRAPPER $class");
     if ($class::$logs) {
       foreach ($class::$logs as $lid => $log) {
         $log->catchMessagesShutdown();

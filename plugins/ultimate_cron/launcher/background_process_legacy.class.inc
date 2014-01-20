@@ -238,7 +238,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   /**
    * Launch manager.
    */
-  static public function launchJobs($jobs) {
+  public function launchJobs($jobs) {
     self::$currentThread = 1;
     foreach ($jobs as $job) {
       if ($job->schedule()) {
@@ -246,4 +246,18 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       }
     }
   }
+
+  /**
+   * Launch manager.
+   */
+  public function launchPoorman($jobs) {
+    ultimate_cron_poorman_page_flush();
+    self::$currentThread = 1;
+    foreach ($jobs as $job) {
+      if ($job->schedule()) {
+        $job->launch();
+      }
+    }
+  }
+
 }

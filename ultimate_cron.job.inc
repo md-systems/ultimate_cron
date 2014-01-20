@@ -185,9 +185,11 @@ class UltimateCronJob {
    * Invoke the jobs callback.
    */
   public function invoke() {
+    error_log("job->invoke");
     module_invoke_all('cron_pre_invoke', $this);
     switch ($this->hook['api_version']) {
       case 1:
+        error_log("INVOKE 1.x");
         $args = array($this->hook);
         $args = array_merge($args, $this->hook['callback_arguments']);
         if (is_callable($this->hook['callback'])) {
@@ -202,12 +204,14 @@ class UltimateCronJob {
         }
 
       case 2:
+        error_log("INVOKE 2.x");
         $result = call_user_func_array($this->hook['callback'], array(
           $this, $this->hook['callback_arguments']
         ));
         break;
 
       default:
+        error_log("COULD NOT INVOKE JOB");
         throw new Exception(t('Could not invoke cron job @name. Wrong API version (@api_version)', array(
           '@name' => $this->name,
           '@api_version' => $this->hook['api_version'],
@@ -233,6 +237,7 @@ class UltimateCronJob {
   public function launch() {
     $this->clearSignals();
     module_invoke_all('cron_pre_launch', $this);
+    error_log("job->launch");
     $result = $this->getPlugin('launcher')->launch($this);
     module_invoke_all('cron_post_launch', $this);
     return $result;
@@ -268,6 +273,7 @@ class UltimateCronJob {
    * Run job.
    */
   public function run() {
+    error_log("job->run");
     module_invoke_all('cron_pre_run', $this);
     $result = $this->getPlugin('launcher')->run($this);
     module_invoke_all('cron_post_launch', $this);
