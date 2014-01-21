@@ -363,6 +363,8 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     $options += array(
       'name' => t('Name'),
+      'start_time' => t('Started'),
+      'duration' => t('Duration'),
       'storage' => t('Storage'),
     );
 
@@ -381,6 +383,37 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $name = $item->{$this->plugin['export']['key']};
     $schema = ctools_export_get_schema($this->plugin['schema']);
 
+    // Started and duration.
+    $log_entry = $item->log_entry;
+    $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
+
+    $username = t('anonymous') . ' (0)';
+    if ($log_entry->uid) {
+      $user = user_load($log_entry->uid);
+      $username = $user ? $user->name . " ($user->uid)": t('N/A');
+    }
+
+    $duration = 0;
+    if ($log_entry->start_time && $log_entry->end_time) {
+      $duration = (int) ($log_entry->end_time - $log_entry->start_time);
+    }
+    elseif ($log_entry->start_time) {
+      $duration = (int) (microtime(TRUE) - $log_entry->start_time);
+    }
+
+    switch (TRUE) {
+      case $duration >= 86400:
+        $format = 'd H:i:s';
+        break;
+
+      case $duration >= 3600:
+        $format = 'H:i:s';
+        break;
+
+      default:
+        $format = 'i:s';
+    }
+
     // Note: $item->{$schema['export']['export type string']} should have already been set up by export.inc so
     // we can use it safely.
     switch ($form_state['values']['order']) {
@@ -397,7 +430,11 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         break;
 
       case 'start_time':
-        $this->rows[$name]['sort'] = $item->start_time;
+        $this->rows[$name]['sort'] = $item->log_entry->start_time;
+        break;
+
+      case 'duration':
+        $this->rows[$name]['sort'] = $duration;
         break;
 
       case 'storage':
@@ -435,42 +472,12 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       'title' => $verbose,
     );
 
-    // Started and duration.
-    $log_entry = $item->log_entry;
-    $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
-
-    $username = t('anonymous') . ' (0)';
-    if ($log_entry->uid) {
-      $user = user_load($log_entry->uid);
-      $username = $user ? $user->name . " ($user->uid)": t('N/A');
-    }
-
     $this->rows[$name]['data'][] = array(
       'data' => $start_time,
       'class' => array('ctools-export-ui-last-start-time'),
       'title' => strip_tags($log_entry->init_message) . ' ' . t('by') . " $username",
     );
 
-    $duration = NULL;
-    if ($log_entry->start_time && $log_entry->end_time) {
-      $duration = (int) ($log_entry->end_time - $log_entry->start_time);
-    }
-    elseif ($log_entry->start_time) {
-      $duration = (int) (microtime(TRUE) - $log_entry->start_time);
-    }
-
-    switch (TRUE) {
-      case $duration >= 86400:
-        $format = 'd H:i:s';
-        break;
-
-      case $duration >= 3600:
-        $format = 'H:i:s';
-        break;
-
-      default:
-        $format = 'i:s';
-    }
     $duration = isset($duration) ? gmdate($format, $duration) : t('N/A');
     $this->rows[$name]['data'][] = array(
       'data' => $duration,
