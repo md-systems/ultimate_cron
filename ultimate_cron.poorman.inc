@@ -147,11 +147,17 @@ function ultimate_cron_poorman_page($launcher = NULL) {
     ultimate_cron_launch_launchers();
   }
   else {
-    if (!ultimate_cron_plugin_load('launcher', $launcher)) {
+    $launcher = ultimate_cron_plugin_load('launcher', $launcher);
+    if (!$launcher) {
       // Invalid launcher specified.
       drupal_not_found();
       exit;
     }
+
+    // Say goodbye to the client.
+    ultimate_cron_poorman_page_flush();
+
+
     ultimate_cron_run_launcher($launcher);
   }
   exit;
@@ -226,15 +232,6 @@ function ultimate_cron_launch_launchers() {
  * Run the actual jobs for the specified launcher.
  */
 function ultimate_cron_run_launcher($launcher) {
-  $launcher = ultimate_cron_plugin_load('launcher', $launcher);
-  if (!$launcher) {
-    // Invalid launcher specified.
-    return;
-  }
-
-  // Say goodbye to the client.
-  ultimate_cron_poorman_page_flush();
-
   // We're ready to launch the jobs for the specified launcher.
   _ultimate_cron_variable_save('cron_last', time());
 

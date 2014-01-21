@@ -448,7 +448,7 @@ function ultimate_cron_menu_alter(&$items) {
   unset($items['admin/config/system/cron']['type']);
 
   $steal = &$items['admin/reports/status/run-cron'];
-  $steal['page callback'] = 'ultimate_cron_run_scheduled';
+  $steal['page callback'] = 'ultimate_cron_run_scheduled_page';
   $steal['page arguments'] = array();
   $steal['module'] = 'ultimate_cron';
   $steal['file'] = 'ultimate_cron.module';
@@ -917,6 +917,14 @@ function ultimate_cron_blank_values($array) {
   return $result;
 }
 
+function ultimate_cron_run_scheduled_page() {
+  ultimate_cron_run_scheduled(TRUE);
+  if (isset($_SERVER['HTTP_REFERER']) && empty($_GET['destination'])) {
+    $_GET['destination'] = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH);
+  }
+  drupal_goto('admin/config/system/cron');
+}
+
 /**
  * Run scheduled jobs.
  */
@@ -926,30 +934,46 @@ function ultimate_cron_run_scheduled($redirect = TRUE) {
     foreach (ultimate_cron_job_load_all() as $job) {
       $launchers[$job->getPlugin('launcher')->name] = TRUE;
     }
-    if ($redirect || count($launchers) > 1) {
-      foreach (array_keys($launchers) as $launcher) {
-        $plugin = ultimate_cron_plugin_load('launcher', $launcher);
-        ultimate_cron_poorman_launcher($plugin->name);
-        drupal_set_message(t('Launcher @title invoked', array(
-          '@title' => $plugin->title,
-        )));
+    if (empty($launchers)) {
+      ultimate_cron_watchdog_message('ultimate_cron', 'No launchers to invoke?', array(), WATCHDOG_ERROR, 'error', $redirect);
+      return $redirect ? FALSE : exit;
+    }
+    $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
+    $dispatch = $redirect || count($launchers) > 1;
+
+    foreach (array_keys($launchers) as $launcher) {
+      $plugin = ultimate_cron_plugin_load('launcher', $launcher);
+      if (!$plugin) {
+        ultimate_cron_watchdog_message('ultimate_cron', 'Launcher @name not found!', array(
+          '@name' => $launcher,
+        ), WATCHDOG_ERROR, 'error', $redirect);
+        return $redirect ? FALSE : $exit;
       }
-    }
-    elseif ($launchers) {
-      reset($launchers);
-      list ($launcher) = each($launchers);
-      ultimate_cron_run_launcher($launcher);
-      exit;
-    }
-    else {
-      drupal_set_message(t('No launchers to invoke?'), 'error');
-    }
-    if ($redirect) {
-      drupal_goto('admin/config/system/cron');
+
+      if ($settings['poorman'] && $dispatch) {
+        ultimate_cron_poorman_launcher($plugin->name);
+      }
+      else {
+        ultimate_cron_run_launcher($plugin);
+      }
+
+      ultimate_cron_watchdog_message('ultimate_cron', 'Launcher @title invoked', array(
+        '@title' => $plugin->title,
+      ), WATCHDOG_INFO, 'status', $redirect);
     }
   }
   else {
-    drupal_set_message(t('Cannot launch scheduled jobs while in maintenance mode!'), 'error');
+    ultimate_cron_watchdog_message('ultimate_cron', 'Cannot launch scheduled jobs while in maintenance mode!', array(), WATCHDOG_ERROR, 'error', $redirect);
+  }
+  return $redirect ? FALSE : exit;
+}
+
+function ultimate_cron_watchdog_message($type, $msg, $args, $severity, $status, $redirect) {
+  if ($redirect) {
+    drupal_set_message(t($msg, $args), $status);
+  }
+  else {
+    watchdog($type, $msg, $args, $severity);
   }
 }
 

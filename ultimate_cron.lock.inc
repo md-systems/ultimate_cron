@@ -107,7 +107,7 @@ class UltimateCronLock {
   }
 
   /**
-   * Cleanup expired logs.
+   * Cleanup expired locks.
    */
   static public function cleanup() {
     $count = 0;
@@ -134,7 +134,7 @@ class UltimateCronLock {
           ->execute();
       }
     } while ($lids);
-    watchdog('ultimate_cron_lock', 'Cleaned up @count expired logs', array(
+    watchdog('ultimate_cron_lock', 'Cleaned up @count expired locks', array(
       '@count' => $count
     ), WATCHDOG_INFO);
   }
