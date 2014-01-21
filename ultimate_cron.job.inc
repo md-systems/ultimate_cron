@@ -155,7 +155,10 @@ class UltimateCronJob {
     return $settings;
   }
 
-  function enable() {
+  /**
+   * Enable a job.
+   */
+  public function enable() {
     if (empty($this->hook['immutable'])) {
       ctools_include('export');
       ctools_export_crud_enable('ultimate_cron_job', $this);
@@ -164,7 +167,10 @@ class UltimateCronJob {
     return FALSE;
   }
 
-  function disable() {
+  /**
+   * Disable a job.
+   */
+  public function disable() {
     if (empty($this->hook['immutable'])) {
       ctools_include('export');
       ctools_export_crud_disable('ultimate_cron_job', $this);
@@ -209,7 +215,7 @@ class UltimateCronJob {
     module_invoke_all('cron_pre_invoke', $this);
     switch ($this->hook['api_version']) {
       case 'ultimate_cron-1':
-        // error_log("INVOKE 1.x");
+        // error_log("$this->name : INVOKE 1.x");
         $args = array($this->hook);
         $args = array_merge($args, $this->hook['callback_arguments']);
         if (is_callable($this->hook['callback'])) {
@@ -224,14 +230,14 @@ class UltimateCronJob {
         }
 
       case 'ultimate_cron-2':
-        // error_log("INVOKE 2.x");
+        // error_log("$this->name : INVOKE 2.x");
         $result = call_user_func_array($this->hook['callback'], array(
           $this, $this->hook['callback_arguments']
         ));
         break;
 
       case 'elysia_cron-2':
-        // error_log("INVOKE ELYSIA CRON 2.x");
+        // error_log("$this->name : INVOKE ELYSIA CRON 2.x");
         if (is_callable($this->hook['callback'])) {
           $arguments = !empty($this->hook['arguments']) ? $this->hook['arguments'] : array();
           $result = call_user_func_array($this->hook['callback'], $arguments);
@@ -243,7 +249,7 @@ class UltimateCronJob {
         }
 
       default:
-        // error_log("COULD NOT INVOKE JOB");
+        // error_log("$this->name : COULD NOT INVOKE JOB");
         throw new Exception(t('Could not invoke cron job @name. Wrong API version (@api_version)', array(
           '@name' => $this->name,
           '@api_version' => $this->hook['api_version'],

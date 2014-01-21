@@ -195,6 +195,16 @@ function ultimate_cron_launch_launchers() {
       sleep(1);
     }
     /**/
+
+    // Time to run cron. Unlock and relaunch, so we get a fresh instance.
+    UltimateCronLock::unlock($lock_id);
+    if (lock_acquire('ultimate_cron_poorman_launch')) {
+      ultimate_cron_poorman_launcher();
+    }
+    else {
+      // Race-condition or stale lock.
+    }
+    return;
   }
 
   $launchers = array();
@@ -203,7 +213,13 @@ function ultimate_cron_launch_launchers() {
   }
   foreach (array_keys($launchers) as $launcher) {
     $plugin = ultimate_cron_plugin_load('launcher', $launcher);
-    ultimate_cron_poorman_launcher($plugin->name);
+    if (count($launchers) > 1) {
+      ultimate_cron_poorman_launcher($plugin->name);
+    }
+    else {
+      // Only one launcher active, let's just use this thread.
+      ultimate_cron_run_launcher($plugin);
+    }
   }
 
   // Re-launch
