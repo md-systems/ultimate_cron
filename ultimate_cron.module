@@ -709,11 +709,10 @@ function ultimate_cron_get_module_hooks($module) {
     $items = module_invoke($module, 'cronapi', NULL);
 
     if (!is_array($items)) {
+      // API Version 1.x
       $items = array();
 
-      // API Version 1.x
       $list = module_invoke($module, 'cronapi', 'list');
-
       if (!$list) {
         $list = array();
       }
@@ -721,18 +720,18 @@ function ultimate_cron_get_module_hooks($module) {
         $items[$name] = array('title' => $title);
       }
       foreach ($items as $name => &$item) {
-        $item['api_version'] = 1;
+        $item['api_version'] = 'ultimate_cron-1';
         $rules = module_invoke($module, 'cronapi', 'rule', $name);
         $rules = $rules ? $rules : array();
 
         $settings = (array) module_invoke($module, 'cronapi', 'settings', $name);
         if (empty($settings['rules']) && $rules) {
-          $settings['rules'] = $rules;
+          $settings['rules'] = is_array($rules) ? $rules : array($rules);
         }
 
         if (!empty($settings['rules'])) {
           $settings['scheduler'] = array(
-            'scheduler' => 'crontab',
+            'name' => 'crontab',
             'crontab' => array(
               'rules' => $settings['rules']
             ),
@@ -744,6 +743,21 @@ function ultimate_cron_get_module_hooks($module) {
           'configure' => module_invoke($module, 'cronapi', 'configure', $name),
         );
         $item += $settings;
+      }
+    }
+    else {
+      foreach ($items as &$item) {
+        if (!empty($item['rule'])) {
+          // Elysia 2.x compatibility.
+          $item['scheduler'] = array(
+            'name' => 'crontab',
+            'crontab' => array(
+              'rules' => array($item['rule']),
+            ),
+          );
+          $item['api_version'] = 'elysia_cron-2';
+          $item['title'] = $item['description'];
+        }
       }
     }
   }
@@ -806,7 +820,7 @@ function ultimate_cron_get_module_hooks($module) {
       'callback' => $name,
       'enabled' => TRUE,
       'tags' => array(),
-      'api_version' => 2,
+      'api_version' => 'ultimate_cron-2',
     );
   }
 

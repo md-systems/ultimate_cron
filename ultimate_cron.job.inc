@@ -208,7 +208,7 @@ class UltimateCronJob {
   public function invoke() {
     module_invoke_all('cron_pre_invoke', $this);
     switch ($this->hook['api_version']) {
-      case 1:
+      case 'ultimate_cron-1':
         error_log("INVOKE 1.x");
         $args = array($this->hook);
         $args = array_merge($args, $this->hook['callback_arguments']);
@@ -223,12 +223,24 @@ class UltimateCronJob {
           break;
         }
 
-      case 2:
+      case 'ultimate_cron-2':
         error_log("INVOKE 2.x");
         $result = call_user_func_array($this->hook['callback'], array(
           $this, $this->hook['callback_arguments']
         ));
         break;
+
+      case 'elysia_cron-2':
+        error_log("INVOKE ELYSIA CRON 2.x");
+        if (is_callable($this->hook['callback'])) {
+          $arguments = !empty($this->hook['arguments']) ? $this->hook['arguments'] : array();
+          $result = call_user_func_array($this->hook['callback'], $arguments);
+          break;
+        }
+        else {
+          $result = module_invoke($this->hook['module'], 'cronapi', 'execute', $this->name);
+          break;
+        }
 
       default:
         error_log("COULD NOT INVOKE JOB");
