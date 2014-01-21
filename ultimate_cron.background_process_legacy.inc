@@ -106,22 +106,22 @@ function ultimate_cron_background_process_legacy_callback($name, $lock_id) {
       }
       else {
         $job->sendSignal('background_process_legacy_dont_log');
-        $job->unlock($lock_id);
         $log->finish();
+        $job->unlock($lock_id);
       }
     }
     else {
       $job->run();
       $job->sendSignal('background_process_legacy_dont_log');
-      $job->unlock($lock_id);
       $log->finish();
+      $job->unlock($lock_id);
     }
 
   }
   catch (Exception $e) {
     watchdog('ultimate_cron', 'Error executing %job: @error', array('%job' => $job->name, '@error' => (string) $e), WATCHDOG_ERROR);
     $job->sendSignal('background_process_legacy_dont_log');
-    $job->unlock($lock_id);
     $log->finish();
+    $job->unlock($lock_id);
   }
 }
