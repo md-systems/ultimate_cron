@@ -46,6 +46,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   public function defaultSettings() {
     return array(
       'service_group' => variable_get('background_process_default_service_group', ''),
+      'max_threads' => 2,
       'daemonize' => FALSE,
       'daemonize_interval' => 10,
       'daemonize_delay' => 1,
@@ -78,6 +79,17 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     $options = $this->getServiceGroups();
     foreach ($options as $key => &$value) {
       $value = (empty($value['description']) ? $key : $value['description']) . ' (' . join(',', $value['hosts']) . ') : ' . $methods['methods'][$value['method']];
+    }
+
+    if (!$job) {
+      $elements['max_threads'] = array(
+        '#title' => t("Max threads"),
+        '#type' => 'textfield',
+        '#default_value' => $values['max_threads'],
+        '#description' => t('Maximum number of concurrent cron jobs to run.'),
+        '#fallback' => TRUE,
+        '#required' => TRUE,
+      );
     }
 
     $elements['service_group'] = array(
@@ -245,10 +257,31 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    */
   public function launchJobs($jobs) {
     $this->scheduledLaunch = TRUE;
+    $settings = $this->getDefaultSettings();
+
     foreach ($jobs as $job) {
-      if ($job->schedule()) {
-        $job->launch();
+      if ($this->numberOfProcessesRunning() < $settings['max_threads']) {
+        if ($job->schedule()) {
+          $job->launch();
+        }
+      }
+      else {
+        // Congested ... let's wait a little before we retry.
+        sleep(1);
       }
     }
+  }
+
+  /**
+   * Get the number of cron background processes currently running.
+   */
+  public function numberOfProcessesRunning() {
+    $query = db_select('background_process', 'bp')
+      ->condition('bp.handle', db_like('uc-') . '%', 'LIKE');
+    $query->addExpression('COUNT(1)', 'processes');
+    $result = $query
+      ->execute()
+      ->fetchField();
+    return $result ? $result : 0;
   }
 }
