@@ -188,10 +188,13 @@ function ultimate_cron_launch_launchers() {
   if ($time < $cron_next) {
     $sleep = $cron_next - $time;
     // For debugging purposes. We should really just do sleep($sleep)
+    sleep($sleep);
+    /*
     while ($sleep--) {
       error_log("SLEEPING1: $sleep");
       sleep(1);
     }
+    /**/
   }
 
   $launchers = array();
@@ -212,10 +215,13 @@ function ultimate_cron_launch_launchers() {
   if ($time < $cron_next) {
     $sleep = $cron_next - $time;
     // For debugging purposes. We should really just do sleep($sleep)
+    sleep($sleep);
+    /*
     while ($sleep--) {
       error_log("SLEEPING2: $sleep");
       sleep(1);
     }
+    /**/
   }
 
   // And we're done! Unlock and relaunch.

@@ -209,7 +209,7 @@ class UltimateCronJob {
     module_invoke_all('cron_pre_invoke', $this);
     switch ($this->hook['api_version']) {
       case 'ultimate_cron-1':
-        error_log("INVOKE 1.x");
+        // error_log("INVOKE 1.x");
         $args = array($this->hook);
         $args = array_merge($args, $this->hook['callback_arguments']);
         if (is_callable($this->hook['callback'])) {
@@ -224,14 +224,14 @@ class UltimateCronJob {
         }
 
       case 'ultimate_cron-2':
-        error_log("INVOKE 2.x");
+        // error_log("INVOKE 2.x");
         $result = call_user_func_array($this->hook['callback'], array(
           $this, $this->hook['callback_arguments']
         ));
         break;
 
       case 'elysia_cron-2':
-        error_log("INVOKE ELYSIA CRON 2.x");
+        // error_log("INVOKE ELYSIA CRON 2.x");
         if (is_callable($this->hook['callback'])) {
           $arguments = !empty($this->hook['arguments']) ? $this->hook['arguments'] : array();
           $result = call_user_func_array($this->hook['callback'], $arguments);
@@ -243,7 +243,7 @@ class UltimateCronJob {
         }
 
       default:
-        error_log("COULD NOT INVOKE JOB");
+        // error_log("COULD NOT INVOKE JOB");
         throw new Exception(t('Could not invoke cron job @name. Wrong API version (@api_version)', array(
           '@name' => $this->name,
           '@api_version' => $this->hook['api_version'],

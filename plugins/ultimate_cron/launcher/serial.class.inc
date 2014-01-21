@@ -16,7 +16,8 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
   public function defaultSettings() {
     return array(
       'max_execution_time' => 3600,
-      'max_launch_threads' => 1,
+      'max_threads' => 1,
+      'thread' => 'any',
     ) + parent::defaultSettings();
   }
 
@@ -29,7 +30,10 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
+    unset($elements['no_settings']);
+
     if (!$job) {
+      $max_threads = $values['max_threads'];
       $elements['max_execution_time'] = array(
         '#title' => t("Maximum execution time"),
         '#type' => 'textfield',
@@ -38,17 +42,34 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
         '#fallback' => TRUE,
         '#required' => TRUE,
       );
-      $elements['max_launch_threads'] = array(
+      $elements['max_threads'] = array(
         '#title' => t("Maximum number of launcher threads"),
         '#type' => 'textfield',
-        '#default_value' => $values['max_launch_threads'],
+        '#default_value' => $max_threads,
         '#description' => t('The maximum number of launch threads that can be running at any given time.'),
         '#fallback' => TRUE,
         '#required' => TRUE,
         '#element_validate' => array('element_validate_number'),
       );
-      unset($elements['no_settings']);
     }
+    else {
+      $settings = $this->getDefaultSettings();
+      $max_threads = $settings['max_threads'];
+    }
+
+    $options = array('any' => t('-- Any-- '));
+    for ($i = 1; $i <= $max_threads; $i++) {
+      $options[$i] = $i;
+    }
+    $elements['thread'] = array(
+      '#title' => t("Run in thread"),
+      '#type' => 'select',
+      '#default_value' => $values['thread'],
+      '#options' => $options,
+      '#description' => t('Which thread to run when invoking with ?thread=N'),
+      '#fallback' => TRUE,
+      '#required' => TRUE,
+    );
   }
 
   /**
@@ -59,9 +80,9 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
     if (!$job) {
-      if (intval($values['max_launch_threads']) <= 0) {
+      if (intval($values['max_threads']) <= 0) {
         form_set_error("settings[$this->type][$this->name", t('%title must be greater than 0', array(
-          '%title' => $elements['max_launch_threads']['#title']
+          '%title' => $elements['max_threads']['#title']
         )));
       }
     }
@@ -115,7 +136,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     $sleep = 25000;
 
     do {
-      for ($thread = 1; $thread <= $settings['max_launch_threads']; $thread++) {
+      for ($thread = 1; $thread <= $settings['max_threads']; $thread++) {
         if ($thread == $this->currentThread) {
           continue;
         }
@@ -158,14 +179,14 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
 
     if (!empty($_GET['thread'])) {
       $thread = intval($_GET['thread']);
-      if ($thread < 1 || $thread > $settings['max_launch_threads']) {
+      if ($thread < 1 || $thread > $settings['max_threads']) {
         watchdog('serial_launcher', "Invalid thread available for starting launch thread", array(), WATCHDOG_WARNING);
         return;
       }
 
       $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
       $timeout = 3;
-      $thread = UltimateCronLock::lock($lock_name, $lock_timeout, $timeout) ? $thread : FALSE;
+      list($thread, $lock_id) = $this->findFreeThread(TRUE, $lock_timeout, $timeout);
     }
     else {
       list($thread, $lock_id) = $this->findFreeThread(TRUE, $lock_timeout, 0);
@@ -185,7 +206,9 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     watchdog('serial_launcher', "Cron thread %thread started", array('%thread' => $thread), WATCHDOG_INFO);
 
     foreach ($jobs as $job) {
-      if ($job->schedule()) {
+      $settings = $job->getSettings('launcher');
+      $proper_thread = ($settings['thread'] == 'any') || ($settings['thread'] == $thread);
+      if ($job->schedule() && $proper_thread) {
         $job->launch();
         // Be friendly, and check if we still own the lock.
         // If we don't, bail out, since someone else is handling
