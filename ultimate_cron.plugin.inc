@@ -583,7 +583,10 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
         $_SERVER['PHP_SELF'] = $php_self;
       }
 
-      watchdog('ultimate_cron', 'Error running @name: @error', array('@error' => $e->getMessage()), WATCHDOG_ERROR);
+      watchdog('ultimate_cron', 'Error running @name: @error', array(
+        '@name' => $job->name,
+        '@error' => $e->getMessage(),
+      ), WATCHDOG_ERROR);
     }
   }
 
