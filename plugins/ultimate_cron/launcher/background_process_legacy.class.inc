@@ -204,6 +204,19 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   }
 
   /**
+   * Check locked state for multiple jobs.
+   *
+   * This has yet to be optimized.
+   */
+  public function isLockedMultiple($jobs) {
+    $lock_ids = array();
+    foreach ($jobs as $job) {
+      $lock_ids[$job->name] = $this->isLocked($job);
+    }
+    return $lock_ids;
+  }
+
+  /**
    * Background Process launch.
    */
   public function launch($job) {

@@ -561,6 +561,18 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
     return $lock_id ? $this->name . '-' . $lock_id : $lock_id;
   }
 
+  public function isLockedMultiple($jobs) {
+    $names = array();
+    foreach ($jobs as $job) {
+      $names[] = $this->lockKey($job);
+    }
+    $lock_ids = UltimateCronLock::isLockedMultiple($names);
+    foreach ($lock_ids as $name => &$lock_id) {
+      $lock_id = $lock_id ? $this->name . '-' . $lock_id : $lock_id;
+    }
+    return $lock_ids;
+  }
+
   /**
    * Run the job.
    */
@@ -814,6 +826,21 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     }
     $this->finish();
   }
+
+  /**
+   * Check locked state for multiple jobs.
+   *
+   * This has yet to be optimized.
+   */
+  public function loadLatestMultiple($jobs) {
+    $logs = array();
+    foreach ($jobs as $job) {
+      $logs[$job->name] = $job->loadLatestLog();
+    }
+    dpm($logs);
+    return $logs;
+  }
+
 }
 
 class UltimateCronSettings extends UltimateCronPluginMultiple {

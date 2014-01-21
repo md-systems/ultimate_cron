@@ -234,6 +234,16 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
   public function list_form(&$form, &$form_state) {
     parent::list_form($form, $form_state);
 
+    $logs = UltimateCronJob::loadLatestLogMultiple($this->items);
+    foreach ($this->items as $name => $item) {
+      $item->log_entry = isset($item->log_entry) ? $item->log_entry : $logs[$name]->log_entry;
+    }
+
+    $lock_ids = UltimateCronJob::isLockedMultiple($this->items);
+    foreach ($this->items as $name => $item) {
+      $item->lock_id = isset($item->lock_id) ? $item->lock_id : $lock_ids[$name];
+    }
+
     $form['#attached']['js'][] = drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.js';
 
     // There's no normal for Ultimate Cron!
@@ -289,7 +299,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       return TRUE;
     }
 
-    $item->log_entry = $item->loadLatestLog()->log_entry;
+    $item->log_entry = isset($item->log_entry) ? $item->log_entry : $item->loadLatestLog()->log_entry;
     $item->lock_id = isset($item->lock_id) ? $item->lock_id : $item->isLocked();
 
     if ($form_state['values']['status'] == 'running') {

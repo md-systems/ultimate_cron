@@ -214,6 +214,54 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
     return $this;
   }
 
+
+  /**
+   * Load latest log entry.
+   */
+  public function loadLatestMultiple($jobs) {
+    if (Database::getConnection()->databaseType() !== 'mysql') {
+      $logs = array();
+      foreach ($jobs as $job) {
+        $logs[$job->name] = $job->loadLatestLog();
+      }
+      return $logs;
+    }
+
+    $result = db_query("SELECT l.*
+    FROM {ultimate_cron_log} l
+    JOIN (
+      SELECT l3.name, (
+        SELECT l4.lid
+        FROM {ultimate_cron_log} l4
+        WHERE l4.name = l3.name
+        ORDER BY l4.name desc, l4.start_time DESC
+        LIMIT 1
+      ) AS lid FROM {ultimate_cron_log} l3
+      GROUP BY l3.name
+    ) l2 on l2.lid = l.lid")->fetchAllAssoc('name');
+
+    $logs = array();
+    foreach ($jobs as $job) {
+      $log = ultimate_cron_plugin_load($this->type, $this->name);
+      if (isset($result[$job->name])) {
+        $log->log_entry = $result[$job->name];
+      }
+      else {
+        $log->log_entry->lid = NULL;
+        $log->log_entry->start_time = 0;
+        $log->log_entry->end_time = 0;
+        $log->log_entry->init_message = '';
+        $log->log_entry->message = '';
+        $log->log_entry->severity = -1;
+        $log->log_entry->name = $job->name;
+      }
+      $log->log_entry->module = $job->hook['module'];
+      $log->finished = TRUE;
+      $logs[$job->name] = $log;
+    }
+    return $logs;
+  }
+
   /**
    * Get log entries.
    */

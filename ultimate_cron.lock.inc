@@ -67,7 +67,7 @@ class UltimateCronLock {
   /**
    * Release lock if applicable.
    */
-  public function expire($name) {
+  static public function expire($name) {
     if ($lock_id = self::isLocked($name)) {
       $now = microtime(TRUE);
       db_update('ultimate_cron_lock')
@@ -81,7 +81,7 @@ class UltimateCronLock {
   /**
    * Release lock.
    */
-  public function unlock($lock_id) {
+  static public function unlock($lock_id) {
     $unlocked = db_update('ultimate_cron_lock')
       ->expression('current', 'lid')
       ->condition('lid', $lock_id)
@@ -94,16 +94,37 @@ class UltimateCronLock {
   /**
    * Check if lock is taken.
    */
-  public function isLocked($name) {
+  static public function isLocked($name) {
     $now = microtime(TRUE);
     $result = db_select('ultimate_cron_lock', 'l')
       ->fields('l', array('lid', 'expire'))
       ->condition('name', $name)
       ->condition('current', 0)
-      // ->condition('expire', $now, '>')
       ->execute()
       ->fetchObject();
     return $result && $result->expire > $now ? $result->lid : FALSE;
+  }
+
+  /**
+   * Check multiple locks.
+   */
+  static public function isLockedMultiple($names) {
+    $now = microtime(TRUE);
+    $result = db_select('ultimate_cron_lock', 'l')
+      ->fields('l', array('lid', 'name', 'expire'))
+      ->condition('name', $names, 'IN')
+      ->condition('current', 0)
+      ->execute()
+      ->fetchAllAssoc('name');
+    foreach ($names as $name) {
+      if (!isset($result[$name])) {
+        $result[$name] = FALSE;
+      }
+      else {
+        $result[$name] = $result[$name]->expire > $now ? $result[$name]->lid : FALSE;
+      }
+    }
+    return $result;
   }
 
   /**

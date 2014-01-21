@@ -306,6 +306,18 @@ class UltimateCronJob {
     return $this->getPlugin('launcher')->isLocked($this);
   }
 
+  static public function isLockedMultiple($jobs) {
+    $launchers = array();
+    foreach ($jobs as $job) {
+      $launchers[$job->getPlugin('launcher')->name][] = $job;
+    }
+    $locked = array();
+    foreach ($launchers as $launcher => $jobs) {
+      $locked += ultimate_cron_plugin_load('launcher', $launcher)->isLockedMultiple($jobs);
+    }
+    return $locked;
+  }
+
   /**
    * Run job.
    */
@@ -336,6 +348,22 @@ class UltimateCronJob {
   public function loadLatestLog() {
     return $this->getPlugin('logger')->loadLatest($this);
   }
+
+  /**
+   * Load latest log.
+   */
+  static public function loadLatestLogMultiple($jobs) {
+    $loggers = array();
+    foreach ($jobs as $job) {
+      $loggers[$job->getPlugin('logger')->name][] = $job;
+    }
+    $logs = array();
+    foreach ($loggers as $logger => $jobs) {
+      $logs += ultimate_cron_plugin_load('logger', $logger)->loadLatestMultiple($jobs);
+    }
+    return $logs;
+  }
+
 
   /**
    * Start logging.
