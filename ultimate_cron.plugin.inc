@@ -837,10 +837,8 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
     foreach ($jobs as $job) {
       $logs[$job->name] = $job->loadLatestLog();
     }
-    dpm($logs);
     return $logs;
   }
-
 }
 
 class UltimateCronSettings extends UltimateCronPluginMultiple {
