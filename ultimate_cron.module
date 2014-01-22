@@ -936,7 +936,7 @@ function ultimate_cron_run_scheduled($redirect = TRUE) {
     }
     if (empty($launchers)) {
       ultimate_cron_watchdog_message('ultimate_cron', 'No launchers to invoke?', array(), WATCHDOG_ERROR, 'error', $redirect);
-      return $redirect ? FALSE : exit;
+      return;
     }
     $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
     $dispatch = $redirect || count($launchers) > 1;
@@ -947,7 +947,7 @@ function ultimate_cron_run_scheduled($redirect = TRUE) {
         ultimate_cron_watchdog_message('ultimate_cron', 'Launcher @name not found!', array(
           '@name' => $launcher,
         ), WATCHDOG_ERROR, 'error', $redirect);
-        return $redirect ? FALSE : $exit;
+        return;
       }
 
       if ($settings['poorman'] && $dispatch) {
@@ -965,7 +965,7 @@ function ultimate_cron_run_scheduled($redirect = TRUE) {
   else {
     ultimate_cron_watchdog_message('ultimate_cron', 'Cannot launch scheduled jobs while in maintenance mode!', array(), WATCHDOG_ERROR, 'error', $redirect);
   }
-  return $redirect ? FALSE : exit;
+  return;
 }
 
 function ultimate_cron_watchdog_message($type, $msg, $args, $severity, $status, $redirect) {
