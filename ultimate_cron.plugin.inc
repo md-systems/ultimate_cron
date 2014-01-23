@@ -379,8 +379,8 @@ class UltimateCronPlugin {
         unset($elements[$child]);
       }
       elseif (!isset($element['#default_value']) || $element['#default_value'] === '') {
-        $values[$child] = $defaults[$child];
-        $element['#default_value'] = $defaults[$child];
+        $values[$child] = !empty($defaults[$child]) ? $defaults[$child] : '';
+        $element['#default_value'] = $values[$child];
       }
     }
   }
@@ -507,6 +507,11 @@ abstract class UltimateCronScheduler extends UltimateCronPlugin {
    *   TRUE if job should run.
    */
   abstract public function schedule($job);
+
+  public function getScheduledLabelVerbose($job) {
+    return '';
+  }
+
 }
 
 abstract class UltimateCronLauncher extends UltimateCronPlugin {
