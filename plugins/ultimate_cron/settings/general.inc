@@ -9,6 +9,7 @@ $plugin = array(
   'description' => t('General cron settings.'),
 
   'handler' => array(
+    'file' => 'general.class.php',
     'class' => 'UltimateCronGeneralSettings',
     'parent' => 'UltimateCronSettings',
   ),

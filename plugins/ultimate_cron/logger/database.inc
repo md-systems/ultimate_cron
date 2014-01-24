@@ -9,6 +9,7 @@ $plugin = array(
   'description' => t('Stores logs in the database.'),
 
   'handler' => array(
+    'file' => 'database.class.php',
     'class' => 'UltimateCronDatabaseLogger',
     'parent' => 'UltimateCronLogger',
   ),

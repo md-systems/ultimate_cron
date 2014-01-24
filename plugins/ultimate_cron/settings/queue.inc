@@ -9,6 +9,7 @@ $plugin = array(
   'description' => t('Cron queue settings.'),
 
   'handler' => array(
+    'file' => 'queue.class.php',
     'class' => 'UltimateCronQueueSettings',
     'parent' => 'UltimateCronTaggedSettings',
   ),

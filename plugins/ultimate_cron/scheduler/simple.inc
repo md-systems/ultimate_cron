@@ -9,6 +9,7 @@ $plugin = array(
   'description' => t('Provides a set of predefined intervals for scheduling.'),
 
   'handler' => array(
+    'file' => 'simple.class.php',
     'class' => 'UltimateCronSimpleScheduler',
     'parent' => 'UltimateCronCrontabScheduler',
   ),

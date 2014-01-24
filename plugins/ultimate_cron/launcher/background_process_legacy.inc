@@ -9,6 +9,7 @@ $plugin = array(
   'description' => t('Launches jobs through Background Process 1.x.'),
 
   'handler' => array(
+    'file' => 'background_process_legacy.class.php',
     'class' => 'UltimateCronBackgroundProcessLegacyLauncher',
     'parent' => 'UltimateCronLauncher',
   ),

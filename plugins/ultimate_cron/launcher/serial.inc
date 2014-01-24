@@ -9,6 +9,7 @@ $plugin = array(
   'description' => t('Launches scheduled jobs in the same thread and runs them consecutively.'),
 
   'handler' => array(
+    'file' => 'serial.class.php',
     'class' => 'UltimateCronSerialLauncher',
     'parent' => 'UltimateCronLauncher',
   ),
