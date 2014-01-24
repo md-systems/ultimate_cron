@@ -81,7 +81,7 @@ class UltimateCronPlugin {
     if ($job && !empty($job->hook[$this->type][$this->name])) {
       $settings += $job->hook[$this->type][$this->name];
     }
-    $settings += $this->settings + $this->defaultSettings();
+    $settings += $this->defaultSettings();
     return $settings;
   }
 
@@ -210,8 +210,9 @@ class UltimateCronPlugin {
     }
 
     // Default values for current selection. If selection differs from current job, then
-    // take the job (or hook) into account.
-    $defaults = $current_plugin->name == $original_plugin ? $current_plugin->getDefaultSettings($job) : $current_plugin->getDefaultSettings();
+    // take the job into account.
+    $defaults = $current_plugin->name == $original_plugin ? $job->settings : array();
+    $defaults += $current_plugin->getDefaultSettings($job);
 
     // Plugin settings fieldset with vertical tab reference.
     $form['settings'][$plugin_type] = array(
