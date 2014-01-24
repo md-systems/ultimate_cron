@@ -178,6 +178,7 @@ function ultimate_cron_launch_launchers() {
   $lock_id = UltimateCronLock::lock('ultimate_cron_poorman', 120);
   if (!$lock_id) {
     // Race-condition or stale lock.
+    watchdog('ultimate_cron', 'Could not acquire lock for poorman launcher. Race-condition or stale lock', array(), WATCHDOG_WARNING);
     return;
   }
 

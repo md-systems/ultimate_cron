@@ -68,7 +68,7 @@ class UltimateCronLock {
    * Release lock if applicable.
    */
   static public function expire($name) {
-    if ($lock_id = self::isLocked($name)) {
+    if ($lock_id = self::isLocked($name, TRUE)) {
       $now = microtime(TRUE);
       db_update('ultimate_cron_lock')
         ->expression('current', 'lid')
@@ -94,7 +94,7 @@ class UltimateCronLock {
   /**
    * Check if lock is taken.
    */
-  static public function isLocked($name) {
+  static public function isLocked($name, $ignore_expiration = FALSE) {
     $now = microtime(TRUE);
     $result = db_select('ultimate_cron_lock', 'l')
       ->fields('l', array('lid', 'expire'))
@@ -102,7 +102,7 @@ class UltimateCronLock {
       ->condition('current', 0)
       ->execute()
       ->fetchObject();
-    return $result && $result->expire > $now ? $result->lid : FALSE;
+    return $result && ($result->expire > $now || $ignore_expiration) ? $result->lid : FALSE;
   }
 
   /**
