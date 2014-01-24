@@ -40,7 +40,9 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   public function cleanup() {
     $jobs = ultimate_cron_job_load_all();
     foreach ($jobs as $job) {
-      $this->cleanupJob($job);
+      if ($job->getPlugin($this->type)->name === $this->name) {
+        $this->cleanupJob($job);
+      }
     }
   }
 
