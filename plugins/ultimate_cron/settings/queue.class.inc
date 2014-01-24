@@ -39,6 +39,8 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
   public function defaultSettings() {
     return array(
       'lease_time' => 30,
+      'empty_delay' => 1,
+      'item_delay' => 0,
       'throttle' => FALSE,
       'threads' => 4,
       'threshold' => 10,
@@ -58,6 +60,22 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '#type' => 'textfield',
       '#default_value' => $values['lease_time'],
       '#description' => t('Seconds to claim a cron queue item.'),
+      '#fallback' => TRUE,
+      '#required' => TRUE,
+    );
+    $elements['empty_delay'] = array(
+      '#title' => t("Empty delay"),
+      '#type' => 'textfield',
+      '#default_value' => $values['empty_delay'],
+      '#description' => t('Seconds to delay processing of queue if queue is empty.'),
+      '#fallback' => TRUE,
+      '#required' => TRUE,
+    );
+    $elements['item_delay'] = array(
+      '#title' => t("Item delay"),
+      '#type' => 'textfield',
+      '#default_value' => $values['item_delay'],
+      '#description' => t('Seconds to wait between processing each item in a queue.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
     );

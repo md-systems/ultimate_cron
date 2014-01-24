@@ -3,7 +3,6 @@
 
 Drupal.behaviors.ultimateCronJobFieldsetSummaries = {
   attach: function (context) {
-    // console.log(context);
     $('#edit-settings-scheduler', context).drupalSetSummary(function (context) {
       return $('#edit-settings-scheduler-name', context).find(":selected").text();
     });

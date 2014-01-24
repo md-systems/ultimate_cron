@@ -566,14 +566,42 @@ function ultimate_cron_queue_cron($job) {
   // Re-throttle.
   $job->getPlugin('settings', 'queue')->throttle($job);
 
-  $end = time() + $settings['queue']['time'];
+  $end = microtime(TRUE) + $settings['queue']['time'];
   $items = 0;
-  while (time() < $end && $item = $queue->claimItem($settings['queue']['lease_time'])) {
-    $function($item->data);
-    $queue->deleteItem($item);
-    $items++;
+  while (microtime(TRUE) < $end && $item = $queue->claimItem($settings['queue']['lease_time'])) {
+    if (!$item) {
+      if ($settings['queue']['empty_delay']) {
+        usleep($settings['queue']['empty_delay'] * 1000000);
+        continue;
+      }
+      else {
+        break;
+      }
+    }
+    try {
+      if ($settings['queue']['item_delay']) {
+        if ($items == 0) {
+          // Move the boundary if using a throttle, to avoid waiting for nothing.
+          $end -= $settings['queue']['item_delay'] * 1000000;
+        }
+        else {
+          // Sleep before retrieving.
+          usleep($settings['queue']['item_delay'] * 1000000);
+        }
+      }
+      $function($item->data);
+      $queue->deleteItem($item);
+      $items++;
+    }
+    catch (Exception $e) {
+      // Just continue ...
+      watchdog($job->hook['module'], "Queue item @item_id from queue @queue failed with message @message", array(
+        '@item_id' => $item->item_id,
+        '@queue' => $settings['queue']['name'],
+        '@message' => $e->getMessage()
+      ), WATCHDOG_ERROR);
+    }
   }
-
   watchdog($job->hook['module'], 'Processed @items items from queue @queue', array(
     '@items' => $items,
     '@queue' => $settings['queue']['name'],
@@ -919,6 +947,9 @@ function ultimate_cron_blank_values($array) {
   return $result;
 }
 
+/**
+ * Page callback for running scheduled jobs.
+ */
 function ultimate_cron_run_scheduled_page() {
   ultimate_cron_run_scheduled(TRUE);
   if (isset($_SERVER['HTTP_REFERER']) && empty($_GET['destination'])) {
@@ -970,6 +1001,9 @@ function ultimate_cron_run_scheduled($redirect = TRUE) {
   return;
 }
 
+/**
+ * Log message either to watchdog or to screen.
+ */
 function ultimate_cron_watchdog_message($type, $msg, $args, $severity, $status, $redirect) {
   if ($redirect) {
     drupal_set_message(t($msg, $args), $status);
