@@ -25,7 +25,7 @@ class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
    */
   public function defaultSettings() {
     return array(
-      'rules' => array('0/15+@ * * * *'),
+      'rules' => array('*/15+@ * * * *'),
     ) + parent::defaultSettings();
   }
 
