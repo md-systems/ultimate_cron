@@ -81,7 +81,7 @@ class UltimateCronPlugin {
     if ($job && !empty($job->hook[$this->type][$this->name])) {
       $settings += $job->hook[$this->type][$this->name];
     }
-    $settings += $this->defaultSettings();
+    $settings += $this->settings + $this->defaultSettings();
     return $settings;
   }
 
