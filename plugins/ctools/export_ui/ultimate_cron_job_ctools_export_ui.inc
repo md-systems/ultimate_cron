@@ -144,6 +144,8 @@ function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
   if (isset($form_state['input'])) {
     $form_state['input'] = $form_state['values'];
   }
+  $form['#attached']['js'][] = drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.job.js';
+
 }
 
 /**
