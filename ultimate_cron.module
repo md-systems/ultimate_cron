@@ -181,7 +181,11 @@ function ultimate_cron_ctools_plugin_type() {
  * Get plugin instance.
  */
 function ultimate_cron_ctools_plugin_instance($name, $plugin) {
-  $class = ctools_plugin_get_class($plugin, 'handler');
+  static $cache;
+  if (!isset($cache[$plugin['name']])) {
+    $cache[$plugin['name']] = ctools_plugin_get_class($plugin, 'handler');
+  }
+  $class = $cache[$plugin['name']];
   return $class ? $class::factory($class, $name, $plugin) : FALSE;
 }
 
