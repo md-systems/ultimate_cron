@@ -127,6 +127,7 @@ function ultimate_cron_ctools_plugin_type() {
         ),
       ),
       'classes' => array('handler'),
+      'cache' => TRUE,
     ),
     'scheduler' => array(
       'use hooks' => FALSE,
@@ -141,6 +142,7 @@ function ultimate_cron_ctools_plugin_type() {
         ),
       ),
       'classes' => array('handler'),
+      'cache' => TRUE,
     ),
     'launcher' => array(
       'use hooks' => FALSE,
@@ -155,6 +157,7 @@ function ultimate_cron_ctools_plugin_type() {
         ),
       ),
       'classes' => array('handler'),
+      'cache' => TRUE,
     ),
     'logger' => array(
       'use hooks' => FALSE,
@@ -169,6 +172,7 @@ function ultimate_cron_ctools_plugin_type() {
         ),
       ),
       'classes' => array('handler'),
+      'cache' => TRUE,
     ),
   );
 }
