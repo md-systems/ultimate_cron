@@ -141,7 +141,9 @@ function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
   // What the hell?
   // Why do we need to reset 'input'? Why is it used for the form fields
   // instead of 'values'?
-  $form_state['input'] = $form_state['values'];
+  if (isset($form_state['input'])) {
+    $form_state['input'] = $form_state['values'];
+  }
 }
 
 /**

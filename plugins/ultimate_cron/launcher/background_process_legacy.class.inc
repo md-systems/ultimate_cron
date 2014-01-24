@@ -45,7 +45,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    */
   public function defaultSettings() {
     return array(
-      'service_group' => variable_get('background_process_default_service_group', ''),
+      'service_group' => variable_get('background_process_default_service_group', 'default'),
       'max_threads' => 2,
       'daemonize' => FALSE,
       'daemonize_interval' => 10,

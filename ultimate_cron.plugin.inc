@@ -379,7 +379,8 @@ class UltimateCronPlugin {
         unset($elements[$child]);
       }
       elseif (!isset($element['#default_value']) || $element['#default_value'] === '') {
-        $values[$child] = !empty($defaults[$child]) ? $defaults[$child] : '';
+        $empty = $element['#type'] == 'checkbox' ? FALSE : '';
+        $values[$child] = !empty($defaults[$child]) ? $defaults[$child] : $empty;
         $element['#default_value'] = $values[$child];
       }
     }
