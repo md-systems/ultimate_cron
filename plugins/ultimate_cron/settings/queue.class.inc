@@ -55,7 +55,11 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
-    $elements['lease_time'] = array(
+    $elements['timeouts'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Timeouts'),
+    );
+    $elements['timeouts']['lease_time'] = array(
       '#title' => t("Queue lease time"),
       '#type' => 'textfield',
       '#default_value' => $values['lease_time'],
@@ -63,7 +67,20 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
-    $elements['empty_delay'] = array(
+    $elements['timeouts']['time'] = array(
+      '#title' => t('Time'),
+      '#type' => 'textfield',
+      '#default_value' => $values['time'],
+      '#description' => t('Time in seconds to process items during a cron run.'),
+      '#fallback' => TRUE,
+      '#required' => TRUE,
+    );
+
+    $elements['delays'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Delays'),
+    );
+    $elements['delays']['empty_delay'] = array(
       '#title' => t("Empty delay"),
       '#type' => 'textfield',
       '#default_value' => $values['empty_delay'],
@@ -71,19 +88,11 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
-    $elements['item_delay'] = array(
+    $elements['delays']['item_delay'] = array(
       '#title' => t("Item delay"),
       '#type' => 'textfield',
       '#default_value' => $values['item_delay'],
       '#description' => t('Seconds to wait between processing each item in a queue.'),
-      '#fallback' => TRUE,
-      '#required' => TRUE,
-    );
-    $elements['time'] = array(
-      '#title' => t('Time'),
-      '#type' => 'textfield',
-      '#default_value' => $values['time'],
-      '#description' => t('Time in seconds to process items during a cron run.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
@@ -94,7 +103,14 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '#default_value' => $values['throttle'],
       '#description' => t('Throttle queues using multiple threads.'),
     );
-    $elements['threads'] = array(
+    $elements['throttling'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Throttling'),
+      '#states' => array(
+        'visible' => array(':input[name="settings[' . $this->type . '][' . $this->name . '][throttle]"]' => array('checked' => TRUE))
+      ),
+    );
+    $elements['throttling']['threads'] = array(
       '#title' => t('Threads'),
       '#type' => 'textfield',
       '#default_value' => $values['threads'],
@@ -105,7 +121,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
-    $elements['threshold'] = array(
+    $elements['throttling']['threshold'] = array(
       '#title' => t('Threshold'),
       '#type' => 'textfield',
       '#default_value' => $values['threshold'],
