@@ -675,10 +675,12 @@ function _ultimate_cron_get_queues() {
     $queues = array();
     foreach (module_implements('cron_queue_info') as $module) {
       $items = module_invoke($module, 'cron_queue_info');
-      foreach ($items as &$item) {
-        $item['module'] = $module;
+      if (is_array($items)) {
+        foreach ($items as &$item) {
+          $item['module'] = $module;
+        }
+        $queues += $items;
       }
-      $queues += $items;
     }
     // $queues = module_invoke_all('cron_queue_info');
     drupal_alter('cron_queue_info', $queues);
