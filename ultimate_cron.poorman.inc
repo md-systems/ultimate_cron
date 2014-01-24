@@ -97,10 +97,12 @@ function ultimate_cron_launch_poorman() {
       $expire = microtime(TRUE) + 3;
       while (microtime(TRUE) < $expire) {
         if (UltimateCronLock::isLocked('ultimate_cron_poorman')) {
+          lock_release('ultimate_cron_poorman_launch');
           return;
         }
         sleep(1);
       }
+      lock_release('ultimate_cron_poorman_launch');
     }
   }
   else {

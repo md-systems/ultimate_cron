@@ -189,7 +189,8 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       list($thread, $lock_id) = $this->findFreeThread(TRUE, $lock_timeout, $timeout);
     }
     else {
-      list($thread, $lock_id) = $this->findFreeThread(TRUE, $lock_timeout, 0);
+      $timeout = 3;
+      list($thread, $lock_id) = $this->findFreeThread(TRUE, $lock_timeout, $timeout);
       $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
     }
     $this->currentThread = $thread;
