@@ -43,10 +43,10 @@ class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
   /**
    * Label for schedule.
    */
-  public function getScheduledLabel($item) {
-    $settings = $item->getSettings();
+  public function getScheduledLabel($job) {
+    $settings = $job->getSettings($this->type);
     return t('Every @interval', array(
-      '@interval' => format_interval($this->presets[$settings[$this->type][$this->name]['rules'][0]])
+      '@interval' => format_interval($this->presets[$settings['rules'][0]])
     ));
   }
 

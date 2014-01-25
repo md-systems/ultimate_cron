@@ -30,11 +30,11 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
    * Label for schedule.
    */
   public function getScheduledLabelVerbose($job) {
-    $settings = $job->getSettings();
+    $settings = $job->getSettings($this->type);
     $parsed = array();
 
     include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
-    foreach ($settings[$this->type][$this->name]['rules'] as $rule); {
+    foreach ($settings['rules'] as $rule); {
       $cron = new CronRule($rule);
       $cron->offset = $this->getOffset($job);
       $parsed[] = $cron->parseRule();
@@ -85,25 +85,22 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   /**
    * Schedule handler.
    */
-  public function schedule($job) {
+  public function schedule($job, $real = FALSE) {
     include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
-    $settings = $job->getSettings();
-    $scheduler_settings = $settings['scheduler'][$settings['scheduler']['name']];
+    $settings = $job->getSettings($this->type);
 
-    foreach ($scheduler_settings['rules'] as $rule) {
+    foreach ($settings['rules'] as $rule) {
       $now = time();
       $cron = new CronRule($rule);
       $cron->offset = $this->getOffset($job);
       $cron_last_ran = $cron->getLastRan($now);
-      $log_entry = $job->loadLatestLogEntry();
+      $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
       $job_last_ran = $log_entry->start_time;
 
-      if (
-        $cron_last_ran >= $job_last_ran &&
-        $now >= $job_last_ran &&
-        $now <= $cron_last_ran + $scheduler_settings['catch_up']
-      ) {
-        return TRUE;
+      if ($cron_last_ran >= $job_last_ran && $now >= $job_last_ran) {
+        if ($real || $now <= $cron_last_ran + $settings['catch_up']) {
+          return TRUE;
+        }
       }
     }
     return FALSE;
