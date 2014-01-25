@@ -650,13 +650,6 @@ class UltimateCronLogger extends UltimateCronPlugin {
   public $log_entry_class = 'UltimateCronLogEntry';
 
   /**
-   * Logger does not allow singletons.
-   */
-  public function factory($class, $name, $plugin) {
-    return new $class($name, $plugin);
-  }
-
-  /**
    * Create a new log entry.
    */
   public function create($job, $lock_id, $init_message = '') {

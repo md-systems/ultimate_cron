@@ -10,7 +10,6 @@ define('ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN', 3);
 
 class UltimateCronDatabaseLogger extends UltimateCronLogger {
   public $options = array();
-
   public $log_entry_class = 'UltimateCronDatabaseLogEntry';
 
   /**
@@ -306,6 +305,12 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
     while ($object = $result->fetchObject($this->log_entry_class, array($this))) {
       $log_entries[$object->name] = $object;
       $log_entries[$object->name]->job = $jobs[$object->name];
+    }
+    foreach ($jobs as $name => $job) {
+      if (!isset($log_entries[$name])) {
+        $log_entries[$name] = new $this->log_entry_class($this, $job);
+        $log_entries[$name]->job = $job;
+      }
     }
 
     return $log_entries;
