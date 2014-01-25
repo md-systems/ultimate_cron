@@ -106,7 +106,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     else {
       $init_message = t('Launched manually');
     }
-    $log = $job->startLog($lock_id, $init_message);
+    $log_entry = $job->startLog($lock_id, $init_message);
 
     drupal_set_message(t('@name: @init_message', array(
       '@name' => $job->name,
@@ -121,7 +121,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       watchdog('ultimate_cron', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);
     }
 
-    $log->finish();
+    $log_entry->finish();
     $job->unlock($lock_id);
   }
 
@@ -176,6 +176,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
 
     // If infinite max execution, then we use a day for the lock.
     $lock_timeout = $lock_timeout ? $lock_timeout : 86400;
+    $lock_timeout = 60;
 
     if (!empty($_GET['thread'])) {
       $thread = intval($_GET['thread']);

@@ -11,6 +11,8 @@ define('ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN', 3);
 class UltimateCronDatabaseLogger extends UltimateCronLogger {
   public $options = array();
 
+  public $log_entry_class = 'UltimateCronDatabaseLogEntry';
+
   /**
    * Constructor.
    */
@@ -109,174 +111,6 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
         '@name' => $job->name,
       ), WATCHDOG_INFO);
     }
-  }
-
-  /**
-   * Save log entry.
-   */
-  public function save() {
-    if (!$this->log_entry->lid) {
-      return;
-    }
-    try {
-      db_insert('ultimate_cron_log')
-        ->fields(array(
-          'lid' => $this->log_entry->lid,
-          'name' => $this->log_entry->name,
-          'start_time' => $this->log_entry->start_time,
-          'end_time' => $this->log_entry->end_time,
-          'uid' => $this->log_entry->uid,
-          'init_message' => $this->log_entry->init_message,
-          'message' => $this->log_entry->message,
-          'severity' => $this->log_entry->severity
-        ))
-        ->execute();
-    }
-    catch (PDOException $e) {
-      // Row already exists. Let's update it, if we can.
-      $updated = db_update('ultimate_cron_log')
-        ->fields(array(
-          'name' => $this->log_entry->name,
-          'start_time' => $this->log_entry->start_time,
-          'end_time' => $this->log_entry->end_time,
-          'init_message' => $this->log_entry->init_message,
-          'message' => $this->log_entry->message,
-          'severity' => $this->log_entry->severity
-        ))
-        ->condition('lid', $this->log_entry->lid)
-        ->condition('end_time', 0)
-        ->execute();
-      if (!$updated) {
-        // Row was not updated, someone must have beaten us to it.
-        // Let's create a new log entry.
-        $lid = $this->log_entry->lid . '-' . uniqid('', TRUE);
-        $this->log_entry->message = t('Lock #@original_lid was already closed and logged. Creating a new log entry #@lid', array(
-          '@original_lid' => $this->log_entry->lid,
-          '@lid' => $lid,
-        )) . "\n" . $this->log_entry->message;
-        $this->log_entry->severity = $this->log_entry->severity >= 0 && $this->log_entry->severity < WATCHDOG_ERROR ? $this->log_entry->severity : WATCHDOG_ERROR;
-        $this->log_entry->lid = $lid;
-        $this->save();
-      }
-    }
-  }
-
-  /**
-   * Load log entry.
-   */
-  public function load($job, $lid) {
-    $log_entry = db_select('ultimate_cron_log', 'l')
-      ->fields('l')
-      ->condition('l.lid', $lid)
-      ->execute()
-      ->fetchObject();
-    if ($log_entry) {
-      $this->log_entry = $log_entry;
-    }
-    else {
-      global $user;
-      $this->log_entry->lid = NULL;
-      $this->log_entry->uid = $user->uid;
-      $this->log_entry->start_time = 0;
-      $this->log_entry->end_time = 0;
-      $this->log_entry->init_message = '';
-      $this->log_entry->message = '';
-      $this->log_entry->severity = -1;
-    }
-    $this->log_entry->module = $job->hook['module'];
-    return $this;
-  }
-
-  /**
-   * Load latest log entry.
-   */
-  public function loadLatest($job) {
-    $log_entry = db_select('ultimate_cron_log', 'l')
-      ->fields('l')
-      ->condition('l.name', $job->name)
-      ->orderBy('l.start_time', 'DESC')
-      ->orderBy('l.end_time', 'DESC')
-      ->range(0, 1)
-      ->execute()
-      ->fetchObject();
-    if ($log_entry) {
-      $this->log_entry = $log_entry;
-    }
-    else {
-      $this->log_entry->lid = NULL;
-      $this->log_entry->start_time = 0;
-      $this->log_entry->end_time = 0;
-      $this->log_entry->init_message = '';
-      $this->log_entry->message = '';
-      $this->log_entry->severity = -1;
-      $this->log_entry->name = $job->name;
-    }
-    $this->log_entry->module = $job->hook['module'];
-    $this->finished = TRUE;
-    return $this;
-  }
-
-
-  /**
-   * Load latest log entry.
-   */
-  public function loadLatestMultiple($jobs) {
-    if (Database::getConnection()->databaseType() !== 'mysql') {
-      $logs = array();
-      foreach ($jobs as $job) {
-        $logs[$job->name] = $job->loadLatestLog();
-      }
-      return $logs;
-    }
-
-    $result = db_query("SELECT l.*
-    FROM {ultimate_cron_log} l
-    JOIN (
-      SELECT l3.name, (
-        SELECT l4.lid
-        FROM {ultimate_cron_log} l4
-        WHERE l4.name = l3.name
-        ORDER BY l4.name desc, l4.start_time DESC
-        LIMIT 1
-      ) AS lid FROM {ultimate_cron_log} l3
-      GROUP BY l3.name
-    ) l2 on l2.lid = l.lid")->fetchAllAssoc('name');
-
-    $logs = array();
-    foreach ($jobs as $job) {
-      $log = ultimate_cron_plugin_load($this->type, $this->name);
-      if (isset($result[$job->name])) {
-        $log->log_entry = $result[$job->name];
-      }
-      else {
-        $log->log_entry->lid = NULL;
-        $log->log_entry->start_time = 0;
-        $log->log_entry->end_time = 0;
-        $log->log_entry->init_message = '';
-        $log->log_entry->message = '';
-        $log->log_entry->severity = -1;
-        $log->log_entry->name = $job->name;
-      }
-      $log->log_entry->module = $job->hook['module'];
-      $log->finished = TRUE;
-      $logs[$job->name] = $log;
-    }
-    return $logs;
-  }
-
-  /**
-   * Get log entries.
-   */
-  public function getLogEntries($job, $limit = 10) {
-    $logs = db_select('ultimate_cron_log', 'l')
-      ->fields('l')
-      ->extend('PagerDefault')
-      ->condition('l.name', $job->name)
-      ->limit($limit)
-      ->orderBy('l.start_time', 'DESC')
-      ->execute()
-      ->fetchAll();
-    return $logs;
   }
 
   /**
@@ -413,6 +247,142 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
       case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN:
         unset($form_state['values']['settings'][$this->type][$this->name]['expire']);
         break;
+    }
+  }
+
+  /**
+   * Load log entry.
+   */
+  public function load($job, $lock_id = NULL) {
+    if ($lock_id) {
+      $log_entry = db_select('ultimate_cron_log', 'l')
+        ->fields('l')
+        ->condition('l.lid', $lock_id)
+        ->execute()
+        ->fetchObject('UltimateCronDatabaseLogEntry', array($this));
+    }
+    else {
+      $log_entry = db_select('ultimate_cron_log', 'l')
+        ->fields('l')
+        ->condition('l.name', $job->name)
+        ->orderBy('l.start_time', 'DESC')
+        ->orderBy('l.end_time', 'DESC')
+        ->range(0, 1)
+        ->execute()
+        ->fetchObject('UltimateCronDatabaseLogEntry', array($this));
+    }
+    if ($log_entry) {
+      $log_entry->finished = TRUE;
+    }
+    else {
+      $log_entry = new UltimateCronDatabaseLogEntry($this);
+    }
+    return $log_entry;
+  }
+
+  /**
+   * Load latest log entry.
+   */
+  public function loadLatestLogEntries($jobs) {
+    if (Database::getConnection()->databaseType() !== 'mysql') {
+      return parent::loadLatestLogEntries($jobs);
+    }
+
+    $result = db_query("SELECT l.*
+    FROM {ultimate_cron_log} l
+    JOIN (
+      SELECT l3.name, (
+        SELECT l4.lid
+        FROM {ultimate_cron_log} l4
+        WHERE l4.name = l3.name
+        ORDER BY l4.name desc, l4.start_time DESC
+        LIMIT 1
+      ) AS lid FROM {ultimate_cron_log} l3
+      GROUP BY l3.name
+    ) l2 on l2.lid = l.lid
+    WHERE l.name IN (:jobs)", array(':jobs' => array_keys($jobs)));
+
+    $log_entries = array();
+    while ($object = $result->fetchObject($this->log_entry_class, array($this))) {
+      $log_entries[$object->name] = $object;
+      $log_entries[$object->name]->job = $jobs[$object->name];
+    }
+
+    return $log_entries;
+  }
+
+  /**
+   * Get log entries.
+   */
+  public function getLogEntries($job, $limit = 10) {
+    $result = db_select('ultimate_cron_log', 'l')
+      ->fields('l')
+      ->extend('PagerDefault')
+      ->condition('l.name', $job->name)
+      ->limit($limit)
+      ->orderBy('l.start_time', 'DESC')
+      ->execute()
+      ->fetchAll();
+
+    $log_entries = array();
+    while ($object = $result->fetchObject($this->log_entry_class, array($this))) {
+      $log_entries[$object->name] = $object;
+      $log_entries[$object->name]->job = $job;
+    }
+
+    return $log_entries;
+  }
+
+}
+
+class UltimateCronDatabaseLogEntry extends UltimateCronLogEntry {
+  /**
+   * Save log entry.
+   */
+  public function save() {
+    if (!$this->lid) {
+      return;
+    }
+    try {
+      db_insert('ultimate_cron_log')
+        ->fields(array(
+          'lid' => $this->lid,
+          'name' => $this->job->name,
+          'start_time' => $this->start_time,
+          'end_time' => $this->end_time,
+          'uid' => $this->uid,
+          'init_message' => $this->init_message,
+          'message' => $this->message,
+          'severity' => $this->severity
+        ))
+        ->execute();
+    }
+    catch (PDOException $e) {
+      // Row already exists. Let's update it, if we can.
+      $updated = db_update('ultimate_cron_log')
+        ->fields(array(
+          'name' => $this->job->name,
+          'start_time' => $this->start_time,
+          'end_time' => $this->end_time,
+          'init_message' => $this->init_message,
+          'message' => $this->message,
+          'severity' => $this->severity
+        ))
+        ->condition('lid', $this->lid)
+        ->condition('end_time', 0)
+        ->execute();
+      if (!$updated) {
+        // Row was not updated, someone must have beaten us to it.
+        // Let's create a new log entry.
+        $lid = $this->lid . '-' . uniqid('', TRUE);
+        $this->message = t('Lock #@original_lid was already closed and logged. Creating a new log entry #@lid', array(
+          '@original_lid' => $this->lid,
+          '@lid' => $lid,
+        )) . "\n" . $this->message;
+        $this->severity = $this->severity >= 0 && $this->severity < WATCHDOG_ERROR ? $this->severity : WATCHDOG_ERROR;
+        $this->lid = $lid;
+        $this->save();
+      }
     }
   }
 }

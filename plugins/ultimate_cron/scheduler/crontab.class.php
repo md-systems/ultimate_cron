@@ -95,8 +95,8 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
       $cron = new CronRule($rule);
       $cron->offset = $this->getOffset($job);
       $cron_last_ran = $cron->getLastRan($now);
-      $log = $job->getPlugin('logger')->loadLatest($job);
-      $job_last_ran = $log->log_entry->start_time;
+      $log_entry = $job->loadLatestLogEntry();
+      $job_last_ran = $log_entry->start_time;
 
       if (
         $cron_last_ran >= $job_last_ran &&

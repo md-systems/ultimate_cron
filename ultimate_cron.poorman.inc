@@ -116,6 +116,11 @@ function ultimate_cron_launch_poorman() {
  */
 function ultimate_cron_poorman_page_flush() {
   ignore_user_abort();
+
+  if (module_exists('devel') && variable_get('devel_query_display')) {
+    return;
+  }
+
   $GLOBALS['poorman_active'] = TRUE;
   while (ob_get_level() > 0) {
     ob_end_flush();
@@ -265,7 +270,7 @@ function ultimate_cron_run_launcher($launcher) {
   foreach (ultimate_cron_job_load_all() as $name => $job) {
     if ($job->getPlugin('launcher')->name == $launcher->name) {
       // Load the latest log entry, as we want to sort on last start time.
-      $job->log_entry = $job->loadLatestLog()->log_entry;
+      $job->log_entry = $job->loadLatestLogEntry();
       $jobs[$name] = $job;
     }
   }

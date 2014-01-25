@@ -197,7 +197,7 @@ function drush_ultimate_cron_cron_list() {
     }
 
     $lock_id = $job->isLocked();
-    $log_entry = $job->loadLatestLog()->log_entry;
+    $log_entry = $job->loadLatestLogEntry();
 
     if ($lock_id && $log_entry->lid == $lock_id) {
       $legend .= 'R';
@@ -481,16 +481,14 @@ function drush_ultimate_cron_cron_unlock($name = NULL) {
 
   // Unlock the process.
   if ($job->unlock($lock_id, TRUE)) {
-    $log = $job->loadLog($lock_id);
-    $log->finished = FALSE;
-    $log->catchMessages();
+    $log_entry = $job->resumeLog($lock_id);
     global $user;
     watchdog('ultimate_cron', '@name manually unlocked by user @username (@uid)', array(
       '@name' => $job->name,
       '@username' => $user->name,
       '@uid' => $user->uid,
     ), WATCHDOG_WARNING);
-    $log->finish();
+    $log_entry->finish();
 
     drush_print(dt('Cron job @name unlocked', array('@name' => $name)));
   }

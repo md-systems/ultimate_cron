@@ -645,28 +645,9 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
   }
 }
 
-abstract class UltimateCronLogger extends UltimateCronPlugin {
-  public $finished = FALSE;
-
-  public $log_entry = NULL;
-
-  static public $logs = NULL;
-
-  /**
-   * Constructor.
-   */
-  public function __construct($name, $plugin) {
-    global $user;
-    parent::__construct($name, $plugin);
-    $this->log_entry = new stdClass();
-    $this->log_entry->lid = NULL;
-    $this->log_entry->uid = $user->uid;
-    $this->log_entry->start_time = 0;
-    $this->log_entry->end_time = 0;
-    $this->log_entry->init_message = '';
-    $this->log_entry->message = '';
-    $this->log_entry->severity = -1;
-  }
+class UltimateCronLogger extends UltimateCronPlugin {
+  static public $log_entries = NULL;
+  public $log_entry_class = 'UltimateCronLogEntry';
 
   /**
    * Logger does not allow singletons.
@@ -676,99 +657,57 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   }
 
   /**
-   * Initialize a new log entry.
+   * Create a new log entry.
    */
-  public function initialize($lock_id, $job, $init_message = '') {
+  public function create($job, $lock_id, $init_message = '') {
     global $user;
 
-    $this->log_entry = new stdClass();
-    $this->log_entry->lid = $lock_id;
-    $this->log_entry->uid = $user->uid;
-    $this->log_entry->start_time = microtime(TRUE);
-    $this->log_entry->end_time = 0;
-    $this->log_entry->init_message = $init_message;
-    $this->log_entry->message = '';
-    $this->log_entry->severity = -1;
-
-    $this->log_entry->module = $job->hook['module'];
-    $this->log_entry->name = $job->name;
-    $this->job = $job;
-    $this->save();
+    $log_entry = new $this->log_entry_class($this, $job);
+    $log_entry->lid = $lock_id;
+    $log_entry->start_time = microtime(TRUE);
+    $log_entry->init_message = $init_message;
+    $log_entry->save();
+    return $log_entry;
   }
 
-  /**
-   * Finish a log and save it if applicable.
-   */
-  public function finish() {
-    if (!$this->finished) {
-      $this->unCatchMessages();
-      $this->log_entry->end_time = microtime(TRUE);
-      $this->finished = TRUE;
-      $this->save();
-    }
-  }
-
-  /**
-   * Implements hook_watchdog().
-   */
-  public function watchdog(array $log_entry) {
-    $this->log_entry->message .= t($log_entry['message'], $log_entry['variables']) . "\n";
-    if ($this->log_entry->severity < 0 || $this->log_entry->severity > $log_entry['severity']) {
-      $this->log_entry->severity = $log_entry['severity'];
-    }
-    // Make sure that message don't become too big.
-    $size = 2000;
-    if (mb_strlen($this->log_entry->message) > $size) {
-      while (mb_strlen($this->log_entry->message) > $size) {
-        $firstline = strpos($this->log_entry->message, "\n");
-        if ($firstline === FALSE) {
-          // Only one line? That's a big line ... truncate it!
-          $this->log_entry->message = mb_substr($this->log_entry->message, -$size);
-          break;
-        }
-        $this->log_entry->message = substr($this->log_entry->message, $firstline + 1);
-      }
-      $this->log_entry->message = '.....' . $this->log_entry->message;
-    }
-  }
 
   /**
    * Begin capturing messages.
    */
-  public function catchMessages() {
+  public function catchMessages($log_entry) {
     $class = get_class($this);
-    if (!isset($class::$logs)) {
-      $class::$logs = array();
+    if (!isset($class::$log_entries)) {
+      $class::$log_entries = array();
       // Since we may already be inside a drupal_register_shutdown_function()
       // we cannot use that. Use PHPs register_shutdown_function() instead.
       ultimate_cron_register_shutdown_function(array($class, 'catchMessagesShutdownWrapper'), $class);
     }
-    $class::$logs[$this->log_entry->lid] = $this;
+    $class::$log_entries[$log_entry->lid] = $log_entry;
   }
 
   /**
    * End message capturing.
    */
-  public function unCatchMessages() {
+  public function unCatchMessages($log_entry) {
     $class = get_class($this);
-    unset($class::$logs[$this->log_entry->lid]);
+    unset($class::$log_entries[$log_entry->lid]);
   }
 
   /**
    * Check if we're already catching messages.
    */
-  public function isCatched() {
+  public function isCatched($log_entry) {
     $class = get_class($this);
-    return !empty($class::$logs[$this->log_entry->lid]);
+    return !empty($class::$log_entries[$log_entry->lid]);
   }
 
   /**
    * Invoke loggers watchdog hooks.
    */
-  final static public function hook_watchdog(array $log_entry) {
-    if (self::$logs) {
-      foreach (self::$logs as $log) {
-        $log->watchdog($log_entry);
+  final static public function hook_watchdog(array $data) {
+    if (self::$log_entries) {
+      foreach (self::$log_entries as $log_entry) {
+        $log_entry->watchdog($data);
       }
     }
   }
@@ -777,9 +716,9 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    * Shutdown handler wrapper for catching messages.
    */
   static public function catchMessagesShutdownWrapper($class) {
-    if ($class::$logs) {
-      foreach ($class::$logs as $lid => $log) {
-        $log->catchMessagesShutdown();
+    if ($class::$log_entries) {
+      foreach ($class::$log_entries as $lid => $log_entry) {
+        $log_entry->logger->catchMessagesShutdown($log_entry);
       }
     }
   }
@@ -789,11 +728,10 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    *
    * Log errors if any.
    */
-  public function catchMessagesShutdown() {
-    $class = get_class($this);
-    unset($class::$logs[$this->log_entry->lid]);
+  public function catchMessagesShutdown($log_entry) {
+    $this->unCatchMessages($log_entry);
 
-    if ($this->finished) {
+    if ($log_entry->finished) {
       return;
     }
 
@@ -814,8 +752,8 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
 
       global $user;
       global $base_root;
-      $log_entry = array(
-        'type'        => $this->log_entry->module,
+      $watchdog_log_entry = array(
+        'type'        => 'ultimate_cron',
         'message'     => $message,
         'variables'   => array(),
         'severity'    => $severity,
@@ -829,9 +767,9 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
         'timestamp'   => time(),
       );
 
-      $this->watchdog($log_entry);
+      $log_entry->watchdog($watchdog_log_entry);
     }
-    $this->finish();
+    $log_entry->finish();
   }
 
   /**
@@ -839,12 +777,100 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    *
    * This has yet to be optimized.
    */
-  public function loadLatestMultiple($jobs) {
+  public function loadLatestLogEntries($jobs) {
     $logs = array();
     foreach ($jobs as $job) {
-      $logs[$job->name] = $job->loadLatestLog();
+      $logs[$job->name] = $job->loadLatestLogEntry();
     }
     return $logs;
+  }
+
+  public function load($job, $lock_id = NULL) {
+    return new $this->log_entry_class($this, $job);
+  }
+}
+
+class UltimateCronLogEntry {
+  public $lid = NULL;
+  public $uid = 0;
+  public $start_time = 0;
+  public $end_time = 0;
+  public $init_message = '';
+  public $message = '';
+  public $severity = -1;
+
+  public $log_entry_fields = array(
+    'lid', 'uid', 'start_time', 'end_time', 'message', 'severity',
+  );
+
+  public $logger;
+  public $job;
+  public $finished = FALSE;
+
+  public function __construct($logger, $job = NULL) {
+    $this->logger = $logger;
+    $this->job = $job;
+    global $user;
+    $this->uid = $user->uid;
+  }
+
+  public function getData() {
+    $result = array();
+    foreach ($this->log_entry_fields as $field) {
+      $result[$field] = $this->$field;
+    }
+    return $result;
+  }
+
+  public function setData($data) {
+    foreach ($this->log_entry_fields as $field) {
+      if (array_key_exists($field, $data)) {
+        $this->$field = $data[$field];
+      }
+    }
+  }
+
+  /**
+   * Finish a log and save it if applicable.
+   */
+  public function finish() {
+    if (!$this->finished) {
+      $this->logger->unCatchMessages($this);
+      $this->end_time = microtime(TRUE);
+      $this->finished = TRUE;
+      $this->save();
+    }
+  }
+
+  /**
+   * Implements hook_watchdog().
+   */
+  public function watchdog(array $log_entry) {
+    $this->message .= t($log_entry['message'], $log_entry['variables']) . "\n";
+    if ($this->severity < 0 || $this->severity > $log_entry['severity']) {
+      $this->severity = $log_entry['severity'];
+    }
+    // Make sure that message don't become too big.
+    $size = 2000;
+    if (mb_strlen($this->message) > $size) {
+      while (mb_strlen($this->message) > $size) {
+        $firstline = strpos($this->message, "\n");
+        if ($firstline === FALSE) {
+          // Only one line? That's a big line ... truncate it!
+          $this->message = mb_substr($this->message, -$size);
+          break;
+        }
+        $this->message = substr($this->message, $firstline + 1);
+      }
+      $this->message = '.....' . $this->message;
+    }
+  }
+
+  public function save() {
+  }
+
+  public function catchMessages() {
+    return $this->logger->catchMessages($this);
   }
 }
 

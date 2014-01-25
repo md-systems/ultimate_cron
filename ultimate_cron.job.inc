@@ -336,32 +336,32 @@ class UltimateCronJob {
   }
 
   /**
-   * Load log.
+   * Load log entry.
    */
-  public function loadLog($lock_id) {
+  public function loadLogEntry($lock_id) {
     return $this->getPlugin('logger')->load($this, $lock_id);
   }
 
   /**
    * Load latest log.
    */
-  public function loadLatestLog() {
-    return $this->getPlugin('logger')->loadLatest($this);
+  public function loadLatestLogEntry() {
+    return $this->getPlugin('logger')->load($this);
   }
 
   /**
-   * Load latest log.
+   * Load latest log entries.
    */
-  static public function loadLatestLogMultiple($jobs) {
+  static public function loadLatestLogEntries($jobs) {
     $loggers = array();
     foreach ($jobs as $job) {
-      $loggers[$job->getPlugin('logger')->name][] = $job;
+      $loggers[$job->getPlugin('logger')->name][$job->name] = $job;
     }
-    $logs = array();
+    $log_entries = array();
     foreach ($loggers as $logger => $jobs) {
-      $logs += ultimate_cron_plugin_load('logger', $logger)->loadLatestMultiple($jobs);
+      $log_entries += ultimate_cron_plugin_load('logger', $logger)->loadLatestLogEntries($jobs);
     }
-    return $logs;
+    return $log_entries;
   }
 
 
@@ -377,10 +377,18 @@ class UltimateCronJob {
    *   The log object.
    */
   public function startLog($lock_id, $init_message = '') {
-    $log = $this->getPlugin('logger');
-    $log->initialize($lock_id, $this, $init_message);
-    $log->catchMessages();
-    return $log;
+    $logger = $this->getPlugin('logger');
+    $log_entry = $logger->create($this, $lock_id, $init_message);
+    $logger->catchMessages($log_entry);
+    return $log_entry;
+  }
+
+  public function resumeLog($lock_id) {
+    $logger = $this->getPlugin('logger');
+    $log_entry = $logger->load($this, $lock_id);
+    $log_entry->finished = FALSE;
+    $logger->catchMessages($log_entry);
+    return $log_entry;
   }
 
   /**

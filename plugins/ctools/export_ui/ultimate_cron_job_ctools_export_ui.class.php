@@ -87,9 +87,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
    */
   public function unlock_page($js, $input, $item, $lock_id) {
     if ($item->unlock($lock_id, TRUE)) {
-      $log = $item->loadLog($lock_id);
-      $log->finished = FALSE;
-      $log->catchMessages();
+      $log_entry = $item->resumeLog($lock_id);
       global $user;
       $username = $user->uid ? $user->name : t('anonymous');
       watchdog('ultimate_cron', '@name manually unlocked by user @username (@uid)', array(
@@ -97,7 +95,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         '@username' => $username,
         '@uid' => $user->uid,
       ), WATCHDOG_WARNING);
-      $log->finish();
+      $log_entry->finish();
     }
 
     if (!$js) {
@@ -234,9 +232,9 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
   public function list_form(&$form, &$form_state) {
     parent::list_form($form, $form_state);
 
-    $logs = UltimateCronJob::loadLatestLogMultiple($this->items);
+    $log_entries = UltimateCronJob::loadLatestLogEntries($this->items);
     foreach ($this->items as $name => $item) {
-      $item->log_entry = isset($item->log_entry) ? $item->log_entry : $logs[$name]->log_entry;
+      $item->log_entry = isset($item->log_entry) ? $item->log_entry : $log_entries[$name];
     }
 
     $lock_ids = UltimateCronJob::isLockedMultiple($this->items);
@@ -299,7 +297,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       return TRUE;
     }
 
-    $item->log_entry = isset($item->log_entry) ? $item->log_entry : $item->loadLatestLog()->log_entry;
+    $item->log_entry = isset($item->log_entry) ? $item->log_entry : $item->loadLatestLogEntry();
     $item->lock_id = isset($item->lock_id) ? $item->lock_id : $item->isLocked();
 
     if ($form_state['values']['status'] == 'running') {

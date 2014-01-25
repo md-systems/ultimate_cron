@@ -27,12 +27,15 @@ function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL)
     return;
   }
 
-  $log = $job->loadLog($lock_id);
+  $log_entry = $job->resumeLog($lock_id);
 
-  if ($log->isCatched()) {
+/*
+  if ($log_entry->isCatched()) {
+    $log_entry->unCatchMessages();
     // Already catched by other, so we'll ignore this one.
     return;
   }
+*/
 
   // Rewrite message to conform with Ultimate Cron style, if this is
   // a manual unlock.
@@ -46,9 +49,8 @@ function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL)
     ));
   }
 
-  $log->finished = FALSE;
-  $log->catchMessages();
   watchdog('ultimate_cron', $msg, array(), WATCHDOG_WARNING);
+  $log_entry->finish();
 }
 
 /**
@@ -57,9 +59,7 @@ function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL)
 function ultimate_cron_background_process_legacy_callback($name, $lock_id) {
   $job = ultimate_cron_job_load($name);
 
-  $log = $job->loadLog($lock_id);
-  $log->finished = FALSE;
-  $log->catchMessages();
+  $log_entry = $job->resumeLog($lock_id);
 
   // Run job.
   try {
@@ -87,33 +87,33 @@ function ultimate_cron_background_process_legacy_callback($name, $lock_id) {
         background_process_keepalive();
 
         // Save a copy of the log.
-        $log->log_entry->lid = $lock_id . '-' . urlencode(uniqid('', TRUE));
+        $log_entry->lid = $lock_id . '-' . urlencode(uniqid('', TRUE));
         $job->sendSignal('background_process_legacy_dont_log');
-        $log->finish();
+        $log_entry->finish();
 
         // Restart log for keepalive.
-        $log->log_entry->lid = $lock_id;
+        $log_entry->lid = $lock_id;
         $handle = background_process_current_handle();
         $process = background_process_get_process($handle);
-        $log->log_entry->init_message = t('Re-launched at service host @name', array(
+        $log_entry->init_message = t('Re-launched at service host @name', array(
           '@name' => $process->service_host,
         ));
 
-        $log->log_entry->message = '';
-        $log->log_entry->end_time = 0;
-        $log->log_entry->start_time = microtime(TRUE);
-        $log->save();
+        $log_entry->message = '';
+        $log_entry->end_time = 0;
+        $log_entry->start_time = microtime(TRUE);
+        $log_entry->save();
       }
       else {
         $job->sendSignal('background_process_legacy_dont_log');
-        $log->finish();
+        $log_entry->finish();
         $job->unlock($lock_id);
       }
     }
     else {
       $job->run();
       $job->sendSignal('background_process_legacy_dont_log');
-      $log->finish();
+      $log_entry->finish();
       $job->unlock($lock_id);
     }
 
@@ -121,7 +121,7 @@ function ultimate_cron_background_process_legacy_callback($name, $lock_id) {
   catch (Exception $e) {
     watchdog('ultimate_cron', 'Error executing %job: @error', array('%job' => $job->name, '@error' => (string) $e), WATCHDOG_ERROR);
     $job->sendSignal('background_process_legacy_dont_log');
-    $log->finish();
+    $log_entry->finish();
     $job->unlock($lock_id);
   }
 }

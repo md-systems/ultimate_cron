@@ -193,6 +193,12 @@ function ultimate_cron_ctools_plugin_instance($name, $plugin) {
  * Load callback for plugins.
  */
 function ultimate_cron_plugin_load($plugin_type, $name) {
+  $cache = &drupal_static('ultimate_cron_plugin_load_all', array());
+  if (!isset($cache[$plugin_type][$name])) {
+    ultimate_cron_plugin_load_all($plugin_type);
+    $cache[$plugin_type][$name] = $cache[$plugin_type][$name] ? $cache[$plugin_type][$name] : FALSE;
+  }
+  return $cache[$plugin_type][$name];
   $plugins = ultimate_cron_plugin_load_all($plugin_type);
   return $plugins[$name];
 }
@@ -201,6 +207,10 @@ function ultimate_cron_plugin_load($plugin_type, $name) {
  * Load all callback for plugins.
  */
 function ultimate_cron_plugin_load_all($plugin_type) {
+  $cache = &drupal_static('ultimate_cron_plugin_load_all', array());
+  if (isset($cache[$plugin_type])) {
+    return $cache[$plugin_type];
+  }
   ctools_include('plugins');
   $plugin_infos = ctools_get_plugins('ultimate_cron', $plugin_type);
   $plugins = array();
@@ -209,7 +219,8 @@ function ultimate_cron_plugin_load_all($plugin_type) {
       $plugins[$name] = $object;
     }
   }
-  return $plugins;
+  $cache[$plugin_type] = $plugins;
+  return $cache[$plugin_type];
 }
 
 /**
@@ -881,6 +892,12 @@ function ultimate_cron_get_hooks($reset = FALSE) {
     return $cache;
   }
 
+  $cache = cache_get('ultimate_cron_hooks');
+  if ($cache && $cache->data) {
+    $cache = $cache->data;
+    return $cache;
+  }
+
   $hooks = array();
   // Generate list of jobs.
   $modules = module_list();
@@ -892,6 +909,7 @@ function ultimate_cron_get_hooks($reset = FALSE) {
   drupal_alter('cron', $hooks);
 
   $cache = $hooks;
+  cache_set('ultimate_cron_hooks', $cache);
   return $cache;
 }
 
