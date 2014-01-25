@@ -473,7 +473,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     // Schedule settings.
     $label = $item->getPlugin('scheduler')->getScheduledLabel($item);
-    if ($item->schedule()) {
+    if ($item->schedule(TRUE)) {
       $label = "<em>$label</em>";
     }
     $verbose = $item->getPlugin('scheduler')->getScheduledLabelVerbose($item);

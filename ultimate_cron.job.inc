@@ -262,10 +262,10 @@ class UltimateCronJob {
   /**
    * Check job schedule.
    */
-  public function schedule() {
-    module_invoke_all('cron_pre_schedule', $this);
-    $result = empty($this->disabled) && $this->getPlugin('scheduler')->schedule($this);
-    module_invoke_all('cron_post_schedule', $this);
+  public function schedule($real = FALSE) {
+    module_invoke_all('cron_pre_schedule', $this, $real);
+    $result = empty($this->disabled) && $this->getPlugin('scheduler')->schedule($this, $real);
+    module_invoke_all('cron_post_schedule', $this, $real);
     return $result;
   }
 

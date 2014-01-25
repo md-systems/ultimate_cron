@@ -508,7 +508,7 @@ abstract class UltimateCronScheduler extends UltimateCronPlugin {
    * @return bool
    *   TRUE if job should run.
    */
-  abstract public function schedule($job);
+  abstract public function schedule($job, $real = FALSE);
 
   public function getScheduledLabelVerbose($job) {
     return '';
