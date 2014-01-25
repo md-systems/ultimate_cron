@@ -303,8 +303,8 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
 
     $log_entries = array();
     while ($object = $result->fetchObject($this->log_entry_class, array($this))) {
+      $object->job = $jobs[$object->name];
       $log_entries[$object->name] = $object;
-      $log_entries[$object->name]->job = $jobs[$object->name];
     }
     foreach ($jobs as $name => $job) {
       if (!isset($log_entries[$name])) {
@@ -326,13 +326,12 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
       ->condition('l.name', $job->name)
       ->limit($limit)
       ->orderBy('l.start_time', 'DESC')
-      ->execute()
-      ->fetchAll();
+      ->execute();
 
     $log_entries = array();
     while ($object = $result->fetchObject($this->log_entry_class, array($this))) {
-      $log_entries[$object->name] = $object;
-      $log_entries[$object->name]->job = $job;
+      $object->job = $job;
+      $log_entries[$object->lid] = $object;
     }
 
     return $log_entries;

@@ -118,7 +118,12 @@ function ultimate_cron_poorman_page_flush() {
   ignore_user_abort();
 
   if (module_exists('devel') && variable_get('devel_query_display')) {
-    return;
+    if (
+      !empty($_SERVER['HTTP_USER_AGENT']) &&
+      $_SERVER['HTTP_USER_AGENT'] !== 'Ultimate Cron'
+    ) {
+      return;
+    }
   }
 
   $GLOBALS['poorman_active'] = TRUE;
@@ -289,7 +294,13 @@ function ultimate_cron_poorman_launcher($launcher = '') {
     'query' => array('cron_key' => variable_get('cron_key', 'drupal')),
     'absolute' => TRUE,
   ));
-  $response = drupal_http_request($url);
+  $options = array(
+    'headers' => array(
+      'User-Agent' => 'Ultimate Cron',
+    ),
+  );
+
+  $response = drupal_http_request($url, $options);
   if (!empty($response->error)) {
     watchdog('ultimate_cron', 'Could not launch poorman launcher at @url. Error: @error', array(
       '@url' => $url,
