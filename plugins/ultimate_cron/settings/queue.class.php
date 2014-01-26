@@ -14,10 +14,10 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
   public function cron_alter(&$jobs) {
     $new_jobs = array();
     foreach ($jobs as $job) {
-      $settings = $job->getSettings('settings');
-      if (isset($settings['queue']['name'])) {
-        if ($settings['queue']['throttle']) {
-          for ($i = 2; $i <= $settings['queue']['threads']; $i++) {
+      $settings = $job->getSettings();
+      if (isset($settings['settings']['queue']['name'])) {
+        if ($settings['settings']['queue']['throttle']) {
+          for ($i = 2; $i <= $settings['settings']['queue']['threads']; $i++) {
             $name = $job->name . '_' . $i;
             $hook = $job->hook;
             $hook['settings']['queue']['master'] = $job->name;
@@ -25,12 +25,24 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
             $hook['title'] .= " (#$i)";
             $hook['immutable'] = TRUE;
             $new_jobs[$name] = ultimate_cron_prepare_job($name, $hook);
-            $new_jobs[$name]->settings += $settings;
+            $new_jobs[$name]->settings = $settings + $new_jobs[$name]->settings;
           }
         }
       }
     }
     $jobs += $new_jobs;
+  }
+
+  /**
+   * Implements hook_cron_alter().
+   */
+  public function cron_pre_schedule($job) {
+    $settings = $job->getSettings('settings');
+    static $throttled = FALSE;
+    if (!$throttled && !empty($job->hook['settings']['queue']['master'])) {
+      $throttled = TRUE;
+      // $this->throttle($job);
+    }
   }
 
   /**
@@ -164,6 +176,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       for ($i = 2; $i <= $settings['queue']['threads']; $i++) {
         $name = $job->name . '_' . $i;
         $status = !empty($job->disabled) || ($items > ($i - 1) * $settings['queue']['threshold']);
+        $status = $status || $job->isLocked();
         ultimate_cron_job_set_status($name, !$status);
       }
     }

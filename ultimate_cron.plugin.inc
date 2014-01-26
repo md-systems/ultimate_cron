@@ -59,9 +59,177 @@ class UltimateCronPlugin {
   }
 
   /**
+   * Invoke hook_cron_pre_schedule() on plugins.
+   */
+  final static public function hook_cron_pre_schedule($job, $real) {
+    $plugin_types = ctools_plugin_get_plugin_type_info();
+    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+      $plugins = ultimate_cron_plugin_load_all($plugin_type);
+      foreach ($plugins as $plugin) {
+        if ($plugin->isValid($job)) {
+          $plugin->cron_pre_schedule($job, $real);
+        }
+      }
+    }
+  }
+
+  /**
+   * Invoke hook_cron_post_schedule() on plugins.
+   */
+  final static public function hook_cron_post_schedule($job, $real) {
+    $plugin_types = ctools_plugin_get_plugin_type_info();
+    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+      $plugins = ultimate_cron_plugin_load_all($plugin_type);
+      foreach ($plugins as $plugin) {
+        if ($plugin->isValid($job)) {
+          $plugin->cron_post_schedule($job, $real);
+        }
+      }
+    }
+  }
+
+  /**
+   * Invoke hook_cron_pre_launch() on plugins.
+   */
+  final static public function hook_cron_pre_launch($job) {
+    $plugin_types = ctools_plugin_get_plugin_type_info();
+    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+      $plugins = ultimate_cron_plugin_load_all($plugin_type);
+      foreach ($plugins as $plugin) {
+        if ($plugin->isValid($job)) {
+          $plugin->cron_pre_launch($job);
+        }
+      }
+    }
+  }
+
+  /**
+   * Invoke hook_cron_post_launch() on plugins.
+   */
+  final static public function hook_cron_post_launch($job) {
+    $plugin_types = ctools_plugin_get_plugin_type_info();
+    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+      $plugins = ultimate_cron_plugin_load_all($plugin_type);
+      foreach ($plugins as $plugin) {
+        if ($plugin->isValid($job)) {
+          $plugin->cron_post_launch($job);
+        }
+      }
+    }
+  }
+
+  /**
+   * Invoke hook_cron_pre_run() on plugins.
+   */
+  final static public function hook_cron_pre_run($job) {
+    $plugin_types = ctools_plugin_get_plugin_type_info();
+    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+      $plugins = ultimate_cron_plugin_load_all($plugin_type);
+      foreach ($plugins as $plugin) {
+        if ($plugin->isValid($job)) {
+          $plugin->cron_pre_run($job);
+        }
+      }
+    }
+  }
+
+  /**
+   * Invoke hook_cron_post_run() on plugins.
+   */
+  final static public function hook_cron_post_run($job) {
+    $plugin_types = ctools_plugin_get_plugin_type_info();
+    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+      $plugins = ultimate_cron_plugin_load_all($plugin_type);
+      foreach ($plugins as $plugin) {
+        if ($plugin->isValid($job)) {
+          $plugin->cron_post_run($job);
+        }
+      }
+    }
+  }
+
+  /**
+   * Invoke hook_cron_pre_invoke() on plugins.
+   */
+  final static public function hook_cron_pre_invoke($job) {
+    $plugin_types = ctools_plugin_get_plugin_type_info();
+    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+      $plugins = ultimate_cron_plugin_load_all($plugin_type);
+      foreach ($plugins as $plugin) {
+        if ($plugin->isValid($job)) {
+          $plugin->cron_pre_invoke($job);
+        }
+      }
+    }
+  }
+
+  /**
+   * Invoke hook_cron_post_invoke() on plugins.
+   */
+  final static public function hook_cron_post_invoke($job) {
+    $plugin_types = ctools_plugin_get_plugin_type_info();
+    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+      $plugins = ultimate_cron_plugin_load_all($plugin_type);
+      foreach ($plugins as $plugin) {
+        if ($plugin->isValid($job)) {
+          $plugin->cron_post_invoke($job);
+        }
+      }
+    }
+  }
+
+  /**
    * A hook_cron_alter() for plugins.
    */
   public function cron_alter($jobs) {
+  }
+
+  /**
+   * A hook_cron_pre_schedule() for plugins.
+   */
+  public function cron_pre_schedule($job, $real) {
+  }
+
+  /**
+   * A hook_cron_post_schedule() for plugins.
+   */
+  public function cron_post_schedule($job, $real) {
+  }
+
+  /**
+   * A hook_cron_pre_launch() for plugins.
+   */
+  public function cron_pre_launch($job) {
+  }
+
+  /**
+   * A hook_cron_post_launch() for plugins.
+   */
+  public function cron_post_launch($job) {
+  }
+
+  /**
+   * A hook_cron_pre_run() for plugins.
+   */
+  public function cron_pre_run($job) {
+  }
+
+  /**
+   * A hook_cron_post_run() for plugins.
+   */
+  public function cron_post_run($job) {
+  }
+
+  /**
+   * A hook_cron_pre_invoke() for plugins.
+   */
+  public function cron_pre_invoke($job) {
+  }
+
+  /**
+   * A hook_cron_post_invoke() for plugins.
+   */
+  public function cron_post_invoke($job) {
   }
 
   /**

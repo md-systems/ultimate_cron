@@ -212,6 +212,7 @@ class UltimateCronJob {
    * Invoke the jobs callback.
    */
   public function invoke() {
+    UltimateCronPlugin::hook_cron_pre_invoke($this);
     module_invoke_all('cron_pre_invoke', $this);
     switch ($this->hook['api_version']) {
       case 'ultimate_cron-1':
@@ -255,6 +256,7 @@ class UltimateCronJob {
           '@api_version' => $this->hook['api_version'],
         )));
     }
+    UltimateCronPlugin::hook_cron_post_invoke($this);
     module_invoke_all('cron_post_invoke', $this);
     return $result;
   }
@@ -263,8 +265,10 @@ class UltimateCronJob {
    * Check job schedule.
    */
   public function schedule($real = FALSE) {
+    UltimateCronPlugin::hook_cron_pre_schedule($this, $real);
     module_invoke_all('cron_pre_schedule', $this, $real);
     $result = empty($this->disabled) && $this->getPlugin('scheduler')->schedule($this, $real);
+    UltimateCronPlugin::hook_cron_post_schedule($this, $real);
     module_invoke_all('cron_post_schedule', $this, $real);
     return $result;
   }
@@ -274,8 +278,10 @@ class UltimateCronJob {
    */
   public function launch() {
     $this->clearSignals();
+    UltimateCronPlugin::hook_cron_pre_launch($this);
     module_invoke_all('cron_pre_launch', $this);
     $result = $this->getPlugin('launcher')->launch($this);
+    UltimateCronPlugin::hook_cron_post_launch($this);
     module_invoke_all('cron_post_launch', $this);
     return $result;
   }
@@ -322,8 +328,10 @@ class UltimateCronJob {
    * Run job.
    */
   public function run() {
+    UltimateCronPlugin::hook_cron_pre_run($this);
     module_invoke_all('cron_pre_run', $this);
     $result = $this->getPlugin('launcher')->run($this);
+    UltimateCronPlugin::hook_cron_post_run($this);
     module_invoke_all('cron_post_launch', $this);
     return $result;
   }
