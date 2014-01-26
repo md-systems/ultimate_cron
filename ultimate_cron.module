@@ -264,8 +264,8 @@ function ultimate_cron_job_load_all_export_ui($reset = FALSE) {
 /**
  * Export UI load callback.
  */
-function ultimate_cron_job_load($name) {
-  $jobs = ultimate_cron_job_load_all();
+function ultimate_cron_job_load($name, $reset = FALSE) {
+  $jobs = ultimate_cron_job_load_all($reset);
   return $jobs[$name];
 }
 
