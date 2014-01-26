@@ -791,7 +791,7 @@ class UltimateCronLogEntry {
   public $severity = -1;
 
   public $log_entry_fields = array(
-    'lid', 'uid', 'start_time', 'end_time', 'message', 'severity',
+    'lid', 'uid', 'start_time', 'end_time', 'init_message', 'message', 'severity',
   );
 
   public $logger;
