@@ -175,45 +175,15 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $rows = array();
     foreach ($log_entries as $log_entry) {
       $rows[$log_entry->lid]['data'] = array();
-      $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
-      $rows[$log_entry->lid]['data'][] = array('data' => $start_time, 'class' => array('ctools-export-ui-start-time'));
+      $rows[$log_entry->lid]['data'][] = array('data' => $log_entry->formatStartTime(), 'class' => array('ctools-export-ui-start-time'));
 
-      $duration = NULL;
-      if ($log_entry->start_time && $log_entry->end_time) {
-        $duration = (int) ($log_entry->end_time - $log_entry->start_time);
-      }
-      elseif ($log_entry->start_time) {
-        $duration = (int) (microtime(TRUE) - $log_entry->start_time);
-      }
-
-      switch (TRUE) {
-        case $duration >= 86400:
-          $format = 'd H:i:s';
-          break;
-
-        case $duration >= 3600:
-          $format = 'H:i:s';
-          break;
-
-        default:
-          $format = 'i:s';
-      }
-      $duration = isset($duration) ? gmdate($format, $duration) : t('N/A');
       $rows[$log_entry->lid]['data'][] = array(
-        'data' => $duration,
+        'data' => $log_entry->formatDuration(),
         'class' => array('ctools-export-ui-duration'),
-        'title' => $log_entry->end_time ? t('Previous run finished @ @end_time', array(
-          '@end_time' => format_date((int) $log_entry->end_time, 'custom', 'Y-m-d H:i:s'),
-        )) : '',
+        'title' => $log_entry->formatEndTime(),
       );
 
-      $username = t('anonymous') . ' (0)';
-      if ($log_entry->uid) {
-        $user = user_load($log_entry->uid);
-        $username = $user ? $user->name . " ($user->uid)": t('N/A');
-      }
-      $rows[$log_entry->lid]['data'][] = array('data' => $username, 'class' => array('ctools-export-ui-user'));
-
+      $rows[$log_entry->lid]['data'][] = array('data' => $log_entry->formatUser(), 'class' => array('ctools-export-ui-user'));
       $rows[$log_entry->lid]['data'][] = array('data' => '<pre>' . $log_entry->init_message . '</pre>', 'class' => array('ctools-export-ui-init-message'));
       $rows[$log_entry->lid]['data'][] = array('data' => '<pre>' . $log_entry->message . '</pre>', 'class' => array('ctools-export-ui-message'));
 
@@ -229,33 +199,10 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         $title = t('unfinished but not locked?');
       }
       else {
-        switch ($log_entry->severity) {
-          case WATCHDOG_EMERGENCY:
-          case WATCHDOG_ALERT:
-          case WATCHDOG_CRITICAL:
-          case WATCHDOG_ERROR:
-            $file = 'misc/message-16-error.png';
-            break;
-
-          case WATCHDOG_WARNING:
-          case WATCHDOG_NOTICE:
-            $file = 'misc/message-16-warning.png';
-            break;
-
-          case WATCHDOG_INFO:
-          case WATCHDOG_DEBUG:
-            $file = 'misc/message-16-info.png';
-            break;
-
-          default:
-            $file = 'misc/message-16-ok.png';
-        }
-        $severity_levels = array(
-          -1 => t('no info'),
-        ) + watchdog_severity_levels();
-        $status = theme('image', array('path' => $file));
-        $title = $severity_levels[$log_entry->severity];
+        $status = $log_entry->formatSeverity();
+        $title = $log_entry->formatMessage();
       }
+
       $rows[$log_entry->lid]['data'][] = array(
         'data' => $status,
         'class' => array('ctools-export-ui-status'),
@@ -331,7 +278,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       '#value' => t('Reload'),
       '#attributes' => array('class' => array('use-ajax-submit')),
     );
-}
+  }
 
   /**
    * Determine if a row should be filtered out.
@@ -449,35 +396,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     // Started and duration.
     $item->lock_id = isset($item->lock_id) ? $item->lock_id : $item->isLocked();
-    $log_entry = $item->log_entry;
-    $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
-
-    $username = t('anonymous') . ' (0)';
-    if ($log_entry->uid) {
-      $user = user_load($log_entry->uid);
-      $username = $user ? $user->name . " ($user->uid)": t('N/A');
-    }
-
-    $duration = 0;
-    if ($log_entry->start_time && $log_entry->end_time) {
-      $duration = (int) ($log_entry->end_time - $log_entry->start_time);
-    }
-    elseif ($log_entry->start_time) {
-      $duration = (int) (microtime(TRUE) - $log_entry->start_time);
-    }
-
-    switch (TRUE) {
-      case $duration >= 86400:
-        $format = 'd H:i:s';
-        break;
-
-      case $duration >= 3600:
-        $format = 'H:i:s';
-        break;
-
-      default:
-        $format = 'i:s';
-    }
+    $item->log_entry = isset($item->log_entry) ? $item->log_entry : $item->loadLatestLogEntry();
 
     // Note: $item->{$schema['export']['export type string']} should have already been set up by export.inc so
     // we can use it safely.
@@ -499,7 +418,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         break;
 
       case 'duration':
-        $this->rows[$name]['sort'] = $duration;
+        $this->rows[$name]['sort'] = $item->log_entry->getDuration();
         break;
 
       case 'storage':
@@ -529,71 +448,42 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     }
 
     // Schedule settings.
-    $label = $item->getPlugin('scheduler')->getScheduledLabel($item);
+    $label = $item->getPlugin('scheduler')->formatLabel($item);
     if ($item->schedule(TRUE)) {
       $label = "<em>$label</em>";
     }
-    $verbose = $item->getPlugin('scheduler')->getScheduledLabelVerbose($item);
     $this->rows[$name]['data'][] = array(
       'data' => $label,
       'class' => array('ctools-export-ui-scheduled'),
-      'title' => $verbose,
+      'title' => strip_tags($item->getPlugin('scheduler')->formatLabelVerbose($item)),
     );
 
     $this->rows[$name]['data'][] = array(
-      'data' => $start_time,
+      'data' => $item->log_entry->formatStartTime(),
       'class' => array('ctools-export-ui-last-start-time'),
-      'title' => strip_tags($log_entry->init_message) . ' ' . t('by') . " $username",
+      'title' => strip_tags($item->log_entry->formatInitMessage()),
     );
 
-    $duration = isset($duration) ? gmdate($format, $duration) : t('N/A');
     $this->rows[$name]['data'][] = array(
-      'data' => $duration,
+      'data' => $item->log_entry->formatDuration(),
       'class' => array('ctools-export-ui-duration'),
-      'title' => $log_entry->end_time ? t('Previous run finished @ @end_time', array(
-        '@end_time' => format_date((int) $log_entry->end_time, 'custom', 'Y-m-d H:i:s'),
-      )) : '',
+      'title' => $item->log_entry->formatEndTime(),
     );
 
     // Status.
-    if ($item->lock_id && $log_entry->lid == $item->lock_id) {
+    if ($item->lock_id && $item->log_entry->lid == $item->lock_id) {
       $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
       $status = theme('image', array('path' => $file));
       $title = t('running');
     }
-    elseif ($log_entry->start_time && !$log_entry->end_time) {
+    elseif ($item->log_entry->start_time && !$item->log_entry->end_time) {
       $file = drupal_get_path('module', 'ultimate_cron') . '/icons/lock_open.png';
       $status = theme('image', array('path' => $file));
       $title = t('unfinished but not locked?');
-      dpm($log_entry, $item->lock_id);
     }
     else {
-      switch ($log_entry->severity) {
-        case WATCHDOG_EMERGENCY:
-        case WATCHDOG_ALERT:
-        case WATCHDOG_CRITICAL:
-        case WATCHDOG_ERROR:
-          $file = 'misc/message-16-error.png';
-          break;
-
-        case WATCHDOG_WARNING:
-        case WATCHDOG_NOTICE:
-          $file = 'misc/message-16-warning.png';
-          break;
-
-        case WATCHDOG_INFO:
-        case WATCHDOG_DEBUG:
-          $file = 'misc/message-16-info.png';
-          break;
-
-        default:
-          $file = 'misc/message-16-ok.png';
-      }
-      $severity_levels = array(
-        -1 => t('no info'),
-      ) + watchdog_severity_levels();
-      $status = theme('image', array('path' => $file));
-      $title = $log_entry->message ? $log_entry->message : $severity_levels[$log_entry->severity];
+      $status = $item->log_entry->formatSeverity();
+      $title = $item->log_entry->formatMessage();
     }
     $this->rows[$name]['data'][] = array(
       'data' => $status,

@@ -21,7 +21,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   /**
    * Label for schedule.
    */
-  public function getScheduledLabel($job) {
+  public function formatLabel($job) {
     $settings = $job->getSettings();
     return implode(', ', $settings[$this->type][$this->name]['rules']);
   }
@@ -29,7 +29,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   /**
    * Label for schedule.
    */
-  public function getScheduledLabelVerbose($job) {
+  public function formatLabelVerbose($job) {
     $settings = $job->getSettings($this->type);
     $parsed = array();
 

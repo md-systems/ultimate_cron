@@ -108,6 +108,32 @@ class UltimateCronPlugin {
   }
 
   /**
+   * Format label for the plugin.
+   *
+   * @param UltimateCronJob $job
+   *   The job for format the plugin label for.
+   *
+   * @return string
+   *   Formatted label.
+   */
+  public function formatLabel($job) {
+    return $job->name;
+  }
+
+  /**
+   * Format verbose label for the plugin.
+   *
+   * @param UltimateCronJob $job
+   *   The job for format the verbose plugin label for.
+   *
+   * @return string
+   *   Verbosely formatted label.
+   */
+  public function formatLabelVerbose($job) {
+    return $job->title;
+  }
+
+  /**
    * Default plugin valid for all jobs.
    */
   public function isValid($job = NULL) {
@@ -511,18 +537,13 @@ abstract class UltimateCronScheduler extends UltimateCronPlugin {
    * @param UltimateCronJob $job
    *   The job to check schedule for.
    * @param boolean $real
-   *   Not sure how to describe this... disregards "catch_up" 
+   *   Not sure how to describe this... disregards "catch_up"
    *   for the serial launcher.
    *
    * @return boolean
    *   TRUE if job is scheduled to run.
    */
   abstract public function schedule($job, $real = FALSE);
-
-  public function getScheduledLabelVerbose($job) {
-    return '';
-  }
-
 }
 
 abstract class UltimateCronLauncher extends UltimateCronPlugin {
@@ -563,6 +584,7 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    *
    * @param UltimateCronJob $job
    *   The job to check.
+   *
    * @return string
    *   Lock ID of the locked job, FALSE if not locked.
    */
@@ -642,7 +664,7 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
   }
 }
 
-class UltimateCronLogger extends UltimateCronPlugin {
+abstract class UltimateCronLogger extends UltimateCronPlugin {
   static public $log_entries = NULL;
   public $log_entry_class = 'UltimateCronLogEntry';
 
@@ -775,12 +797,21 @@ class UltimateCronLogger extends UltimateCronPlugin {
     return $logs;
   }
 
-  public function load($name, $lock_id = NULL) {
-    return new $this->log_entry_class($name, $this);
-  }
+  /**
+   * Load a log.
+   *
+   * @param string $name
+   *   Name of log.
+   * @param string $lock_id
+   *   Specific lock id.
+   *
+   * @return UltimateCronLogEntry
+   *   Log entry
+   */
+  abstract public function load($name, $lock_id = NULL);
 }
 
-class UltimateCronLogEntry {
+abstract class UltimateCronLogEntry {
   public $lid = NULL;
   public $name = '';
   public $uid = 0;
@@ -798,6 +829,14 @@ class UltimateCronLogEntry {
   public $job;
   public $finished = FALSE;
 
+  /**
+   * Constructor.
+   *
+   * @param string $name
+   *   Name of log.
+   * @param UltimateCronLogger $logger
+   *   A logger object.
+   */
   public function __construct($name, $logger) {
     $this->name = $name;
     $this->logger = $logger;
@@ -805,6 +844,9 @@ class UltimateCronLogEntry {
     $this->uid = $user->uid;
   }
 
+  /**
+   * Get current log entry data as an associative array.
+   */
   public function getData() {
     $result = array();
     foreach ($this->log_entry_fields as $field) {
@@ -813,6 +855,9 @@ class UltimateCronLogEntry {
     return $result;
   }
 
+  /**
+   * Set current log entry data from an associative array.
+   */
   public function setData($data) {
     foreach ($this->log_entry_fields as $field) {
       if (array_key_exists($field, $data)) {
@@ -857,16 +902,130 @@ class UltimateCronLogEntry {
     }
   }
 
-  public function save() {
-  }
-
+  /**
+   * Start catching watchdog messages.
+   */
   public function catchMessages() {
     return $this->logger->catchMessages($this);
   }
 
+  /**
+   * Stop catching watchdog messages.
+   */
   public function unCatchMessages() {
     return $this->logger->unCatchMessages($this);
   }
+
+  /**
+   * Get duration.
+   */
+  public function getDuration() {
+    $duration = 0;
+    if ($this->start_time && $this->end_time) {
+      $duration = (int) ($this->end_time - $this->start_time);
+    }
+    elseif ($this->start_time) {
+      $duration = (int) (microtime(TRUE) - $this->start_time);
+    }
+    return $duration;
+  }
+
+  /**
+   * Format duration.
+   */
+  public function formatDuration() {
+    $duration = $this->getDuration();
+    switch (TRUE) {
+      case $duration >= 86400:
+        $format = 'd H:i:s';
+        break;
+
+      case $duration >= 3600:
+        $format = 'H:i:s';
+        break;
+
+      default:
+        $format = 'i:s';
+    }
+    return isset($duration) ? gmdate($format, $duration) : t('N/A');
+  }
+
+  /**
+   * Format start time.
+   */
+  public function formatStartTime() {
+    return $this->start_time ? format_date((int) $this->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
+  }
+
+  /**
+   * Format end time.
+   */
+  public function formatEndTime() {
+    return $this->end_time ? t('Previous run finished @ @end_time', array(
+        '@end_time' => format_date((int) $this->end_time, 'custom', 'Y-m-d H:i:s'))) : '';
+  }
+
+  /**
+   * Format user.
+   */
+  public function formatUser() {
+    $username = t('anonymous') . ' (0)';
+    if ($this->uid) {
+      $user = user_load($this->uid);
+      $username = $user ? $user->name . " ($user->uid)" : t('N/A');
+    }
+    return $username;
+  }
+
+  /**
+   * Format initial message.
+   */
+  public function formatInitMessage() {
+    return $this->init_message . ' ' . t('by') . ' ' . $this->formatUser();
+  }
+
+  /**
+   * Format message.
+   */
+  public function formatMessage() {
+    $severity_levels = array(
+      -1 => t('no info'),
+    ) + watchdog_severity_levels();
+    return $this->message ? $this->message : $severity_levels[$this->severity];
+  }
+
+  /**
+   * Format severity.
+   */
+  public function formatSeverity() {
+    switch ($this->severity) {
+      case WATCHDOG_EMERGENCY:
+      case WATCHDOG_ALERT:
+      case WATCHDOG_CRITICAL:
+      case WATCHDOG_ERROR:
+        $file = 'misc/message-16-error.png';
+        break;
+
+      case WATCHDOG_WARNING:
+      case WATCHDOG_NOTICE:
+        $file = 'misc/message-16-warning.png';
+        break;
+
+      case WATCHDOG_INFO:
+      case WATCHDOG_DEBUG:
+        $file = 'misc/message-16-info.png';
+        break;
+
+      default:
+        $file = 'misc/message-16-ok.png';
+    }
+    return theme('image', array('path' => $file));
+  }
+
+  /**
+   * Save log entry.
+   */
+  abstract public function save();
 }
 
 class UltimateCronSettings extends UltimateCronPluginMultiple {
