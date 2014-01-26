@@ -591,7 +591,8 @@ function ultimate_cron_queue_cron($job) {
 
   $end = microtime(TRUE) + $settings['queue']['time'];
   $items = 0;
-  while (microtime(TRUE) < $end && $item = $queue->claimItem($settings['queue']['lease_time'])) {
+  while (microtime(TRUE) < $end) {
+    $item = $queue->claimItem($settings['queue']['lease_time']);
     if (!$item) {
       if ($settings['queue']['empty_delay']) {
         usleep($settings['queue']['empty_delay'] * 1000000);

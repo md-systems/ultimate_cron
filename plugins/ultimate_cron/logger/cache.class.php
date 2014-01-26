@@ -27,13 +27,14 @@ class UltimateCronCacheLogger extends UltimateCronLogger {
   /**
    * Load log entry.
    */
-  public function load($job, $lock_id = NULL) {
-    $log_entry = new $this->log_entry_class($this, $job);
+  public function load($name, $lock_id = NULL) {
+    $log_entry = new $this->log_entry_class($name, $this);
 
+    $job = ultimate_cron_job_load($name);
     $settings = $job->getSettings('logger');
 
     if (!$lock_id) {
-      $cache = cache_get('uc-name:' . $job->name, $settings['bin']);
+      $cache = cache_get('uc-name:' . $name, $settings['bin']);
       if (empty($cache) || empty($cache->data)) {
         return $log_entry;
       }
@@ -51,8 +52,8 @@ class UltimateCronCacheLogger extends UltimateCronLogger {
   /**
    * Get log entries.
    */
-  public function getLogEntries($job) {
-    $log_entry = $this->load($job);
+  public function getLogEntries($name) {
+    $log_entry = $this->load($name);
     return $log_entry->lid ? array($log_entry) : array();
   }
 
@@ -92,9 +93,11 @@ class UltimateCronCacheLogEntry extends UltimateCronLogEntry {
       return;
     }
 
-    $settings = $this->job ? $this->job->getSettings('logger') : $this->logger->getDefaultSettings();
+    $job = ultimate_cron_job_load($this->name);
+
+    $settings = $this->logger->getDefaultSettings($job);
     $expire = $settings['timeout'] > 0 ? time() + $settings['timeout'] : $settings['timeout'];
-    cache_set('uc-name:' . $this->job->name, $this->lid, $settings['bin'], $expire);
+    cache_set('uc-name:' . $this->name, $this->lid, $settings['bin'], $expire);
     cache_set('uc-lid:' . $this->lid, $this->getData(), $settings['bin'], $expire);
   }
 }

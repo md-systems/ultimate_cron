@@ -332,21 +332,21 @@ class UltimateCronJob {
    * Get log entries.
    */
   public function getLogEntries($limit = 10) {
-    return $this->getPlugin('logger')->getLogEntries($this, $limit);
+    return $this->getPlugin('logger')->getLogEntries($this->name, $limit);
   }
 
   /**
    * Load log entry.
    */
   public function loadLogEntry($lock_id) {
-    return $this->getPlugin('logger')->load($this, $lock_id);
+    return $this->getPlugin('logger')->load($this->name, $lock_id);
   }
 
   /**
    * Load latest log.
    */
   public function loadLatestLogEntry() {
-    return $this->getPlugin('logger')->load($this);
+    return $this->getPlugin('logger')->load($this->name);
   }
 
   /**
@@ -378,14 +378,14 @@ class UltimateCronJob {
    */
   public function startLog($lock_id, $init_message = '') {
     $logger = $this->getPlugin('logger');
-    $log_entry = $logger->create($this, $lock_id, $init_message);
+    $log_entry = $logger->create($this->name, $lock_id, $init_message);
     $logger->catchMessages($log_entry);
     return $log_entry;
   }
 
   public function resumeLog($lock_id) {
     $logger = $this->getPlugin('logger');
-    $log_entry = $logger->load($this, $lock_id);
+    $log_entry = $logger->load($this->name, $lock_id);
     $log_entry->finished = FALSE;
     $logger->catchMessages($log_entry);
     return $log_entry;

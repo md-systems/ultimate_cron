@@ -13,8 +13,10 @@ class UltimateCronLock {
    * Shutdown handler for releasing locks.
    */
   static public function shutdown() {
-    foreach (array_keys(self::$locks) as $lock_id) {
-      self::unlock($lock_id);
+    if (self::$locks) {
+      foreach (array_keys(self::$locks) as $lock_id) {
+        self::unlock($lock_id);
+      }
     }
   }
 

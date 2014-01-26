@@ -50,7 +50,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       'daemonize' => FALSE,
       'daemonize_interval' => 10,
       'daemonize_delay' => 1,
-    );
+    ) + parent::defaultSettings();
   }
 
   /**
@@ -153,36 +153,32 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   }
 
   /**
-   * Settings form validator.
-   */
-  public function settingsFormValidate($form, &$form_state, $job = NULL) {
-    $elements = &$form['settings'][$this->type][$this->name];
-    $values = &$form_state['values']['settings'][$this->type][$this->name];
-  }
-
-  /**
    * Lock job.
    *
    * Background Process doesn't internally provide a unique id
    * for the running process, so we'll have to add that ourselves.
    */
   public function lock($job) {
-    $lock_id = 'uc-' . $job->name . '-' . urlencode(uniqid('', TRUE));
-    $process = new BackgroundProcess($lock_id);
-    if ($process->lock()) {
-      return $lock_id;
+    $process = new BackgroundProcess($job->name);
+    if (!$process->lock()) {
+      return FALSE;
     }
-    return FALSE;
+    return $job->name . ':' . uniqid('bgpl', TRUE);
   }
 
   /**
    * Unlock background process.
    */
   public function unlock($lock_id, $manual = FALSE) {
-    if ($manual) {
-      $GLOBALS['background_process_legacy_dont_log'][$lock_id] = TRUE;
+    if (!preg_match('/(.*):bgpl.*/', $lock_id, $matches)) {
+      return FALSE;
     }
-    return background_process_unlock($lock_id);
+    $handle = $matches[1];
+    if ($manual) {
+      $job = ultimate_cron_job_load($handle);
+      $job->sendSignal('background_process_legacy_dont_log');
+    }
+    return background_process_unlock($handle);
   }
 
   /**
@@ -193,14 +189,11 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * the job name.
    */
   public function isLocked($job) {
-    $lock_id_prefix = 'uc-' . $job->name . '-';
-    $lock_id = db_select('background_process', 'bp')
-      ->fields('bp', array('handle'))
-      ->condition('bp.handle', db_like($lock_id_prefix) . '%', 'LIKE')
-      ->range(0, 1)
-      ->execute()
-      ->fetchField();
-    return $lock_id;
+    $process = background_process_get_process($job->name);
+    if ($process) {
+      return $process->args[1];
+    }
+    return FALSE;
   }
 
   /**
@@ -220,11 +213,14 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * Background Process launch.
    */
   public function launch($job) {
+    $lock_id = $job->lock();
+    if (!$lock_id) {
+      return;
+    }
+
     $settings = $job->getSettings();
 
-    $lock_id = $job->lock();
-
-    $process = new BackgroundProcess($lock_id);
+    $process = new BackgroundProcess($job->name);
     $this->exec_status = $this->status = BACKGROUND_PROCESS_STATUS_LOCKED;
 
     // Always run cron job as anonymous user.
@@ -244,17 +240,21 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       ));
     }
 
-    $log = $job->startLog($lock_id, $init_message);
+    $log_entry = $job->startLog($lock_id, $init_message);
 
     // We want to finish the log in the sub-request.
-    $log->unCatchMessages();
+    $log_entry->unCatchMessages();
 
-    $process->execute('ultimate_cron_background_process_legacy_callback', array($job->name, $log->log_entry->lid));
+    if (!$process->execute('ultimate_cron_background_process_legacy_callback', array($job->name, $lock_id))) {
+      $this->unlock($lock_id);
+      return FALSE;
+    }
 
     drupal_set_message(t('@name: @init_message', array(
       '@name' => $job->name,
       '@init_message' => $init_message,
     )));
+    return TRUE;
   }
 
   /**

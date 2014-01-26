@@ -18,6 +18,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       'max_execution_time' => 3600,
       'max_threads' => 1,
       'thread' => 'any',
+      'lock_timeout' => 3600,
     ) + parent::defaultSettings();
   }
 
@@ -25,12 +26,17 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
    * Settings form for the crontab scheduler.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
-    parent::settingsForm($form, $form_state, $job);
-
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
-    unset($elements['no_settings']);
+    $elements['lock_timeout'] = array(
+      '#title' => t("Job lock timeout"),
+      '#type' => 'textfield',
+      '#default_value' => $values['lock_timeout'],
+      '#description' => t('Number of seconds to keep lock on job.'),
+      '#fallback' => TRUE,
+      '#required' => TRUE,
+    );
 
     if (!$job) {
       $max_threads = $values['max_threads'];
@@ -86,6 +92,55 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
         )));
       }
     }
+  }
+
+  /**
+   * Lock job.
+   */
+  public function lock($job) {
+    $settings = $job->getSettings($this->type);
+    $timeout = $settings['lock_timeout'];
+
+    if ($lock_id = UltimateCronLock::lock($job->name, $timeout)) {
+      $lock_id = $this->name . '-' . $lock_id;
+      return $lock_id;
+    }
+    return FALSE;
+  }
+
+  /**
+   * Unlock job.
+   */
+  public function unlock($lock_id, $manual = FALSE) {
+    list($launcher, $lock_id) = explode('-', $lock_id, 2);
+    return UltimateCronLock::unlock($lock_id);
+  }
+
+  /**
+   * Check if job is locked.
+   */
+  public function isLocked($job) {
+    $lock_id = UltimateCronLock::isLocked($job->name);
+    return $lock_id ? $this->name . '-' . $lock_id : $lock_id;
+  }
+
+  public function isLockedMultiple($jobs) {
+    $names = array();
+    foreach ($jobs as $job) {
+      $names[] = $job->name;
+    }
+    $lock_ids = UltimateCronLock::isLockedMultiple($names);
+    foreach ($lock_ids as $name => &$lock_id) {
+      $lock_id = $lock_id ? $this->name . '-' . $lock_id : $lock_id;
+    }
+    return $lock_ids;
+  }
+
+  /**
+   * Cleanup.
+   */
+  function cleanup() {
+    UltimateCronLock::cleanup();
   }
 
   /**

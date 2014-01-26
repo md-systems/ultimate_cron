@@ -110,8 +110,58 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
    * Page with logs.
    */
   public function logs_page($js, $input, $item) {
-    $output = '';
+    /*
+    $log_entries = $item->getLogEntries(50);
+
+    $data = array();
+    $xlabels = array();
+    $max = 0;
+    foreach (array_reverse($log_entries) as $log_entry) {
+      $duration = round(($log_entry->end_time - $log_entry->start_time) * 1000);
+      $data[] = $duration;
+      $max = $max < $duration ? $duration : $max;
+      $xlabels[] = format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s');
+    }
+
+    $ylabels = array();
+    $step = $max / 20;
+    dpm($step);
+    dpm($max);
+    for ($yc = 0; $yc <= $max; $yc += $step) {
+      $yl = $yc / 1000;
+      // dpm($yc);
+      $ylabels[round($yc)] = gmdate('H:i:s:', (int) $yl) . sprintf("%04d", round($yl * 1000));
+    }
+    dpm($ylabels);
+
+    $chart = array(
+      '#type' => 'chart',
+      '#chart_type' => 'column',
+      '#title' => t('Column simple'),
+      '#chart_library' => 'highcharts',
+    );
+    $chart['duration'] = array(
+      '#type' => 'chart_data',
+      '#title' => t('Duration'),
+      '#data' => $data,
+      // '#suffix' => 'seconds',
+    );
+    $chart['xaxis'] = array(
+      '#type' => 'chart_xaxis',
+      '#labels' => $xlabels,
+    );
+    $chart['yaxis'] = array(
+      '#type' => 'chart_yaxis',
+      '#axis_type' => 'linear',
+      '#labels' => $ylabels,
+    );
+    dpm($chart);
+
+    return drupal_render($chart);
+/**/
+
     $log_entries = $item->getLogEntries();
+    $output = '';
     $header = array(
       t('Started'),
       t('Duration'),
@@ -275,7 +325,13 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       '#default_value' => 'all',
       '#weight' => -1,
     );
-  }
+    $form['bottom row']['reload'] = array(
+      '#type' => 'submit',
+      '#id' => 'ctools-export-ui-list-items-reload',
+      '#value' => t('Reload'),
+      '#attributes' => array('class' => array('use-ajax-submit')),
+    );
+}
 
   /**
    * Determine if a row should be filtered out.
@@ -392,6 +448,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $schema = ctools_export_get_schema($this->plugin['schema']);
 
     // Started and duration.
+    $item->lock_id = isset($item->lock_id) ? $item->lock_id : $item->isLocked();
     $log_entry = $item->log_entry;
     $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
 
@@ -508,6 +565,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       $file = drupal_get_path('module', 'ultimate_cron') . '/icons/lock_open.png';
       $status = theme('image', array('path' => $file));
       $title = t('unfinished but not locked?');
+      dpm($log_entry, $item->lock_id);
     }
     else {
       switch ($log_entry->severity) {

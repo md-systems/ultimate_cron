@@ -20,6 +20,8 @@ function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL)
   // Close the Ultimate Cron log entry.
   list ($name, $lock_id) = $process->args;
 
+  // If someone has set the dont log signal, it means that they
+  // are handling the shutdown of the log.
   $job = ultimate_cron_job_load($name);
   if ($job->getSignal('background_process_legacy_dont_log')) {
     // Resend within this request, just in case.
@@ -28,14 +30,6 @@ function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL)
   }
 
   $log_entry = $job->resumeLog($lock_id);
-
-/*
-  if ($log_entry->isCatched()) {
-    $log_entry->unCatchMessages();
-    // Already catched by other, so we'll ignore this one.
-    return;
-  }
-*/
 
   // Rewrite message to conform with Ultimate Cron style, if this is
   // a manual unlock.

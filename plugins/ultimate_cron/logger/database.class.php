@@ -252,29 +252,29 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   /**
    * Load log entry.
    */
-  public function load($job, $lock_id = NULL) {
+  public function load($name, $lock_id = NULL) {
     if ($lock_id) {
       $log_entry = db_select('ultimate_cron_log', 'l')
         ->fields('l')
         ->condition('l.lid', $lock_id)
         ->execute()
-        ->fetchObject('UltimateCronDatabaseLogEntry', array($this));
+        ->fetchObject('UltimateCronDatabaseLogEntry', array($name, $this));
     }
     else {
       $log_entry = db_select('ultimate_cron_log', 'l')
         ->fields('l')
-        ->condition('l.name', $job->name)
+        ->condition('l.name', $name)
         ->orderBy('l.start_time', 'DESC')
         ->orderBy('l.end_time', 'DESC')
         ->range(0, 1)
         ->execute()
-        ->fetchObject('UltimateCronDatabaseLogEntry', array($this));
+        ->fetchObject('UltimateCronDatabaseLogEntry', array($name, $this));
     }
     if ($log_entry) {
       $log_entry->finished = TRUE;
     }
     else {
-      $log_entry = new UltimateCronDatabaseLogEntry($this);
+      $log_entry = new UltimateCronDatabaseLogEntry($name, $this);
     }
     return $log_entry;
   }
@@ -302,14 +302,18 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
     WHERE l.name IN (:jobs)", array(':jobs' => array_keys($jobs)));
 
     $log_entries = array();
-    while ($object = $result->fetchObject($this->log_entry_class, array($this))) {
-      $object->job = $jobs[$object->name];
+    while ($object = $result->fetchObject()) {
+      $log_entries[$object->name] = new $this->log_entry_class($object->name, $this);
+      $log_entries[$object->name]->setData((array) $object);
+    }
+    /*
+    while ($object = $result->fetchObject($this->log_entry_class, array($name, $this))) {
       $log_entries[$object->name] = $object;
     }
+    */
     foreach ($jobs as $name => $job) {
       if (!isset($log_entries[$name])) {
-        $log_entries[$name] = new $this->log_entry_class($this, $job);
-        $log_entries[$name]->job = $job;
+        $log_entries[$name] = new $this->log_entry_class($name, $this);
       }
     }
 
@@ -319,18 +323,17 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   /**
    * Get log entries.
    */
-  public function getLogEntries($job, $limit = 10) {
+  public function getLogEntries($name, $limit = 10) {
     $result = db_select('ultimate_cron_log', 'l')
       ->fields('l')
       ->extend('PagerDefault')
-      ->condition('l.name', $job->name)
+      ->condition('l.name', $name)
       ->limit($limit)
       ->orderBy('l.start_time', 'DESC')
       ->execute();
 
     $log_entries = array();
-    while ($object = $result->fetchObject($this->log_entry_class, array($this))) {
-      $object->job = $job;
+    while ($object = $result->fetchObject($this->log_entry_class, array($name, $this))) {
       $log_entries[$object->lid] = $object;
     }
 
@@ -347,11 +350,14 @@ class UltimateCronDatabaseLogEntry extends UltimateCronLogEntry {
     if (!$this->lid) {
       return;
     }
+
+    static $retry = 0;
+
     try {
       db_insert('ultimate_cron_log')
         ->fields(array(
           'lid' => $this->lid,
-          'name' => $this->job->name,
+          'name' => $this->name,
           'start_time' => $this->start_time,
           'end_time' => $this->end_time,
           'uid' => $this->uid,
@@ -365,7 +371,7 @@ class UltimateCronDatabaseLogEntry extends UltimateCronLogEntry {
       // Row already exists. Let's update it, if we can.
       $updated = db_update('ultimate_cron_log')
         ->fields(array(
-          'name' => $this->job->name,
+          'name' => $this->name,
           'start_time' => $this->start_time,
           'end_time' => $this->end_time,
           'init_message' => $this->init_message,
@@ -385,7 +391,15 @@ class UltimateCronDatabaseLogEntry extends UltimateCronLogEntry {
         )) . "\n" . $this->message;
         $this->severity = $this->severity >= 0 && $this->severity < WATCHDOG_ERROR ? $this->severity : WATCHDOG_ERROR;
         $this->lid = $lid;
+        $retry++;
+        if ($retry > 3) {
+          $retry = 0;
+          watchdog('database_logger', (string) $e, array(), WATCHDOG_CRITICAL);
+          return;
+        }
+
         $this->save();
+        $retry--;
       }
     }
   }

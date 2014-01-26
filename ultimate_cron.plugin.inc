@@ -33,6 +33,9 @@ class UltimateCronPlugin {
     $this->settings = variable_get($this->key, array());
   }
 
+  /**
+   * Singleton factory.
+   */
   public function factory($class, $name, $plugin) {
     if (empty($class::$instances[$plugin['plugin type']][$name])) {
       self::$instances[$plugin['plugin type']][$name] = new $class($name, $plugin);
@@ -56,7 +59,7 @@ class UltimateCronPlugin {
   }
 
   /**
-   * hook_cron_alter() for plugins.
+   * A hook_cron_alter() for plugins.
    */
   public function cron_alter($jobs) {
   }
@@ -111,6 +114,9 @@ class UltimateCronPlugin {
     return TRUE;
   }
 
+  /**
+   * Default cleanup method plugins.
+   */
   public function cleanup() {
   }
 
@@ -504,9 +510,12 @@ abstract class UltimateCronScheduler extends UltimateCronPlugin {
    *
    * @param UltimateCronJob $job
    *   The job to check schedule for.
+   * @param boolean $real
+   *   Not sure how to describe this... disregards "catch_up" 
+   *   for the serial launcher.
    *
-   * @return bool
-   *   TRUE if job should run.
+   * @return boolean
+   *   TRUE if job is scheduled to run.
    */
   abstract public function schedule($job, $real = FALSE);
 
@@ -517,71 +526,80 @@ abstract class UltimateCronScheduler extends UltimateCronPlugin {
 }
 
 abstract class UltimateCronLauncher extends UltimateCronPlugin {
-  /**
-   * Launch job.
-   */
-  abstract public function launch($job);
 
   /**
    * Default settings.
    */
   public function defaultSettings() {
-    return array(
-      'lock_timeout' => 3600,
-    ) + parent::defaultSettings();
-  }
-
-  /**
-   * Generate lock key for job.
-   */
-  public function lockKey($job) {
-    return $job->name;
+    return array();
   }
 
   /**
    * Lock job.
+   *
+   * @param UltimateCronJob $job
+   *   The job to lock.
+   *
+   * @return string
+   *   Lock ID or FALSE.
    */
-  public function lock($job) {
-    $settings = $job->getSettings($this->type);
-    $timeout = $settings['lock_timeout'];
-
-    if ($lock_id = UltimateCronLock::lock($this->lockKey($job), $timeout)) {
-      $lock_id = $this->name . '-' . $lock_id;
-      return $lock_id;
-    }
-    return FALSE;
-  }
+  abstract public function lock($job);
 
   /**
-   * Unlock job.
+   * Unlock a lock.
+   *
+   * @param string $lock_id
+   *   The lock id to unlock.
+   * @param boolean $manual
+   *   Whether this is a manual unlock or not.
+   *
+   * @return boolean
+   *   TRUE on successful unlock.
    */
-  public function unlock($lock_id, $manual = FALSE) {
-    list($launcher, $lock_id) = explode('-', $lock_id, 2);
-    return UltimateCronLock::unlock($lock_id);
-  }
+  abstract public function unlock($lock_id, $manual = FALSE);
 
   /**
-   * Check if job is locked.
+   * Check if a job is locked.
+   *
+   * @param UltimateCronJob $job
+   *   The job to check.
+   * @return string
+   *   Lock ID of the locked job, FALSE if not locked.
    */
-  public function isLocked($job) {
-    $lock_id = UltimateCronLock::isLocked($this->lockKey($job));
-    return $lock_id ? $this->name . '-' . $lock_id : $lock_id;
-  }
+  abstract public function isLocked($job);
 
+  /**
+   * Launch job.
+   *
+   * @param UltimateCronJob $job
+   *   The job to launch.
+   *
+   * @return boolean
+   *   TRUE on successful launch.
+   */
+  abstract public function launch($job);
+
+  /**
+   * Default implementation of multiple lock check.
+   *
+   * @param array $jobs
+   *   Array of UltimateCronJob to check.
+   *
+   * @return array
+   *   Array of lock ids, keyed by job name.
+   */
   public function isLockedMultiple($jobs) {
-    $names = array();
-    foreach ($jobs as $job) {
-      $names[] = $this->lockKey($job);
+    $lock_ids = array();
+    foreach ($jobs as $name => $job) {
+      $lock_ids[$name] = $this->isLocked($job);
     }
-    $lock_ids = UltimateCronLock::isLockedMultiple($names);
-    foreach ($lock_ids as $name => &$lock_id) {
-      $lock_id = $lock_id ? $this->name . '-' . $lock_id : $lock_id;
-    }
-    return $lock_ids;
   }
 
   /**
    * Run the job.
+   *
+   * @param UltimateCronJob $job
+   *   The job to run.
    */
   public function run($job) {
     $php_self = NULL;
@@ -610,24 +628,10 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
   }
 
   /**
-   * Settings form.
-   */
-  public function settingsForm(&$form, &$form_state, $job = NULL) {
-    $elements = &$form['settings'][$this->type][$this->name];
-    $values = &$form_state['values']['settings'][$this->type][$this->name];
-
-    $elements['lock_timeout'] = array(
-      '#title' => t("Job lock timeout"),
-      '#type' => 'textfield',
-      '#default_value' => $values['lock_timeout'],
-      '#description' => t('Number of seconds to keep lock on job.'),
-      '#fallback' => TRUE,
-      '#required' => TRUE,
-    );
-  }
-
-  /**
-   * Launch scheduled cron jobs.
+   * Default implementation of jobs launcher.
+   *
+   * @param array $jobs
+   *   Array of UltimateCronJob to launch.
    */
   public function launchJobs($jobs) {
     foreach ($jobs as $job) {
@@ -635,13 +639,6 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
         $job->launch();
       }
     }
-  }
-
-  /**
-   * Cleanup.
-   */
-  function cleanup() {
-    UltimateCronLock::cleanup();
   }
 }
 
@@ -652,10 +649,10 @@ class UltimateCronLogger extends UltimateCronPlugin {
   /**
    * Create a new log entry.
    */
-  public function create($job, $lock_id, $init_message = '') {
+  public function create($name, $lock_id, $init_message = '') {
     global $user;
 
-    $log_entry = new $this->log_entry_class($this, $job);
+    $log_entry = new $this->log_entry_class($name, $this);
     $log_entry->lid = $lock_id;
     $log_entry->start_time = microtime(TRUE);
     $log_entry->init_message = $init_message;
@@ -746,7 +743,7 @@ class UltimateCronLogger extends UltimateCronPlugin {
       global $user;
       global $base_root;
       $watchdog_log_entry = array(
-        'type'        => 'ultimate_cron',
+        'type'        => $log_entry->name,
         'message'     => $message,
         'variables'   => array(),
         'severity'    => $severity,
@@ -778,13 +775,14 @@ class UltimateCronLogger extends UltimateCronPlugin {
     return $logs;
   }
 
-  public function load($job, $lock_id = NULL) {
-    return new $this->log_entry_class($this, $job);
+  public function load($name, $lock_id = NULL) {
+    return new $this->log_entry_class($name, $this);
   }
 }
 
 class UltimateCronLogEntry {
   public $lid = NULL;
+  public $name = '';
   public $uid = 0;
   public $start_time = 0;
   public $end_time = 0;
@@ -800,9 +798,9 @@ class UltimateCronLogEntry {
   public $job;
   public $finished = FALSE;
 
-  public function __construct($logger, $job = NULL) {
+  public function __construct($name, $logger) {
+    $this->name = $name;
     $this->logger = $logger;
-    $this->job = $job;
     global $user;
     $this->uid = $user->uid;
   }
