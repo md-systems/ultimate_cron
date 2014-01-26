@@ -865,6 +865,10 @@ class UltimateCronLogEntry {
   public function catchMessages() {
     return $this->logger->catchMessages($this);
   }
+
+  public function unCatchMessages() {
+    return $this->logger->unCatchMessages($this);
+  }
 }
 
 class UltimateCronSettings extends UltimateCronPluginMultiple {
