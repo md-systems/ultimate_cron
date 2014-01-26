@@ -135,6 +135,18 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
   }
 
   /**
+   * Submit handler.
+   *
+   * Clean up after our grouping.
+   */
+  public function settingsFormSubmit(&$form, &$form_state) {
+    $values = &$form_state['values']['settings'][$this->type][$this->name];
+    unset($values['timeouts']);
+    unset($values['delays']);
+    unset($values['throttling']);
+  }
+
+  /**
    * Throttle queues.
    *
    * Enables or disables queue threads depending on remaining items in queue.
