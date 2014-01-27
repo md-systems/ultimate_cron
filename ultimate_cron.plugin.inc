@@ -61,13 +61,13 @@ class UltimateCronPlugin {
   /**
    * Invoke hook_cron_pre_schedule() on plugins.
    */
-  final static public function hook_cron_pre_schedule($job, $real) {
+  final static public function hook_cron_pre_schedule($job) {
     $plugin_types = ctools_plugin_get_plugin_type_info();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
         if ($plugin->isValid($job)) {
-          $plugin->cron_pre_schedule($job, $real);
+          $plugin->cron_pre_schedule($job);
         }
       }
     }
@@ -76,13 +76,13 @@ class UltimateCronPlugin {
   /**
    * Invoke hook_cron_post_schedule() on plugins.
    */
-  final static public function hook_cron_post_schedule($job, $real) {
+  final static public function hook_cron_post_schedule($job) {
     $plugin_types = ctools_plugin_get_plugin_type_info();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
         if ($plugin->isValid($job)) {
-          $plugin->cron_post_schedule($job, $real);
+          $plugin->cron_post_schedule($job);
         }
       }
     }
@@ -187,13 +187,13 @@ class UltimateCronPlugin {
   /**
    * A hook_cron_pre_schedule() for plugins.
    */
-  public function cron_pre_schedule($job, $real) {
+  public function cron_pre_schedule($job) {
   }
 
   /**
    * A hook_cron_post_schedule() for plugins.
    */
-  public function cron_post_schedule($job, $real) {
+  public function cron_post_schedule($job) {
   }
 
   /**
@@ -704,14 +704,22 @@ abstract class UltimateCronScheduler extends UltimateCronPlugin {
    *
    * @param UltimateCronJob $job
    *   The job to check schedule for.
-   * @param boolean $real
-   *   Not sure how to describe this... disregards "catch_up"
-   *   for the serial launcher.
    *
    * @return boolean
    *   TRUE if job is scheduled to run.
    */
-  abstract public function schedule($job, $real = FALSE);
+  abstract public function schedule($job);
+
+  /**
+   * Check if job is behind schedule.
+   *
+   * @param UltimateCronJob $job
+   *   The job to check schedule for.
+   *
+   * @return boolean
+   *   TRUE if job is behind its schedule.
+   */
+  abstract public function isBehind($job);
 }
 
 abstract class UltimateCronLauncher extends UltimateCronPlugin {

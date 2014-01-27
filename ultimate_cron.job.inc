@@ -264,13 +264,20 @@ class UltimateCronJob {
   /**
    * Check job schedule.
    */
-  public function schedule($real = FALSE) {
-    UltimateCronPlugin::hook_cron_pre_schedule($this, $real);
-    module_invoke_all('cron_pre_schedule', $this, $real);
-    $result = empty($this->disabled) && $this->getPlugin('scheduler')->schedule($this, $real);
-    UltimateCronPlugin::hook_cron_post_schedule($this, $real);
-    module_invoke_all('cron_post_schedule', $this, $real);
+  public function schedule() {
+    UltimateCronPlugin::hook_cron_pre_schedule($this);
+    module_invoke_all('cron_pre_schedule', $this);
+    $result = empty($this->disabled) && $this->getPlugin('scheduler')->schedule($this);
+    UltimateCronPlugin::hook_cron_post_schedule($this);
+    module_invoke_all('cron_post_schedule', $this);
     return $result;
+  }
+
+  /**
+   * Check if job is behind its schedule.
+   */
+  public function isBehindSchedule() {
+    return $this->getPlugin('scheduler')->isBehind($this);
   }
 
   /**

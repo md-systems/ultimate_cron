@@ -463,7 +463,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     // Schedule settings.
     $label = $item->getPlugin('scheduler')->formatLabel($item);
-    if ($item->schedule(TRUE)) {
+    if ($item->isBehindSchedule()) {
       $label = "<em>$label</em>";
     }
     $this->rows[$name]['data'][] = array(
