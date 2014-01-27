@@ -211,8 +211,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         list($status, $title) = $item->getPlugin('launcher')->formatUnfinished($item);
       }
       else {
-        $status = $log_entry->formatSeverity();
-        $title = $log_entry->formatMessage();
+        list($status, $title) = $log_entry->formatSeverity();
       }
 
       $rows[$log_entry->lid]['data'][] = array(
@@ -409,6 +408,9 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     // Started and duration.
     $item->lock_id = isset($item->lock_id) ? $item->lock_id : $item->isLocked();
     $item->log_entry = isset($item->log_entry) ? $item->log_entry : $item->loadLatestLogEntry();
+    if ($item->log_entry->lid && $item->lock_id && $item->log_entry->lid !== $item->lock_id) {
+      $item->log_entry = $item->loadLogEntry($item->lock_id);
+    }
 
     // Note: $item->{$schema['export']['export type string']} should have already been set up by export.inc so
     // we can use it safely.
@@ -490,8 +492,8 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       list($status, $title) = $item->getPlugin('launcher')->formatUnfinished($item);
     }
     else {
-      $status = $item->log_entry->formatSeverity();
-      $title = $item->log_entry->formatMessage();
+      list($status, $title) = $item->log_entry->formatSeverity();
+      $title = $item->log_entry->message ? $item->log_entry->message : $title;
     }
     $this->rows[$name]['data'][] = array(
       'data' => $status,

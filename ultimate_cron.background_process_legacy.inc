@@ -75,9 +75,11 @@ function ultimate_cron_background_process_legacy_callback($name, $lock_id) {
       } while (microtime(TRUE) < $expire);
 
       // Refresh disabled value.
-      $job = ultimate_cron_job_load($name);
+      $job = ultimate_cron_job_load($name, TRUE);
+      $settings = $job->getSettings('launcher');
 
-      if ($keepalive && empty($job->disabled)) {
+      $keepalive &= empty($job->disabled) && !empty($settings['daemonize']);
+      if ($keepalive) {
         background_process_keepalive();
 
         // Save a copy of the log.

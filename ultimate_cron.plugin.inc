@@ -1198,16 +1198,6 @@ abstract class UltimateCronLogEntry {
   }
 
   /**
-   * Format message.
-   */
-  public function formatMessage() {
-    $severity_levels = array(
-      -1 => t('no info'),
-    ) + watchdog_severity_levels();
-    return $this->message ? $this->message : $severity_levels[$this->severity];
-  }
-
-  /**
    * Format severity.
    */
   public function formatSeverity() {
@@ -1232,7 +1222,12 @@ abstract class UltimateCronLogEntry {
       default:
         $file = 'misc/message-16-ok.png';
     }
-    return theme('image', array('path' => $file));
+    $status = theme('image', array('path' => $file));
+    $severity_levels = array(
+      -1 => t('no info'),
+    ) + watchdog_severity_levels();
+    $title = $severity_levels[$this->severity];
+    return array($status, $title);
   }
 
   /**
