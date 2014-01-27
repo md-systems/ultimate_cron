@@ -257,6 +257,11 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     $form['#attached']['js'][] = drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.js';
 
+    if (module_exists('nodejs')) {
+      nodejs_send_content_channel_token('ultimate_cron');
+      $form['#attached']['js'][] = drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.nodejs.js';
+    }
+
     // There's no normal for Ultimate Cron!
     unset($form['top row']['storage']['#options'][t('Normal')]);
 

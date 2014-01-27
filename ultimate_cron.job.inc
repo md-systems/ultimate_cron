@@ -297,19 +297,24 @@ class UltimateCronJob {
    * Lock job.
    */
   public function lock() {
-    return $this->getPlugin('launcher')->lock($this);
+    $result = $this->getPlugin('launcher')->lock($this);
+    $this->sendMessage('lock');
+    return $result;
   }
 
   /**
    * Unlock job.
    */
   public function unlock($lock_id = NULL, $manual = FALSE) {
+    $result = NULL;
     if (!$lock_id) {
       $lock_id = $this->isLocked();
     }
     if ($lock_id) {
-      return $this->getPlugin('launcher')->unlock($lock_id, $manual);
+      $result = $this->getPlugin('launcher')->unlock($lock_id, $manual);
     }
+    $this->sendMessage('unlock');
+    return $result;
   }
 
   /**
@@ -466,4 +471,22 @@ class UltimateCronJob {
     _ultimate_cron_variable_save($name, $progress);
   }
 
+  /**
+   * Send a nodejs message.
+   */
+  public function sendMessage($action) {
+    if (module_exists('nodejs')) {
+      $message = (object) array(
+        'channel' => 'ultimate_cron',
+        'data' => (object) array(
+          'action' => $action,
+          'job' => $this,
+          'timestamp' => microtime(TRUE),
+        ),
+        'callback' => 'nodejsUltimateCron',
+      );
+      nodejs_send_content_channel_message($message);
+    }
+
+  }
 }
