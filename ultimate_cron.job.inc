@@ -312,6 +312,9 @@ class UltimateCronJob {
     return $this->getPlugin('launcher')->isLocked($this);
   }
 
+  /**
+   * Get locked state for multiple jobs.
+   */
   static public function isLockedMultiple($jobs) {
     $launchers = array();
     foreach ($jobs as $job) {
@@ -391,6 +394,9 @@ class UltimateCronJob {
     return $log_entry;
   }
 
+  /**
+   * Resume a previosly saved log.
+   */
   public function resumeLog($lock_id) {
     $logger = $this->getPlugin('logger');
     $log_entry = $logger->load($this->name, $lock_id);

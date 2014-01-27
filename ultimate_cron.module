@@ -343,10 +343,19 @@ function ultimate_cron_job_load_all($reset = FALSE) {
 function ultimate_cron_job_set_status($object, $status) {
   if (is_object($object)) {
     $name = $object->name;
+    $job = $object;
   }
   else {
     $name = $object;
+    $job = ultimate_cron_job_load($name);
   }
+
+  $log = $job->startLog(uniqid($job->name, TRUE), 'modification');
+  $log->log($job->name, 'Job @status by ' . $log->formatUser(), array(
+    '@status' => $status ? t('disabled') : t('enabled'),
+  ), WATCHDOG_INFO);
+  $log->finish();
+
   variable_set('default_ultimate_cron_job_' . $name, $status ? TRUE : FALSE);
 }
 
