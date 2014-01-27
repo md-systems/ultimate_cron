@@ -49,7 +49,23 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       unset($allowed_operations['run']);
     }
 
+    $default_sort = array(
+      'logs' => -10,
+      'edit' => -2,
+      'enable' => -1,
+      'disable' => -1,
+      'run' => 0,
+      'unlock' => 0,
+      'export' => 1,
+      'configure' => 1,
+    );
     $item->build_operations_alter($allowed_operations);
+    $weight = 0;
+    foreach ($allowed_operations as $name => &$operation) {
+      $operation += array('sort' => array(isset($default_sort[$name]) ? $default_sort[$name] : 0));
+      $operation['sort'][] = $weight++;
+    }
+    uasort($allowed_operations, array(get_class($this), 'multi_column_sort'));
     return $allowed_operations;
   }
 
@@ -138,7 +154,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       '#type' => 'chart',
       '#chart_type' => 'column',
       '#title' => t('Column simple'),
-      '#chart_library' => 'highcharts',
+      // '#chart_library' => 'highcharts',
     );
     $chart['duration'] = array(
       '#type' => 'chart_data',
@@ -410,19 +426,19 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         break;
 
       case 'title':
-        $this->rows[$name]['sort'] = $item->{$this->plugin['export']['admin_title']};
+        $this->rows[$name]['sort'] = array($item->{$this->plugin['export']['admin_title']});
         break;
 
       case 'start_time':
-        $this->rows[$name]['sort'] = $item->log_entry->start_time;
+        $this->rows[$name]['sort'] = array($item->log_entry->start_time);
         break;
 
       case 'duration':
-        $this->rows[$name]['sort'] = $item->log_entry->getDuration();
+        $this->rows[$name]['sort'] = array($item->log_entry->getDuration());
         break;
 
       case 'storage':
-        $this->sorts[$name] = $item->{$schema['export']['export type string']} . $name;
+        $this->rows[$name]['sort'] = array($item->{$schema['export']['export type string']} . $name);
         break;
     }
 
@@ -549,11 +565,11 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
    * Sort callback for multiple column sort.
    */
   static public function multi_column_sort($a, $b) {
-    foreach ($a as $i => $sort) {
-      if ($a[$i] == $b[$i]) {
+    foreach ($a['sort'] as $i => $sort) {
+      if ($a['sort'][$i] == $b['sort'][$i]) {
         continue;
       }
-      return $a[$i] < $b[$i] ? -1 : 1;
+      return $a['sort'][$i] < $b['sort'][$i] ? -1 : 1;
     }
     return 0;
   }
