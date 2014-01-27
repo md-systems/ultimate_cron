@@ -432,19 +432,34 @@ class UltimateCronJob {
   }
 
   /**
+   * Get multiple job progresses.
+   */
+  static public function getProgresses($jobs) {
+    $names = array();
+    foreach ($jobs as $job) {
+      $names[] = 'uc-progress:' . $job->name;
+    }
+    $values = _ultimate_cron_variable_load_multiple($names, FALSE);
+    $result = array();
+    foreach ($jobs as $job) {
+      $result[$job->name] = $values['uc-progress:' . $job->name];
+    }
+    return $result;
+  }
+
+  /**
    * Get job progress.
    */
   public function getProgress() {
-    $name = 'progress:' . $this->name;
-    _ultimate_cron_variable_load($name);
-    return variable_get($name);
+    $name = 'uc-progress:' . $this->name;
+    return _ultimate_cron_variable_load($name);
   }
 
   /**
    * Set job progress.
    */
   public function setProgress($progress) {
-    $name = 'progress:' . $this->name;
+    $name = 'uc-progress:' . $this->name;
     _ultimate_cron_variable_save($name, $progress);
   }
 

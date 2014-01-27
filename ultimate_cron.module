@@ -781,6 +781,20 @@ function _ultimate_cron_variable_load($name) {
   }
   global $conf;
   $conf[$name] = $value;
+  return $value;
+}
+
+/**
+ * Load a variable by-passing the cache.
+ */
+function _ultimate_cron_variable_load_multiple($names, $default = NULL) {
+  $values = array();
+  $result = db_query("SELECT name, value FROM {variable} WHERE name IN (:names)", array(':names' => $names))->fetchAllKeyed();
+  global $conf;
+  foreach ($names as $name) {
+    $conf[$name] = $values[$name] = isset($result[$name]) ? unserialize($result[$name]) : $default;
+  }
+  return $values;
 }
 
 /**

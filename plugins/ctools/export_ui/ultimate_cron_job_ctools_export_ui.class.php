@@ -247,12 +247,11 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     parent::list_form($form, $form_state);
 
     $log_entries = UltimateCronJob::loadLatestLogEntries($this->items);
-    foreach ($this->items as $name => $item) {
-      $item->log_entry = isset($item->log_entry) ? $item->log_entry : $log_entries[$name];
-    }
-
+    $progresses = UltimateCronJob::getProgresses($this->items);
     $lock_ids = UltimateCronJob::isLockedMultiple($this->items);
     foreach ($this->items as $name => $item) {
+      $item->log_entry = isset($item->log_entry) ? $item->log_entry : $log_entries[$name];
+      $item->progress = isset($item->progress) ? $item->progress : $progresses[$name];
       $item->lock_id = isset($item->lock_id) ? $item->lock_id : $lock_ids[$name];
     }
 
@@ -485,7 +484,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       'title' => strip_tags($item->log_entry->formatInitMessage()),
     );
 
-    $progress = $item->getProgress();
+    $progress = isset($item->progress) ? $item->progress : $item->getProgress();
     $progress = is_numeric($progress) ? sprintf(" (%d%%)", round($progress * 100)) : '';
 
     $this->rows[$name]['data'][] = array(
