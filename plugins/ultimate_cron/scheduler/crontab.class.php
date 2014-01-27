@@ -122,7 +122,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
       $job_last_ran = $log_entry->start_time;
 
       if ($cron_last_ran >= $job_last_ran && $now >= $job_last_ran + $settings['catch_up']) {
-        return $now - $job_last_ran;
+        return $now - $cron_last_ran;
       }
     }
     return FALSE;
