@@ -1220,15 +1220,15 @@ abstract class UltimateCronLogEntry {
         break;
 
       case WATCHDOG_WARNING:
-      case WATCHDOG_NOTICE:
         $file = 'misc/message-16-warning.png';
+        break;
+
+      case WATCHDOG_NOTICE:
+        $file = 'misc/message-16-info.png';
         break;
 
       case WATCHDOG_INFO:
       case WATCHDOG_DEBUG:
-        $file = 'misc/message-16-info.png';
-        break;
-
       default:
         $file = 'misc/message-16-ok.png';
     }
