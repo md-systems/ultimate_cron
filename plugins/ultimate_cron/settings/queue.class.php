@@ -41,7 +41,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
     static $throttled = FALSE;
     if (!$throttled && !empty($job->hook['settings']['queue']['master'])) {
       $throttled = TRUE;
-      // $this->throttle($job);
+      $this->throttle($job);
     }
   }
 
@@ -176,7 +176,6 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       for ($i = 2; $i <= $settings['queue']['threads']; $i++) {
         $name = $job->name . '_' . $i;
         $status = !empty($job->disabled) || ($items > ($i - 1) * $settings['queue']['threshold']);
-        $status = $status || $job->isLocked();
         ultimate_cron_job_set_status($name, !$status);
       }
     }
