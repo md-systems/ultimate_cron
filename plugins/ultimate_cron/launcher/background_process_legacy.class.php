@@ -202,10 +202,30 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * This has yet to be optimized.
    */
   public function isLockedMultiple($jobs) {
+    try {
+      $old_db = db_set_active('background_process');
+      $processes = db_select('background_process', 'bp')
+        ->fields('bp', array('handle', 'args'))
+        ->condition('handle', array_keys($jobs), 'IN')
+        ->execute()
+        ->fetchAllAssoc('handle', PDO::FETCH_OBJ);
+      db_set_active($old_db);
+    }
+    catch (Exception $e) {
+      db_set_active($old_db);
+      throw $e;
+    }
+
     $lock_ids = array();
     foreach ($jobs as $job) {
-      $lock_ids[$job->name] = $this->isLocked($job);
+      $lock_ids[$job->name] = FALSE;
+      if (isset($processes[$job->name])) {
+        $process = $processes[$job->name];
+        $process->args = unserialize($process->args);
+        $lock_ids[$job->name] = $process->args[1];
+      }
     }
+
     return $lock_ids;
   }
 

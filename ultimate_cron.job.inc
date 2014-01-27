@@ -325,7 +325,7 @@ class UltimateCronJob {
   static public function isLockedMultiple($jobs) {
     $launchers = array();
     foreach ($jobs as $job) {
-      $launchers[$job->getPlugin('launcher')->name][] = $job;
+      $launchers[$job->getPlugin('launcher')->name][$job->name] = $job;
     }
     $locked = array();
     foreach ($launchers as $launcher => $jobs) {
@@ -339,7 +339,7 @@ class UltimateCronJob {
    */
   public function run() {
     $this->clearSignals();
-    $this->setProgress(NULL);
+    $this->setProgress(FALSE);
     UltimateCronPlugin::hook_cron_pre_run($this);
     module_invoke_all('cron_pre_run', $this);
     self::$currentJob = $this;
@@ -348,7 +348,7 @@ class UltimateCronJob {
     UltimateCronPlugin::hook_cron_post_run($this);
     module_invoke_all('cron_post_launch', $this);
     $this->clearSignals();
-    $this->setProgress(NULL);
+    $this->setProgress(FALSE);
     return $result;
   }
 
@@ -445,7 +445,7 @@ class UltimateCronJob {
     $values = _ultimate_cron_variable_load_multiple($names, FALSE);
     $result = array();
     foreach ($jobs as $job) {
-      $result[$job->name] = $values['uc-progress:' . $job->name];
+      $result[$job->name] = isset($values['uc-progress:' . $job->name]) ? $values['uc-progress:' . $job->name] : FALSE;
     }
     return $result;
   }
