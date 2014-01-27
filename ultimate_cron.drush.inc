@@ -254,6 +254,9 @@ function drush_ultimate_cron_cron_list() {
  * List cron jobs.
  */
 function drush_ultimate_cron_cron_logs($name = NULL) {
+  if (!$name) {
+    return drush_set_error(dt('No job specified?'));
+  }
   $job = ultimate_cron_job_load($name);
   if (!$job) {
     return drush_set_error(dt('@name not found', array('@name' => $name)));
@@ -268,6 +271,7 @@ function drush_ultimate_cron_cron_logs($name = NULL) {
     '',
     dt('Started'),
     dt('Duration'),
+    dt('User'),
     dt('Initial message'),
     dt('Message'),
     dt('Status'),
@@ -275,57 +279,38 @@ function drush_ultimate_cron_cron_logs($name = NULL) {
 
   $lock_id = $job->isLocked();
   $log_entries = $job->getLogEntries($limit);
+  $progress = $job->getProgress();
 
   foreach ($log_entries as $log_entry) {
+    $progress = '';
+    if ($log_entry->lid && $lock_id && $log_entry->lid === $lock_id) {
+      $progress = $job->getProgress();
+      $progress = is_numeric($progress) ? sprintf(" (%d%%)", round($progress * 100)) : '';
+    }
+
     $legend = '';
     if ($lock_id && $log_entry->lid == $lock_id) {
       $legend .= 'R';
-      $status = dt('running');
+      list($null, $status) = $job->getPlugin('launcher')->formatRunning($job);
     }
     elseif ($log_entry->start_time && !$log_entry->end_time) {
-      $status = dt('unfinished');
+      list($null, $status) = $job->getPlugin('launcher')->formatUnfinished($job);
     }
     else {
-      $severity_levels = array(
-        -1 => dt('no info'),
-      ) + watchdog_severity_levels();
-      $status = $severity_levels[$log_entry->severity];
+      list($null, $status) = $log_entry->formatSeverity();
     }
-
-    $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
-
-    $duration = NULL;
-    if ($log_entry->start_time && $log_entry->end_time) {
-      $duration = (int) ($log_entry->end_time - $log_entry->start_time);
-    }
-    elseif ($log_entry->start_time) {
-      $duration = (int) (microtime(TRUE) - $log_entry->start_time);
-    }
-
-    switch (TRUE) {
-      case $duration >= 86400:
-        $format = 'd H:i:s';
-        break;
-
-      case $duration >= 3600:
-        $format = 'H:i:s';
-        break;
-
-      default:
-        $format = 'i:s';
-    }
-    $duration = isset($duration) ? gmdate($format, $duration) : t('N/A');
 
     $table[$log_entry->lid][] = $legend;
-    $table[$log_entry->lid][] = $start_time;
-    $table[$log_entry->lid][] = $duration;
+    $table[$log_entry->lid][] = $log_entry->formatStartTime();
+    $table[$log_entry->lid][] = $log_entry->formatDuration() . $progress;
+    $table[$log_entry->lid][] = $log_entry->formatUser();
     if ($compact) {
-      $table[$log_entry->lid][] = reset(explode("\n", $log_entry->init_message));
-      $table[$log_entry->lid][] = reset(explode("\n", $log_entry->message));
+      $table[$log_entry->lid][] = trim(reset(explode("\n", $log_entry->init_message)), "\n");
+      $table[$log_entry->lid][] = trim(reset(explode("\n", $log_entry->message)), "\n");
     }
     else {
-      $table[$log_entry->lid][] = $log_entry->init_message;
-      $table[$log_entry->lid][] = $log_entry->message;
+      $table[$log_entry->lid][] = trim($log_entry->init_message, "\n");
+      $table[$log_entry->lid][] = trim($log_entry->message, "\n");
     }
     $table[$log_entry->lid][] = $status;
   }
