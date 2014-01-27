@@ -286,6 +286,20 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   }
 
   /**
+   * Format running state.
+   */
+  public function formatRunning($job) {
+    $settings = $job->getSettings('launcher');
+    if (empty($settings['daemonize'])) {
+      return parent::formatRunning($job);
+    }
+    $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass_go.png';
+    $status = theme('image', array('path' => $file));
+    $title = t('daemonized');
+    return array($status, $title);
+  }
+
+  /**
    * Get the number of cron background processes currently running.
    */
   public function numberOfProcessesRunning() {

@@ -205,14 +205,10 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
       // Status.
       if ($item->lock_id && $log_entry->lid == $item->lock_id) {
-        $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
-        $status = theme('image', array('path' => $file));
-        $title = t('running');
+        list($status, $title) = $item->getPlugin('launcher')->formatRunning($item);
       }
       elseif ($log_entry->start_time && !$log_entry->end_time) {
-        $file = drupal_get_path('module', 'ultimate_cron') . '/icons/lock_open.png';
-        $status = theme('image', array('path' => $file));
-        $title = t('unfinished but not locked?');
+        list($status, $title) = $item->getPlugin('launcher')->formatUnfinished($item);
       }
       else {
         $status = $log_entry->formatSeverity();
@@ -488,14 +484,10 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     // Status.
     if ($item->lock_id && $item->log_entry->lid == $item->lock_id) {
-      $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
-      $status = theme('image', array('path' => $file));
-      $title = t('running');
+      list($status, $title) = $item->getPlugin('launcher')->formatRunning($item);
     }
     elseif ($item->log_entry->start_time && !$item->log_entry->end_time) {
-      $file = drupal_get_path('module', 'ultimate_cron') . '/icons/lock_open.png';
-      $status = theme('image', array('path' => $file));
-      $title = t('unfinished but not locked?');
+      list($status, $title) = $item->getPlugin('launcher')->formatUnfinished($item);
     }
     else {
       $status = $item->log_entry->formatSeverity();

@@ -830,6 +830,27 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
       }
     }
   }
+
+  /**
+   * Format running state.
+   */
+  public function formatRunning($job) {
+    $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
+    $status = theme('image', array('path' => $file));
+    $title = t('running');
+    return array($status, $title);
+  }
+
+  /**
+   * Format unfinished state.
+   */
+  public function formatUnfinished($job) {
+    $file = drupal_get_path('module', 'ultimate_cron') . '/icons/lock_open.png';
+    $status = theme('image', array('path' => $file));
+    $title = t('unfinished but not locked?');
+    return array($status, $title);
+  }
+
 }
 
 abstract class UltimateCronLogger extends UltimateCronPlugin {
