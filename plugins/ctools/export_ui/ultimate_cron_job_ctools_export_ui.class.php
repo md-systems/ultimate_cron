@@ -463,8 +463,9 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     // Schedule settings.
     $label = $item->getPlugin('scheduler')->formatLabel($item);
-    if ($item->isBehindSchedule()) {
-      $label = "<em>$label</em>";
+    if ($behind = $item->isBehindSchedule()) {
+      $this->jobs_behind++;
+      $label = "<em>$label</em><br/>" . format_interval($behind) . ' ' . t('behind schedule');
     }
     $this->rows[$name]['data'][] = array(
       'data' => $label,
@@ -532,6 +533,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     $prefix = ctools_export_ui_plugin_base_path($plugin);
 
+    $this->jobs_behind = 0;
     foreach ($this->items as $name => $item) {
       // Call through to the filter and see if we're going to render this
       // row. If it returns TRUE, then this row is filtered out.
@@ -542,6 +544,11 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       $operations = $this->build_operations($item);
 
       $this->list_build_row($item, $form_state, $operations);
+    }
+    if ($this->jobs_behind) {
+      drupal_set_message(t('@jobs jobs are behind schedule.', array(
+        '@jobs' => $this->jobs_behind,
+      )), 'warning');
     }
 
     // Now actually sort.

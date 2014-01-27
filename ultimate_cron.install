@@ -223,8 +223,6 @@ function ultimate_cron_uninstall() {
   variable_del('ultimate_cron_launch_window');
   variable_del('ultimate_cron_max_execution_time');
 }
-
-
 /**
  * Implements hook_requirements().
  */
@@ -235,9 +233,44 @@ function ultimate_cron_requirements($phase) {
       return $response;
 
     case 'runtime':
+      $t = get_t();
       $response['title'] = 'Ultimate Cron';
-      $response['value'] = 'OK';
+      $response['value'] = array();
+      $response['description'] = array();
       $response['severity'] = REQUIREMENT_OK;
+
+      // Check if any jobs are behind.
+      $jobs_behind = 0;
+      foreach (ultimate_cron_job_load_all() as $job) {
+        if ($job->isBehindSchedule()) {
+          $jobs_behind++;
+        }
+      }
+      if ($jobs_behind) {
+        $response['severity'] = $response['severity'] > REQUIREMENT_ERROR ? $response['severity'] : REQUIREMENT_ERROR;
+        $response['value'][] = $t('@jobs jobs are behind schedule', array('@jobs' => $jobs_behind));
+        $response['description'][] = $t(
+          'Some jobs are behind their schedule. Please check if !link is running properly.', array(
+            '!link' => l($t('cron'), 'admin/config/system/cron')
+        ));
+      }
+
+      // Check for PHP safe mode.
+      if (ini_get('safe_mode')) {
+        $response['severity'] = $response['severity'] > REQUIREMENT_WARNING ? $response['severity'] : REQUIREMENT_WARNING;
+        $response['value'][] = $t('Safe mode enabled');
+        $response['description'][] = $t('Safe mode enabled. Ultimate Cron is unable to control maximum execution time for cron jobs. This may cause cron jobs to end prematurely.');
+      }
+
+      // Compose result.
+      if (empty($response['value'])) {
+        $response['value'] = $t('Cron is running properly.');
+        $response['description'] = '';
+      }
+      else {
+        $response['value'] = implode(', ', $response['value']);
+        $response['description'] = implode('<br/>', $response['description']);
+      }
       $result = array();
       $result['ultimate_cron'] = $response;
       return $result;
