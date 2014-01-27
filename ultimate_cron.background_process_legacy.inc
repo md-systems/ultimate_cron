@@ -78,7 +78,10 @@ function ultimate_cron_background_process_legacy_callback($name, $lock_id) {
       $job = ultimate_cron_job_load($name, TRUE);
       $settings = $job->getSettings('launcher');
 
-      $keepalive &= empty($job->disabled) && !empty($settings['daemonize']);
+      $keepalive &= empty($job->disabled);
+      $keepalive &= !empty($settings['daemonize']);
+      $keepalive &= !$job->getSignal('end_daemonize');
+
       if ($keepalive) {
         background_process_keepalive();
 
