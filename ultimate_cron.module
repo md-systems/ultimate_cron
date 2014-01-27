@@ -317,6 +317,19 @@ function ultimate_cron_prepare_job($name, $hook, $job = NULL) {
 }
 
 /**
+ * Export UI load multiple callback.
+ */
+function ultimate_cron_job_load_multiple($names, $reset = FALSE) {
+  $jobs = array();
+  foreach (ultimate_cron_job_load_all($reset) as $name => $job) {
+    if (in_array($name, $names)) {
+      $jobs[$name] = $job;
+    }
+  }
+  return $jobs;
+}
+
+/**
  * Export UI load all callback.
  */
 function ultimate_cron_job_load_all($reset = FALSE) {
@@ -357,6 +370,58 @@ function ultimate_cron_job_set_status($object, $status) {
   $log->finish();
 
   variable_set('default_ultimate_cron_job_' . $name, $status ? TRUE : FALSE);
+}
+
+/**
+ * Export UI save callback.
+ */
+function ultimate_cron_job_save(&$object) {
+  $table = 'ultimate_cron_job';
+  $schema = ctools_export_get_schema($table);
+  $export = $schema['export'];
+
+  // Objects should have a serial primary key. If not, simply fail to write.
+  if (empty($export['primary key'])) {
+    return FALSE;
+  }
+
+  $key = $export['primary key'];
+  if ($object->export_type & EXPORT_IN_DATABASE) {
+    // Existing record.
+    $update = array($key);
+  }
+  else {
+    // New record.
+    $update = array();
+    $object->export_type = EXPORT_IN_DATABASE;
+  }
+  $result = drupal_write_record($table, $object, $update);
+
+  $log = $object->startLog(uniqid($object->name, TRUE), 'modification');
+  $log->log($object->name, 'Job modified by ' . $log->formatUser(), array(), WATCHDOG_INFO);
+  $log->finish();
+
+  return $result;
+}
+
+/**
+ * Export UI delete callback.
+ */
+function ultimate_cron_job_delete($object) {
+  $table = 'ultimate_cron_job';
+  $schema = ctools_export_get_schema($table);
+  $export = $schema['export'];
+
+  // If we were sent an object, get the export key from it. Otherwise
+  // assume we were sent the export key.
+  $value = is_object($object) ? $object->{$export['key']} : $object;
+  db_delete($table)
+    ->condition($export['key'], $value)
+    ->execute();
+
+  $log = $object->startLog(uniqid($object->name, TRUE), 'modification');
+  $log->log($object->name, 'Job reverted by ' . $log->formatUser(), array(), WATCHDOG_INFO);
+  $log->finish();
 }
 
 /**

@@ -19,6 +19,9 @@ function ultimate_cron_schema() {
       'identifier' => 'job',
       'load callback' => 'ultimate_cron_job_load',
       'load all callback' => 'ultimate_cron_job_load_all',
+      'load multiple callback' => 'ultimate_cron_job_load_multiple',
+      'save callback' => 'ultimate_cron_job_save',
+      'delete callback' => 'ultimate_cron_job_delete',
       'status callback' => 'ultimate_cron_job_set_status',
       'object' => 'UltimateCronJob',
       'api' => array(
