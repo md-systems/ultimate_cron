@@ -40,9 +40,20 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
    */
   public function cleanup() {
     $jobs = ultimate_cron_job_load_all();
+    $current = 1;
+    $max = 0;
+    foreach ($jobs as $job) {
+      if ($job->getPlugin($this->type)->name === $this->name) {
+        $max++;
+      }
+    }
     foreach ($jobs as $job) {
       if ($job->getPlugin($this->type)->name === $this->name) {
         $this->cleanupJob($job);
+        if (UltimateCronJob::$currentJob) {
+          UltimateCronJob::$currentJob->setProgress($current / $max);
+          $current++;
+        }
       }
     }
   }
@@ -306,11 +317,6 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
       $log_entries[$object->name] = new $this->log_entry_class($object->name, $this);
       $log_entries[$object->name]->setData((array) $object);
     }
-    /*
-    while ($object = $result->fetchObject($this->log_entry_class, array($name, $this))) {
-      $log_entries[$object->name] = $object;
-    }
-    */
     foreach ($jobs as $name => $job) {
       if (!isset($log_entries[$name])) {
         $log_entries[$name] = new $this->log_entry_class($name, $this);

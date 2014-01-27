@@ -6,6 +6,7 @@
 
 class UltimateCronJob {
   static public $signals;
+  static public $currentJob;
 
   /**
    * Invoke plugin cron_alter().
@@ -341,7 +342,9 @@ class UltimateCronJob {
     $this->setProgress(NULL);
     UltimateCronPlugin::hook_cron_pre_run($this);
     module_invoke_all('cron_pre_run', $this);
+    self::$currentJob = $this;
     $result = $this->getPlugin('launcher')->run($this);
+    self::$currentJob = NULL;
     UltimateCronPlugin::hook_cron_post_run($this);
     module_invoke_all('cron_post_launch', $this);
     $this->clearSignals();
