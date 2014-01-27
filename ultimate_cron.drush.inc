@@ -172,6 +172,9 @@ function drush_ultimate_cron_cron_list() {
     dt('Status')
   );
 
+  $log_entries = UltimateCronJob::loadLatestLogEntries($jobs);
+  $progresses = UltimateCronJob::getProgresses($jobs);
+  $lock_ids = UltimateCronJob::isLockedMultiple($jobs);
   foreach ($jobs as $name => $job) {
     if ($module && !in_array($job->hook['module'], $module)) {
       continue;
@@ -196,56 +199,40 @@ function drush_ultimate_cron_cron_list() {
       $legend .= 'D';
     }
 
-    $lock_id = $job->isLocked();
-    $log_entry = $job->loadLatestLogEntry();
+    $lock_id = $lock_ids[$job->name];
+    $log_entry = $log_entries[$job->name];
+    $progress = $progresses[$job->name];
+
+    if ($log_entry->lid && $lock_id && $log_entry->lid !== $lock_id) {
+      $log_entry = $job->loadLogEntry($lock_id);
+    }
+
+    if ($behind = $job->isBehindSchedule()) {
+      $legend .= 'B';
+    }
 
     if ($lock_id && $log_entry->lid == $lock_id) {
       $legend .= 'R';
-      $status = dt('running');
+      list($null, $status) = $job->getPlugin('launcher')->formatRunning($job);
     }
     elseif ($log_entry->start_time && !$log_entry->end_time) {
-      $status = dt('unfinished');
+      list($null, $status) = $job->getPlugin('launcher')->formatUnfinished($job);
     }
     else {
-      $severity_levels = array(
-        -1 => dt('no info'),
-      ) + watchdog_severity_levels();
-      $status = $severity_levels[$log_entry->severity];
+      list($null, $status) = $log_entry->formatSeverity();
     }
     if ($statuses && !in_array($status, $statuses)) {
       continue;
     }
 
-    $start_time = $log_entry->start_time ? format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s') : t('Never');
-
-    $duration = NULL;
-    if ($log_entry->start_time && $log_entry->end_time) {
-      $duration = (int) ($log_entry->end_time - $log_entry->start_time);
-    }
-    elseif ($log_entry->start_time) {
-      $duration = (int) (microtime(TRUE) - $log_entry->start_time);
-    }
-
-    switch (TRUE) {
-      case $duration >= 86400:
-        $format = 'd H:i:s';
-        break;
-
-      case $duration >= 3600:
-        $format = 'H:i:s';
-        break;
-
-      default:
-        $format = 'i:s';
-    }
-    $duration = isset($duration) ? gmdate($format, $duration) : t('N/A');
+    $progress = is_numeric($progress) ? sprintf(" (%d%%)", round($progress * 100)) : '';
 
     $table[$name][] = $legend;
     $table[$name][] = $job->getModuleName();
     $table[$name][] = $showname ? $job->name : $job->title;
-    $table[$name][] = $job->getPlugin('scheduler')->getScheduledLabel($job);
-    $table[$name][] = $start_time;
-    $table[$name][] = $duration;
+    $table[$name][] = $job->getPlugin('scheduler')->formatLabel($job);
+    $table[$name][] = $log_entry->formatStartTime();
+    $table[$name][] = $log_entry->formatDuration() . $progress;
     $table[$name][] = $status;
 
     if ($verbose) {
@@ -258,6 +245,9 @@ function drush_ultimate_cron_cron_list() {
     }
   }
   drush_print_table($table);
+  if ($legend) {
+    drush_print("\n" . dt('Legend: D = Disabled, R = Running, B = Behind schedule'));
+  }
 }
 
 /**
