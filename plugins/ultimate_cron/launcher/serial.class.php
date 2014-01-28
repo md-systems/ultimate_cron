@@ -164,10 +164,12 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     $log_entry = $job->startLog($lock_id, $init_message);
 
     // Be a sport, and send a message with the initial log.
+    /*
     $job->sendMessage('lock', array(
       'lock_id' => $lock_id,
       'log_entry' => $log_entry,
     ));
+    */
 
     drupal_set_message(t('@name: @init_message', array(
       '@name' => $job->name,

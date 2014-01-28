@@ -266,10 +266,13 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     $log_entry->unCatchMessages();
 
     // Be a sport, and send a message with the initial log.
+    //
+    /*
     $job->sendMessage('lock', array(
       'lock_id' => $lock_id,
       'log_entry' => $log_entry,
     ));
+    */
 
     if (!$process->execute('ultimate_cron_background_process_legacy_callback', array($job->name, $lock_id))) {
       $this->unlock($lock_id);
