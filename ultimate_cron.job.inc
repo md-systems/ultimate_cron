@@ -486,6 +486,9 @@ class UltimateCronJob {
     }
   }
 
+  /**
+   * Format progress.
+   */
   public function formatProgress($progress = NULL) {
     if (!isset($progress)) {
       $progress = isset($this->progress) ? $this->progress : $this->getProgress();
@@ -504,10 +507,13 @@ class UltimateCronJob {
 
       $build = clone $this;
 
+      $cell_idxs = array();
+
       switch ($action) {
         case 'lock':
           $logger = $build->getPlugin('logger');
           if (empty($data['log_entry'])) {
+            $build->lock_id = $data['lock_id'];
             $build->log_entry = $logger->factoryLogEntry($build->name);
             $build->log_entry->setData(array(
               'lid' => $data['lock_id'],
@@ -517,25 +523,39 @@ class UltimateCronJob {
           else {
             $build->log_entry = $data['log_entry'];
           }
+          $cell_idxs = array(
+            'tr#' . $build->name . ' .ctools-export-ui-start-time' => 3,
+            'tr#' . $build->name . ' .ctools-export-ui-duration' => 4,
+            'tr#' . $build->name . ' .ctools-export-ui-status' => 5,
+            'tr#' . $build->name . ' .ctools-export-ui-operations' => 7,
+          );
           break;
 
         case 'unlock':
           $build->log_entry = $build->loadLogEntry($data['lock_id']);
           $build->lock_id = FALSE;
-          error_log("Unlock");
-          // error_log(print_r($this->log_entry, TRUE));
+          $cell_idxs = array(
+            'tr#' . $build->name . ' .ctools-export-ui-start-time' => 3,
+            'tr#' . $build->name . ' .ctools-export-ui-duration' => 4,
+            'tr#' . $build->name . ' .ctools-export-ui-status' => 5,
+            'tr#' . $build->name . ' .ctools-export-ui-operations' => 7,
+          );
           break;
 
         case 'setProgress':
           $build->lock_id = $build->isLocked();
           $build->log_entry = $build->loadLogEntry($build->lock_id);
-          // error_log("Set progress");
-          // error_log(print_r($this->log_entry, TRUE));
+          $cell_idxs = array(
+            'tr#' . $build->name . ' .ctools-export-ui-start-time' => 3,
+            'tr#' . $build->name . ' .ctools-export-ui-duration' => 4,
+            'tr#' . $build->name . ' .ctools-export-ui-status' => 5,
+          );
           break;
       }
-      $elements = array(
-        'tr#' . $build->name => $build->rebuild_ctools_export_ui_table_row(),
-      );
+      $cells = $build->rebuild_ctools_export_ui_table_row();
+      foreach ($cell_idxs as $selector => $cell_idx) {
+        $elements[$selector] = $cells[$cell_idx];
+      }
 
       $message = (object) array(
         'channel' => 'ultimate_cron',
@@ -551,6 +571,9 @@ class UltimateCronJob {
     }
   }
 
+  /**
+   * Rebuild a row on the export ui.
+   */
   function rebuild_ctools_export_ui_table_row() {
     ctools_include('export-ui');
     $plugin = ctools_get_export_ui('ultimate_cron_job_ctools_export_ui');
@@ -559,17 +582,13 @@ class UltimateCronJob {
     $form_state = array();
     $form_state['values']['order'] = '';
     $handler->list_build_row($this, $form_state, $operations);
-    $header = $handler->list_table_header();
-    $ts = array();
-    $output = '';
-    $i = 0;
-    error_log("JERE");
     $row = $handler->rows[$this->name];
     $cells = isset($row['data']) ? $row['data'] : $row;
+    $final_cells = array();
     foreach ($cells as $cell) {
-      // $cell = tablesort_cell($cell, $header, $ts, $i++);
-      $output .= _theme_table_cell($cell);
+      $data = _theme_table_cell($cell);
+      $final_cells[] = $data;
     }
-    return $output;
+    return $final_cells;
   }
 }
