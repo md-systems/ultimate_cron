@@ -112,14 +112,21 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   public function isBehind($job) {
     include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
     $settings = $job->getSettings($this->type);
+    $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
+
+    // If job hasn't run yet, then who are we to say it's behind its schedule?
+    if (!$log_entry->start_time) {
+      return FALSE;
+    }
+
+    $job_last_ran = $log_entry->start_time;
+    $offset = $this->getOffset($job);
 
     foreach ($settings['rules'] as $rule) {
       $now = time();
       $cron = new CronRule($rule);
-      $cron->offset = $this->getOffset($job);
+      $cron->offset = $offset;
       $cron_last_ran = $cron->getLastRan($now);
-      $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
-      $job_last_ran = $log_entry->start_time;
 
       if ($cron_last_ran >= $job_last_ran && $now >= $job_last_ran + $settings['catch_up']) {
         return $now - $cron_last_ran;
