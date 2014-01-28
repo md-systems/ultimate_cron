@@ -865,6 +865,10 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   static public $log_entries = NULL;
   public $log_entry_class = 'UltimateCronLogEntry';
 
+  public function factoryLogEntry($name) {
+    return new $this->log_entry_class($name, $this);
+  }
+
   /**
    * Create a new log entry.
    */

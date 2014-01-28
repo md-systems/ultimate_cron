@@ -7,6 +7,7 @@
 class UltimateCronJob {
   static public $signals;
   static public $currentJob;
+  public $progressUpdated = 0;
 
   /**
    * Invoke plugin cron_alter().
@@ -297,9 +298,15 @@ class UltimateCronJob {
    * Lock job.
    */
   public function lock() {
-    $result = $this->getPlugin('launcher')->lock($this);
-    $this->sendMessage('lock');
-    return $result;
+    $launcher = $this->getPlugin('launcher');
+    $lock_id = $launcher->lock($this);
+    if (!$lock_id) {
+      return FALSE;
+    }
+    $this->sendMessage('lock', array(
+      'lock_id' => $lock_id,
+    ));
+    return $lock_id;
   }
 
   /**
@@ -313,7 +320,9 @@ class UltimateCronJob {
     if ($lock_id) {
       $result = $this->getPlugin('launcher')->unlock($lock_id, $manual);
     }
-    $this->sendMessage('unlock');
+    $this->sendMessage('unlock', array(
+      'lock_id' => $lock_id,
+    ));
     return $result;
   }
 
@@ -467,26 +476,105 @@ class UltimateCronJob {
    * Set job progress.
    */
   public function setProgress($progress) {
-    $name = 'uc-progress:' . $this->name;
-    _ultimate_cron_variable_save($name, $progress);
+    if (microtime(TRUE) >= $this->progressUpdated + 1) {
+      $name = 'uc-progress:' . $this->name;
+      _ultimate_cron_variable_save($name, $progress);
+      $this->progressUpdated = microtime(TRUE);
+      $this->sendMessage('setProgress', array(
+        'progress' => $progress,
+      ));
+    }
   }
+
+  public function formatProgress($progress = NULL) {
+    if (!isset($progress)) {
+      $progress = isset($this->progress) ? $this->progress : $this->getProgress();
+    }
+    $progress = is_numeric($progress) ? sprintf("(%d%%)", round($progress * 100)) : '';
+    return $progress;
+  }
+
 
   /**
    * Send a nodejs message.
    */
-  public function sendMessage($action) {
+  public function sendMessage($action, $data = array()) {
     if (module_exists('nodejs')) {
+      $elements = array();
+      switch ($action) {
+        case 'lock':
+          $launcher = $this->getPlugin('launcher');
+          list ($status, $title) = $launcher->formatRunning($this);
+
+          $logger = $this->getPlugin('logger');
+          if (empty($data['log_entry'])) {
+            $log_entry = $logger->factoryLogEntry($this->name);
+            $log_entry->setData(array(
+              'lid' => $data['lock_id'],
+              'start_time' => microtime(TRUE),
+            ));
+          }
+          else {
+            $log_entry = $data['log_entry'];
+          }
+
+          $elements = array(
+            'tr#' . $this->name . ' td.ctools-export-ui-status' => array(
+              'data' => $status,
+              'title' => $title,
+            ),
+            'tr#' . $this->name . ' td.ctools-export-ui-duration span.duration-time' => $log_entry->formatDuration(),
+            'tr#' . $this->name . ' td.ctools-export-ui-duration' => array(
+              'title' => '',
+            ),
+            'tr#' . $this->name . ' td.ctools-export-ui-duration span.duration-progress' => '',
+            'tr#' . $this->name . ' td.ctools-export-ui-start-time' => array(
+              'data' => $log_entry->formatStartTime(),
+              'title' => $log_entry->formatInitMessage(),
+            ),
+          );
+          break;
+
+        case 'unlock':
+          $log_entry = $this->loadLogEntry($data['lock_id']);
+          list ($status, $title) = $log_entry->formatSeverity();
+
+          $elements = array(
+            'tr#' . $this->name . ' td.ctools-export-ui-status' => array(
+              'data' => $status,
+              'title' => strip_tags($log_entry->message ? $log_entry->message : $title),
+            ),
+            'tr#' . $this->name . ' td.ctools-export-ui-start-time' => array(
+              'data' => $log_entry->formatStartTime(),
+              'title' => $log_entry->formatInitMessage(),
+            ),
+            'tr#' . $this->name . ' td.ctools-export-ui-duration span.duration-time' => $log_entry->formatDuration(),
+            'tr#' . $this->name . ' td.ctools-export-ui-duration' => array(
+              'title' => $log_entry->formatEndTime(),
+            ),
+            'tr#' . $this->name . ' td.ctools-export-ui-duration span.duration-progress' => '',
+          );
+          break;
+
+        case 'setProgress':
+          $elements = array(
+            'tr#' . $this->name . ' td.ctools-export-ui-duration span.duration-progress' => $this->formatProgress($data['progress']),
+          );
+          break;
+
+
+      }
       $message = (object) array(
         'channel' => 'ultimate_cron',
         'data' => (object) array(
           'action' => $action,
           'job' => $this,
           'timestamp' => microtime(TRUE),
+          'elements' => $elements,
         ),
         'callback' => 'nodejsUltimateCron',
       );
       nodejs_send_content_channel_message($message);
     }
-
   }
 }

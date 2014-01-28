@@ -450,6 +450,8 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
         break;
     }
 
+    // Setup row.
+    $this->rows[$name]['id'] = $name;
     $this->rows[$name]['data'] = array();
 
     // Enabled/disabled.
@@ -485,7 +487,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     $this->rows[$name]['data'][] = array(
       'data' => $item->log_entry->formatStartTime(),
-      'class' => array('ctools-export-ui-last-start-time'),
+      'class' => array('ctools-export-ui-start-time'),
       'title' => strip_tags($item->log_entry->formatInitMessage()),
     );
 
@@ -493,7 +495,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $progress = is_numeric($progress) ? sprintf(" (%d%%)", round($progress * 100)) : '';
 
     $this->rows[$name]['data'][] = array(
-      'data' => $item->log_entry->formatDuration() . $progress,
+      'data' => '<span class="duration-time" data-src="' . $item->log_entry->getDuration() . '">' . $item->log_entry->formatDuration() . '</span> <span class="duration-progress">' . $item->formatProgress() . '</span>',
       'class' => array('ctools-export-ui-duration'),
       'title' => $item->log_entry->formatEndTime(),
     );
