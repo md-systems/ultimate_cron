@@ -19,6 +19,7 @@ class CronRule {
 
   private $parsed_rule = array();
   public $offset = 0;
+  private $type = NULL;
 
   /**
    * Constructor
@@ -44,14 +45,14 @@ class CronRule {
     $result = array();
 
     $lower = $matches[1];
-    $upper = $matches[2];
-    $step = isset($matches[5]) ? $matches[5] : 1;
-    $offset = isset($matches[7]) ? $matches[7] : 0;
+    $upper = isset($matches[2]) && $matches[2] != '' ? $matches[2] : $lower;
+    $step = isset($matches[5]) && $matches[5] != '' ? $matches[5] : 1;
+    $offset = isset($matches[7]) && $matches[7] != '' ? $matches[7] : 0;
 
     if ($step <= 0) return '';
     $step = ($step > 0) ? $step : 1;
     for ($i = $lower; $i <= $upper; $i+=$step) {
-      $result[] = ($i + $offset) % ($upper + 1);
+      $result[] = ($i + $offset) % (self::$ranges[$this->type][1] + 1);
     }
     return implode(',', $result);
   }
@@ -69,11 +70,12 @@ class CronRule {
    *   (array) array of valid values
    */
   function expandRange($rule, $type) {
+    $this->type = $type;
     $max = implode('-', self::$ranges[$type]);
     $rule = str_replace("*", $max, $rule);
     $rule = str_replace("@", $this->offset % (self::$ranges[$type][1] + 1), $rule);
     $this->parsed_rule[$type] = $rule;
-    $rule = preg_replace_callback('!(\d+)-(\d+)((/(\d+))?(\+(\d+))?)?!', array($this, 'expandInterval'), $rule);
+    $rule = preg_replace_callback('!(\d+)(?:-(\d+))?((/(\d+))?(\+(\d+))?)?!', array($this, 'expandInterval'), $rule);
     if (!preg_match('/([^0-9\,])/', $rule)) {
       $rule = explode(',', $rule);
       rsort($rule);

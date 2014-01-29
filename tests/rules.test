@@ -8,6 +8,8 @@
 class UltimateCronRulesUnitTestCase extends DrupalUnitTestCase {
   function setUp() {
     parent::setUp('ultimate_cron');
+    module_load_include('module', 'ultimate_cron');
+    include_once drupal_get_path('module', 'ultimate_cron') . '/plugins/ultimate_cron/scheduler/crontab.class.php';
   }
 
   public static function getInfo() {
@@ -16,6 +18,14 @@ class UltimateCronRulesUnitTestCase extends DrupalUnitTestCase {
       'description' => 'Test crontab rules parser.',
       'group' => 'Cron',
     );
+  }
+
+  private function getIntervals($rule) {
+    // Generate result message
+    require_once dirname(__FILE__) . '/../CronRule.class.php';
+    $message = array();
+    $cron = new CronRule($rule);
+    return $cron->getIntervals();
   }
 
   private function runTest($options) {
@@ -43,9 +53,41 @@ class UltimateCronRulesUnitTestCase extends DrupalUnitTestCase {
     $message[] = ($options['result'] ? '' : 'not ') . 'expected to run';
 
     // Do the actual test
-    $result = ultimate_cron_should_run($options['rules'], strtotime($options['last_run']), strtotime($options['now']), $options['catch_up']);
+    $result = UltimateCronCrontabScheduler::shouldRun($options['rules'], strtotime($options['last_run']), strtotime($options['now']), $options['catch_up']);
 
     return array($options['result'] == $result, implode('<br/>', $message));
+  }
+
+  function testIntervals2MinuteRange() {
+    $intervals = $this->getIntervals('10-11 12 * * *');
+    $this->assertEqual($intervals['minutes'], range(11, 10, -1), 'Expected minutes to be 10, 11');
+    $intervals = $this->getIntervals('0-1 12 * * *');
+    $this->assertEqual($intervals['minutes'], range(1, 0, -1), 'Expected minutes to be 0, 1');
+    $intervals = $this->getIntervals('58-59 12 * * *');
+    $this->assertEqual($intervals['minutes'], range(59, 58, -1), 'Expected minutes to be 58, 59');
+  }
+
+  function testIntervals2MinuteRangeWithOffset() {
+    $intervals = $this->getIntervals('0-1+1 12 * * *');
+    $this->assertEqual($intervals['minutes'], range(2, 1, -1), 'Expected minutes to be 1, 2');
+    $intervals = $this->getIntervals('10-11+1 12 * * *');
+    $this->assertEqual($intervals['minutes'], range(12, 11, -1), 'Expected minutes to be 11, 12');
+    // Note, this test is testing for correct behaviour when the minutes wrap around
+    // Previously, this test would generate 43, 0 due to a bug in expandRange/expandInterval
+    $intervals = $this->getIntervals('42-43+1 12 * * *');
+    $this->assertEqual($intervals['minutes'], array(44, 43), 'Expected minutes to be 43, 44');
+    // Note, this test is testing for correct behaviour when the minutes wrap around
+    $intervals = $this->getIntervals('58-59+1 12 * * *');
+    $this->assertEqual($intervals['minutes'], array(59, 0), 'Expected minutes to be 59, 0');
+  }
+
+  function testIntervalsSpecificMinute() {
+    $intervals = $this->getIntervals('0 12 * * *');
+    $this->assertEqual($intervals['minutes'], array(0), 'Expected minutes to be 0');
+    $intervals = $this->getIntervals('10 12 * * *');
+    $this->assertEqual($intervals['minutes'], array(10), 'Expected minutes to be 10');
+    $intervals = $this->getIntervals('59 12 * * *');
+    $this->assertEqual($intervals['minutes'], array(59), 'Expected minutes to be 59');
   }
 
   function testRules() {
@@ -163,10 +205,100 @@ class UltimateCronRulesUnitTestCase extends DrupalUnitTestCase {
     $this->assertTRUE($result[0], $result[1]);
   }
 
+  function testRules1MinuteRange() {
+    // Test a 1 minute range
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '10-10 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:09:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '10-10 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:10:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '10-10 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:11:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+  }
+
+  function testRules2MinuteRange() {
+    // Test a 1 minute range
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '10-11 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:09:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '10-11 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:10:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '10-11 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:11:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '10-11 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:12:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+  }
+
+  function testRules2MinuteRangeWithOffset() {
+    // Test a 1 minute range
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '10-11+1 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:10:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '10-11+1 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:11:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '10-11+1 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:12:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '10-11+1 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:13:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+  }
+
+  function testRules5MinuteRange() {
+    // Test a 5 minute range
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '10-15 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:09:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '10-15 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:10:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '10-15 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:11:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '10-15 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:12:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '10-15 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:13:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '10-15 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:14:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '10-15 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:15:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    // This should not run, as it last ran one minute ago
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '10-15 12 * * *'              , 'last_run' => '2008-01-03 12:15:00', 'now' => '2008-01-03 12:16:00'));
+    $this->assertTRUE($result[0], $result[1]);
+    // This should run, as catch_up defaults to 1 year and it last ran 16 minutes ago.
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '10-15 12 * * *'              , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:16:00'));
+    $this->assertTRUE($result[0], $result[1]);
+  }
+
+  function testRules5MinuteStep() {
+    // Test a 5 minute step
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '*/5 12 * * *'                , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:01:00'));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '*/5 12 * * *'                , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:02:00'));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '*/5 12 * * *'                , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:03:00'));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '*/5 12 * * *'                , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:04:00'));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '*/5 12 * * *'                , 'last_run' => '2008-01-03 12:00:00', 'now' => '2008-01-03 12:05:00'));
+    $this->assertTRUE($result[0], $result[1]);
+  }
+
   function testRulesExtended() {
     $result = $this->runTest(array('result' => FALSE, 'rules' => '0 0 * jan,oct *', 'last_run' => '2008-01-31 00:00:00', 'now' => '2008-03-10 09:00:00'));
     $this->assertTRUE($result[0], $result[1]);
     $result = $this->runTest(array('result' => TRUE , 'rules' => '0 0 * jan,oct *', 'last_run' => '2008-01-31 00:00:00', 'now' => '2008-10-01 00:00:00'));
+    $this->assertTRUE($result[0], $result[1]);
+  }
+
+  function testRulesMinuteWithOffset() {
+    // Test a 1 minute range
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '10+1 12 * * *'              , 'last_run' => '2008-01-01 12:00:00', 'now' => '2008-01-03 12:10:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '10+1 12 * * *'              , 'last_run' => '2008-01-01 12:00:00', 'now' => '2008-01-03 12:11:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '10+1 12 * * *'              , 'last_run' => '2008-01-01 12:00:00', 'now' => '2008-01-03 12:12:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '59+1 12 * * *'              , 'last_run' => '2008-01-01 12:00:00', 'now' => '2008-01-03 12:59:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => TRUE , 'rules' => '59+1 12 * * *'              , 'last_run' => '2008-01-01 12:00:00', 'now' => '2008-01-03 12:00:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '59+1 12 * * *'              , 'last_run' => '2008-01-01 12:00:00', 'now' => '2008-01-03 13:00:00', 'catch_up' => 1));
+    $this->assertTRUE($result[0], $result[1]);
+    $result = $this->runTest(array('result' => FALSE, 'rules' => '59+1 12 * * *'              , 'last_run' => '2008-01-01 12:00:00', 'now' => '2008-01-03 13:01:00', 'catch_up' => 1));
     $this->assertTRUE($result[0], $result[1]);
   }
 }
