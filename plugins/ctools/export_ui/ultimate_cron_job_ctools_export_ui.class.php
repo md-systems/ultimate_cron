@@ -561,9 +561,11 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       $this->list_build_row($item, $form_state, $operations);
     }
     if ($this->jobs_behind) {
-      drupal_set_message(t('@jobs jobs are behind schedule.', array(
-        '@jobs' => $this->jobs_behind,
-      )), 'warning');
+      drupal_set_message(format_plural(
+        $this->jobs_behind,
+        '@count job is behind schedule.',
+        '@count jobs are behind schedule.'
+      ), 'warning');
     }
 
     // Now actually sort.

@@ -114,6 +114,11 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
     $settings = $job->getSettings($this->type);
     $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
 
+    // Disabled jobs are not behind!
+    if (!empty($job->disabled)) {
+      return FALSE;
+    }
+
     // If job hasn't run yet, then who are we to say it's behind its schedule?
     if (!$log_entry->start_time) {
       return FALSE;

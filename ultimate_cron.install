@@ -248,7 +248,11 @@ function ultimate_cron_requirements($phase) {
       }
       if ($jobs_behind) {
         $response['severity'] = $response['severity'] > REQUIREMENT_ERROR ? $response['severity'] : REQUIREMENT_ERROR;
-        $response['value'][] = $t('@jobs jobs are behind schedule', array('@jobs' => $jobs_behind));
+        $response['value'][] = format_plural(
+          $jobs_behind,
+          '@count job is behind schedule',
+          '@count jobs are behind schedule'
+        );
         $response['description'][] = $t(
           'Some jobs are behind their schedule. Please check if !link is running properly.', array(
             '!link' => l($t('cron'), 'admin/config/system/cron')
