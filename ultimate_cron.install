@@ -213,15 +213,16 @@ function ultimate_cron_enable() {
  * Implements hook_uninstall().
  */
 function ultimate_cron_uninstall() {
-  variable_del('ultimate_cron_simultaneous_connections');
-  variable_del('ultimate_cron_rule');
-  variable_del('ultimate_cron_cleanup_log');
-  variable_del('ultimate_cron_catch_up');
-  variable_del('ultimate_cron_queue_polling_latency');
-  variable_del('ultimate_cron_queue_lease_time');
-  variable_del('ultimate_cron_poorman');
-  variable_del('ultimate_cron_launch_window');
-  variable_del('ultimate_cron_max_execution_time');
+  db_delete('variable')
+    ->condition('name', db_like('default_ultimate_cron_job') . '%', 'LIKE')
+    ->execute();
+  db_delete('variable')
+    ->condition('name', db_like('uc-progress:ultimate_cron_plugin') . '%', 'LIKE')
+    ->execute();
+  db_delete('variable')
+    ->condition('name', db_like('ultimate_cron_plugin') . '%', 'LIKE')
+    ->execute();
+  cache_clear_all('variables', 'cache_bootstrap');
 }
 /**
  * Implements hook_requirements().
