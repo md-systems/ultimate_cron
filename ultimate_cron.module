@@ -829,6 +829,79 @@ function _ultimate_cron_get_queues() {
 }
 
 /**
+ * Cron easy hooks.
+ */
+function ultimate_cron_easy_hooks() {
+  static $easy_hooks;
+  if (isset($easy_hooks)) {
+    return $easy_hooks;
+  }
+
+  $easy_hooks = array(
+    'cron' => array(
+      'title' => 'Default cron job',
+    ),
+    'cron_hourly' => array(
+      'title' => 'Hourly cron job',
+      'scheduler' => array(
+        'name' => 'crontab',
+        'crontab' => array(
+          'rules' => array('0+@ * * * *'),
+        ),
+      ),
+    ),
+    'cron_daily' => array(
+      'title' => 'Daily cron job',
+      'scheduler' => array(
+        'name' => 'crontab',
+        'crontab' => array(
+          'rules' => array('0+@ 12 * * *'),
+        ),
+      ),
+    ),
+    'cron_nightly' => array(
+      'title' => 'Nightly cron job',
+      'scheduler' => array(
+        'name' => 'crontab',
+        'crontab' => array(
+          'rules' => array('0+@ 0 * * *'),
+        ),
+      ),
+    ),
+    'cron_weekly' => array(
+      'title' => 'Weekly cron job',
+      'scheduler' => array(
+        'name' => 'crontab',
+        'crontab' => array(
+          'rules' => array('0+@ 0 * * 1'),
+        ),
+      ),
+    ),
+    'cron_monthly' => array(
+      'title' => 'Monthly cron job',
+      'scheduler' => array(
+        'name' => 'crontab',
+        'crontab' => array(
+          'rules' => array('0+@ 0 1 * *'),
+        ),
+      ),
+    ),
+    'cron_yearly' => array(
+      'title' => 'Yearly cron job',
+      'scheduler' => array(
+        'name' => 'crontab',
+        'crontab' => array(
+          'rules' => array('0+@ 0 1 1 *'),
+        ),
+      ),
+    ),
+  );
+  $easy_hooks += module_invoke_all('cron_easy_hooks');
+  drupal_alter('cron_easy_hooks', $easy_hooks);
+  return $easy_hooks;
+}
+
+/**
  * Get a specific hook.
  */
 function ultimate_cron_get_hook($name, $reset = FALSE) {
@@ -916,6 +989,23 @@ function ultimate_cron_get_module_hooks($module) {
       'title' => 'Default cron handler',
       'configure' => empty($info['configure']) ? NULL : $info['configure'],
     );
+  }
+
+  foreach (ultimate_cron_easy_hooks() as $name => $easy_hook) {
+    $job_name = "{$module}_{$name}";
+    if (module_hook($module, $name)) {
+      if (empty($items[$job_name])) {
+        $items[$job_name] = array();
+      }
+      $items[$job_name] += $easy_hook;
+
+      $info = system_get_info('module', $module);
+      $items[$job_name] += array(
+        'module' => $module,
+        'title' => 'Easy hook ' . $name,
+        'configure' => empty($info['configure']) ? NULL : $info['configure'],
+      );
+    }
   }
 
   // Add default settings.
