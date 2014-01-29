@@ -46,6 +46,11 @@ function ultimate_cron_exit($dest = NULL) {
     return;
   }
 
+  // Don't attempt poormans stuff until fully bootstrapped.
+  if (drupal_bootstrap() < DRUPAL_BOOTSTRAP_FULL) {
+    return;
+  }
+
   $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
   if (!$settings['poorman']) {
     return;
