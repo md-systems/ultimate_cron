@@ -49,6 +49,8 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       unset($allowed_operations['run']);
     }
 
+    $item->build_operations_alter($allowed_operations);
+
     $default_sort = array(
       'logs' => -10,
       'edit' => -2,
@@ -59,7 +61,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       'export' => 1,
       'configure' => 1,
     );
-    $item->build_operations_alter($allowed_operations);
+
     $weight = 0;
     foreach ($allowed_operations as $name => &$operation) {
       $operation += array('sort' => array(isset($default_sort[$name]) ? $default_sort[$name] : 0));
@@ -258,8 +260,11 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $form['#attached']['js'][] = drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.js';
 
     if (module_exists('nodejs')) {
-      nodejs_send_content_channel_token('ultimate_cron');
-      $form['#attached']['js'][] = drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.nodejs.js';
+      $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
+      if (!empty($settings['nodejs'])) {
+        nodejs_send_content_channel_token('ultimate_cron');
+        $form['#attached']['js'][] = drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.nodejs.js';
+      }
     }
 
     // There's no normal for Ultimate Cron!

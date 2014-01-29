@@ -14,6 +14,9 @@ function ultimate_cron_plugin_form($form, &$form_state, $plugin_type) {
   $static = $plugin_info['defaults']['static'];
   $class = $static['class'];
   $class::defaultSettingsForm($form, $form_state, $plugin_info);
+  if (!empty($form['#submit'])) {
+    array_push($form['#submit'], 'ultimate_cron_plugin_settings_clear_cache');
+  }
   return $form;
 }
 
@@ -60,6 +63,7 @@ function ultimate_cron_plugin_settings($form, &$form_state, $plugin_type, $name)
   $form['#submit'] = empty($form['#submit']) ? array() : $form['#submit'];
   array_unshift($form['#validate'], 'ultimate_cron_plugin_settings_validate');
   array_unshift($form['#submit'], 'ultimate_cron_plugin_settings_submit');
+  array_push($form['#submit'], 'ultimate_cron_plugin_settings_clear_cache');
   return $form;
 }
 
@@ -88,4 +92,11 @@ function ultimate_cron_plugin_settings_submit($form, &$form_state) {
   unset($form_state['values']['plugin_type']);
   unset($form_state['values']['name']);
   unset($form_state['values']['settings']);
+}
+
+/**
+ * Clear the cron hook cache after changing default settings.
+ */
+function ultimate_cron_plugin_settings_clear_cache($form, &$form_state) {
+  cache_clear_all('ultimate_cron_hooks', 'cache');
 }

@@ -503,6 +503,11 @@ class UltimateCronJob {
    */
   public function sendMessage($action, $data = array()) {
     if (module_exists('nodejs')) {
+      $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
+      if (empty($settings['nodejs'])) {
+        return;
+      }
+
       $elements = array();
 
       $build = clone $this;
