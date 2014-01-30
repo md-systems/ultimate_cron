@@ -159,7 +159,8 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * for the running process, so we'll have to add that ourselves.
    */
   public function lock($job) {
-    $process = new BackgroundProcess('uc-' . $job->name);
+    $handle = 'uc-' . $job->name;
+    $process = new BackgroundProcess($handle);
     if (!$process->lock()) {
       return FALSE;
     }
@@ -171,6 +172,9 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    */
   public function unlock($lock_id, $manual = FALSE) {
     if (!preg_match('/(.*):bgpl.*/', $lock_id, $matches)) {
+      watchdog('bg_process_legacy', 'Invalid lock id @lock_id', array(
+        '@lock_id' => $lock_id,
+      ), WATCHDOG_ERROR);
       return FALSE;
     }
     $job_name = $matches[1];
@@ -245,7 +249,8 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
 
     $settings = $job->getSettings();
 
-    $process = new BackgroundProcess('uc-' . $job->name);
+    $handle = 'uc-' . $job->name;
+    $process = new BackgroundProcess($handle);
     $this->exec_status = $this->status = BACKGROUND_PROCESS_STATUS_LOCKED;
 
     // Always run cron job as anonymous user.
@@ -271,6 +276,9 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     $log_entry->unCatchMessages();
 
     if (!$process->execute('ultimate_cron_background_process_legacy_callback', array($job->name, $lock_id))) {
+      watchdog('bg_process_legacy', 'Could execute background process dispatch for handle @handle', array(
+        '@handle' => $handle,
+      ), WATCHDOG_ERROR);
       $this->unlock($lock_id);
       return FALSE;
     }
@@ -309,7 +317,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       // Wait until there's an available thread.
       $threads = $this->numberOfProcessesRunning();
       if ($threads >= $settings['max_threads']) {
-        watchdog('ultimate_cron', 'Background Process launcher congested. @threads/@max threads running.', array(
+        watchdog('bg_process_legacy', 'Background Process launcher congested. @threads/@max threads running.', array(
           '@max' => $settings['max_threads'],
           '@threads' => $threads,
         ), WATCHDOG_DEBUG);
@@ -320,7 +328,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
 
       // Bail out if we expired.
       if (microtime(TRUE) >= $expire) {
-        watchdog('ultimate_cron', 'Background Process launcher exceed time limit of 45 seconds.', array(), WATCHDOG_NOTICE);
+        watchdog('bg_process_legacy', 'Background Process launcher exceed time limit of 45 seconds.', array(), WATCHDOG_NOTICE);
         return;
       }
 

@@ -124,13 +124,16 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     return $lock_id ? $this->name . '-' . $lock_id : $lock_id;
   }
 
+  /**
+   * Check lock for multiple jobs.
+   */
   public function isLockedMultiple($jobs) {
     $names = array();
     foreach ($jobs as $job) {
       $names[] = $job->name;
     }
     $lock_ids = UltimateCronLock::isLockedMultiple($names);
-    foreach ($lock_ids as $name => &$lock_id) {
+    foreach ($lock_ids as &$lock_id) {
       $lock_id = $lock_id ? $this->name . '-' . $lock_id : $lock_id;
     }
     return $lock_ids;
@@ -139,7 +142,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
   /**
    * Cleanup.
    */
-  function cleanup() {
+  public function cleanup() {
     UltimateCronLock::cleanup();
   }
 
@@ -173,7 +176,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       $job->run();
     }
     catch (Exception $e) {
-      watchdog('ultimate_cron', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);
+      watchdog('serial_launcher', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);
     }
 
     $log_entry->finish();

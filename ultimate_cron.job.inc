@@ -301,6 +301,9 @@ class UltimateCronJob {
     $launcher = $this->getPlugin('launcher');
     $lock_id = $launcher->lock($this);
     if (!$lock_id) {
+      watchdog('ultimate_cron', 'Could not get lock for job @name', array(
+        '@name' => $this->name,
+      ), WATCHDOG_ERROR);
       return FALSE;
     }
     $this->sendMessage('lock', array(
@@ -579,7 +582,7 @@ class UltimateCronJob {
   /**
    * Rebuild a row on the export ui.
    */
-  function rebuild_ctools_export_ui_table_row() {
+  public function rebuild_ctools_export_ui_table_row() {
     ctools_include('export-ui');
     $plugin = ctools_get_export_ui('ultimate_cron_job_ctools_export_ui');
     $handler = ctools_export_ui_get_handler($plugin);
