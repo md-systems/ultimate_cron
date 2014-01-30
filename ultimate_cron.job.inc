@@ -269,7 +269,7 @@ class UltimateCronJob {
   public function schedule() {
     UltimateCronPlugin::hook_cron_pre_schedule($this);
     module_invoke_all('cron_pre_schedule', $this);
-    $result = empty($this->disabled) && $this->getPlugin('scheduler')->schedule($this);
+    $result = empty($this->disabled) && !$this->isLocked() && $this->getPlugin('scheduler')->schedule($this);
     UltimateCronPlugin::hook_cron_post_schedule($this);
     module_invoke_all('cron_post_schedule', $this);
     return $result;
