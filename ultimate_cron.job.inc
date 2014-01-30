@@ -208,6 +208,7 @@ class UltimateCronJob {
         }
       }
     }
+    drupal_alter('ultimate_cron_plugin_build_operations_alter', $this, $allowed_operations);
   }
 
   /**
