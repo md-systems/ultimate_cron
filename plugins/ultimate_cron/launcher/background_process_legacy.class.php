@@ -159,7 +159,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * for the running process, so we'll have to add that ourselves.
    */
   public function lock($job) {
-    $process = new BackgroundProcess($job->name);
+    $process = new BackgroundProcess('uc-' . $job->name);
     if (!$process->lock()) {
       return FALSE;
     }
@@ -173,9 +173,10 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     if (!preg_match('/(.*):bgpl.*/', $lock_id, $matches)) {
       return FALSE;
     }
-    $handle = $matches[1];
+    $job_name = $matches[1];
+    $handle = 'uc-' . $job_name;
     if ($manual) {
-      $job = ultimate_cron_job_load($handle);
+      $job = ultimate_cron_job_load($job_name);
       $job->sendSignal('background_process_legacy_dont_log');
     }
     return background_process_unlock($handle);
@@ -189,7 +190,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * the job name.
    */
   public function isLocked($job) {
-    $process = background_process_get_process($job->name);
+    $process = background_process_get_process('uc-' . $job->name);
     if ($process) {
       return $process->args[1];
     }
@@ -202,11 +203,15 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * This has yet to be optimized.
    */
   public function isLockedMultiple($jobs) {
+    $handles = array();
+    foreach ($jobs as $job) {
+      $handles[] = 'uc-' . $job->name;
+    }
     try {
       $old_db = db_set_active('background_process');
       $processes = db_select('background_process', 'bp')
         ->fields('bp', array('handle', 'args'))
-        ->condition('handle', array_keys($jobs), 'IN')
+        ->condition('handle', $handles, 'IN')
         ->execute()
         ->fetchAllAssoc('handle', PDO::FETCH_OBJ);
       db_set_active($old_db);
@@ -219,8 +224,8 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     $lock_ids = array();
     foreach ($jobs as $job) {
       $lock_ids[$job->name] = FALSE;
-      if (isset($processes[$job->name])) {
-        $process = $processes[$job->name];
+      if (isset($processes['uc-' . $job->name])) {
+        $process = $processes['uc-' . $job->name];
         $process->args = unserialize($process->args);
         $lock_ids[$job->name] = $process->args[1];
       }
@@ -240,7 +245,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
 
     $settings = $job->getSettings();
 
-    $process = new BackgroundProcess($job->name);
+    $process = new BackgroundProcess('uc-' . $job->name);
     $this->exec_status = $this->status = BACKGROUND_PROCESS_STATUS_LOCKED;
 
     // Always run cron job as anonymous user.
@@ -292,16 +297,35 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     $this->scheduledLaunch = TRUE;
     $settings = $this->getDefaultSettings();
 
+    // Don't use more than 45 seconds for launching jobs.
+    // If we fail, we will try again next time.
+    $expire = microtime(TRUE) + 45;
+
     foreach ($jobs as $job) {
-      if ($this->numberOfProcessesRunning() < $settings['max_threads']) {
-        if ($job->schedule()) {
-          $job->launch();
-        }
+      if (!$job->schedule()) {
+        continue;
       }
-      else {
-        // Congested ... let's wait a little before we retry.
-        sleep(1);
+
+      // Wait until there's an available thread.
+      $threads = $this->numberOfProcessesRunning();
+      if ($threads >= $settings['max_threads']) {
+        watchdog('ultimate_cron', 'Background Process launcher congested. @threads/@max threads running.', array(
+          '@max' => $settings['max_threads'],
+          '@threads' => $threads,
+        ), WATCHDOG_DEBUG);
+        do {
+          sleep(1);
+        } while (microtime(TRUE) < $expire && $this->numberOfProcessesRunning() >= $settings['max_threads']);
       }
+
+      // Bail out if we expired.
+      if (microtime(TRUE) >= $expire) {
+        watchdog('ultimate_cron', 'Background Process launcher exceed time limit of 45 seconds.', array(), WATCHDOG_NOTICE);
+        return;
+      }
+
+      // Everything's good. Launch job!
+      $job->launch();
     }
   }
 
