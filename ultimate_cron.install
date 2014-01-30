@@ -843,6 +843,13 @@ function ultimate_cron_update_7200() {
     'end_time'
   ));
 
+  // Old version of Ultimate Cron used Background Process for launching jobs,
+  // and crontab for scheduling jobs.
   variable_set('ultimate_cron_plugin_scheduler_default', 'crontab');
   variable_set('ultimate_cron_plugin_launcher_default', 'background_process_legacy');
+
+  // Migrate poormans cron setting.
+  $general = ultimate_cron_plugin_load('settings', 'general');
+  $general->settings['poorman'] = variable_get('ultimate_cron_poorman', FALSE);
+  $general->setSettings();
 }

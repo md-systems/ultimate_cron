@@ -257,6 +257,13 @@ class UltimateCronPlugin {
   }
 
   /**
+   * Save settings to db.
+   */
+  public function setSettings() {
+    variable_set($this->key, $this->settings);
+  }
+
+  /**
    * Default settings.
    */
   public function defaultSettings() {
