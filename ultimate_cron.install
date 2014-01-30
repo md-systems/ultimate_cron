@@ -286,62 +286,42 @@ function ultimate_cron_requirements($phase) {
  * Major version upgrade of Drupal.
  */
 function ultimate_cron_update_7000() {
-  $last_version = db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField();
-  variable_set('ultimate_cron_major_drupal_upgrade', $last_version);
-}
-
-/**
- * Check if a 71xx version counterpart is already installed.
- *
- * @param integer $version
- *   The 71xx version to check.
- *
- * @return boolean
- *   TRUE if counterpart is already installed.
- */
-function _ultimate_cron_contains_counterpart_version($version) {
-  $last_version = variable_get('ultimate_cron_major_drupal_upgrade', 7000);
-  $mapping = array(
-    7101 => 6000,
-    7102 => 6001,
-    7103 => 6002,
-    7104 => 6003,
-    7105 => 6105,
-    7106 => 6106,
-    7107 => 7107,
-    7108 => 6107,
-  );
-  return $mapping[$version] <= $last_version;
 }
 
 /**
  * Move messages to log table.
  */
 function ultimate_cron_update_7101() {
-  if (_ultimate_cron_contains_counterpart_version(7101)) {
-    return;
+  if (!db_field_exists('ultimate_cron_log', 'msg')) {
+    // 'msg' doesn't exist, so this update has never run and was never run when
+    // it was previously called ultimate_cron_update_6000() or
+    // ultimate_cron_update_7000() - hence, it needs to be run.
+    db_add_field('ultimate_cron_log', 'msg', array(
+      'description' => 'Message',
+      'type' => 'text',
+      'not null' => FALSE,
+    ));
+    db_query("UPDATE {ultimate_cron_log} l JOIN {ultimate_cron_log_message} m ON l.lid = m.lid SET l.msg = m.msg");
+    db_drop_table('ultimate_cron_log_message');
   }
-  db_add_field('ultimate_cron_log', 'msg', array(
-    'description' => 'Message',
-    'type' => 'text',
-    'not null' => FALSE,
-  ));
-  db_query("UPDATE {ultimate_cron_log} l JOIN {ultimate_cron_log_message} m ON l.lid = m.lid SET l.msg = m.msg");
-  db_drop_table('ultimate_cron_log_message');
 }
 
 /**
  * Convert polling latenct from microseconds to miliseconds.
  */
 function ultimate_cron_update_7102() {
-  if (_ultimate_cron_contains_counterpart_version(7102)) {
-    return;
-  }
+  // There's no safe way to check if this update has been run before or not,
+  // as it could have run when this update was previously called
+  // ultimate_cron_update_6001() or ultimate_cron_update_7001() - all we can do
+  // is run it anyway and issue a message asking the admin to check the polling
+  // latency.
+
   // Convert polling latency from microseconds to miliseconds.
   $polling_latency = variable_get('ultimate_cron_queue_polling_latency', NULL);
   if ($polling_latency) {
     $polling_latency /= 1000;
     variable_set('ultimate_cron_queue_polling_latency', $polling_latency);
+    return t('Please double check your Ultimate Cron <a href="@admin">Queue polling latency</a>', array('@admin' => url('admin/config/system/cron/settings')));
   }
 }
 
@@ -349,127 +329,202 @@ function ultimate_cron_update_7102() {
  * Merge ultimate_cron_function and ultimate_cron_configuration into ultimate_cron.
  */
 function ultimate_cron_update_7103() {
-  if (_ultimate_cron_contains_counterpart_version(7103)) {
-    return;
+  if (!db_table_exists('ultimate_cron')) {
+    // 'ultimate_cron' doesn't exist, so this update has never run and was
+    // never run when it was previously called ultimate_cron_update_6002() or
+    // ultimate_cron_update_7002() - hence, it needs to be run.
+    // NOTE - Include the schema here, as referring to ultimate_cron_schema()
+    // will cause errors in ultimate_cron_update_7105().
+
+    $schema = array();
+
+    $schema['ultimate_cron'] = array(
+      'description' => 'Cron job function list',
+      'export' => array(
+        'key' => 'function',
+        'key name' => 'Function name',
+        'primary key' => 'fid',
+        'identifier' => 'function',
+        'default hook' => 'default_ultimate_cron_function',
+        'api' => array(
+          'owner' => 'ultimate_cron',
+          'api' => 'default_ultimate_cron_functions',
+          'minimum_version' => 1,
+          'current_version' => 1,
+        ),
+      ),
+      'fields' => array(
+        'fid' => array(
+          'description' => 'Function ID',
+          'type' => 'serial',
+          'size' => 'normal',
+          'not null' => TRUE,
+          'no export' => TRUE,
+        ),
+        'function' => array(
+          'description' => 'Function name',
+          'type' => 'varchar',
+          'length' => 127,
+          'not null' => TRUE,
+        ),
+        'settings' => array(
+          'description' => 'Settings',
+          'type' => 'text',
+          'serialize' => TRUE,
+          'not null' => FALSE,
+        ),
+      ),
+      'primary key' => array('fid'),
+      'unique key' => array('function'),
+    );
+
+    db_create_table('ultimate_cron', $schema['ultimate_cron']);
+    db_query("INSERT INTO {ultimate_cron} SELECT f.fid, f.function, c.configuration AS settings FROM ultimate_cron_function f LEFT JOIN {ultimate_cron_configuration} c ON f.fid = c.fid");
+    db_drop_table('ultimate_cron_function');
+    db_drop_table('ultimate_cron_configuration');
   }
-  $schema = ultimate_cron_schema();
-  db_create_table('ultimate_cron', $schema['ultimate_cron']);
-  db_query("INSERT INTO {ultimate_cron} SELECT f.fid, f.function, c.configuration AS settings FROM ultimate_cron_function f LEFT JOIN {ultimate_cron_configuration} c ON f.fid = c.fid");
-  db_drop_table('ultimate_cron_function');
-  db_drop_table('ultimate_cron_configuration');
 }
 
 /**
  * Switch from fid to function name in ultimate_cron_log.
  */
 function ultimate_cron_update_7104() {
-  if (_ultimate_cron_contains_counterpart_version(7104)) {
-    return;
+  if (!db_field_exists('ultimate_cron_log', 'name') && !db_field_exists('ultimate_cron_log', 'function')) {
+    // 'name' doesn't exist, so update ultimate_cron_update_7106() has never
+    // run and was never run when it was previously called
+    // ultimate_cron_update_6106(). If one of these updates had run, we would
+    // have already done this update and could safely skip it.
+
+    // 'function' also does not exist, so this update has never run and was never run when
+    // it was previously called ultimate_cron_update_6003() or
+    // ultimate_cron_update_7003() - hence, it needs to be run.
+    db_add_field('ultimate_cron_log', 'function', array(
+      'description' => 'Function name',
+      'type' => 'varchar',
+      'length' => 127,
+      'not null' => TRUE,
+      'default' => '',
+      'initial' => 'function',
+    ));
+    $fids = db_select('ultimate_cron_log', 'u')->fields('u', array('fid'))->distinct()->execute();
+    while ($fid = $fids->fetchObject()) {
+      $function = db_select('ultimate_cron', 'u')->fields('u', array('function'))->condition('fid', $fid->fid, '=')->execute()->fetchObject();
+      db_update('ultimate_cron_log')->fields(array('function' => $function->function))->condition('fid', $fid->fid, '=')->execute();
+    }
+    db_drop_field('ultimate_cron_log', 'fid');
+    db_drop_index('ultimate_cron_log', 'idx_last');
+    db_drop_index('ultimate_cron_log', 'idx_count');
+    db_add_index('ultimate_cron_log', 'idx_last', array('function', 'start'));
+    db_add_index('ultimate_cron_log', 'idx_count', array('function', 'end'));
   }
-  db_add_field('ultimate_cron_log', 'function', array(
-        'description' => 'Function name',
-        'type' => 'varchar',
-        'length' => 127,
-        'not null' => TRUE,
-        'initial' => 'function',
-      ));
-  $fids = db_select('ultimate_cron_log', 'u')->fields('u', array('fid'))->distinct()->execute();
-  while ($fid = $fids->fetchObject()) {
-    $function = db_select('ultimate_cron', 'u')->fields('u', array('function'))->condition('fid', $fid->fid, '=')->execute()->fetchObject();
-    db_update('ultimate_cron_log')->fields(array('function' => $function->function))->condition('fid', $fid->fid, '=')->execute();
-  }
-  db_drop_field('ultimate_cron_log', 'fid');
-  db_drop_index('ultimate_cron_log', 'idx_last');
-  db_drop_index('ultimate_cron_log', 'idx_count');
-  db_add_index('ultimate_cron_log', 'idx_last', array('function', 'start'));
-  db_add_index('ultimate_cron_log', 'idx_count', array('function', 'end'));
 }
 
 /**
  * Add missing index to database.
  */
 function ultimate_cron_update_7105() {
-  if (_ultimate_cron_contains_counterpart_version(7105)) {
-    return;
-  }
-  $items = db_select('ultimate_cron')
-    ->fields('ultimate_cron', array('fid', 'function'))
-    ->orderBy('fid', 'ASC')
-    ->execute()
-    ->fetchAllAssoc('fid', PDO::FETCH_ASSOC);
-  $fids = array();
-  $keep = array();
-  foreach ($items as $item) {
-    if (isset($keep[$item['function']])) {
-      $fids[] = $keep[$item['function']];
+  if (!db_field_exists('ultimate_cron_log', 'name') && !db_index_exists('ultimate_cron', 'uniq_function')) {
+    // 'name' doesn't exist, so update ultimate_cron_update_7106() has never
+    // run and was never run when it was previously called
+    // ultimate_cron_update_6106(). If one of these updates had run, we would
+    // have already done this update and could safely skip it.
+
+    // 'uniq_function' also does not exist, so this update has never run and
+    // was never run when it was previously called ultimate_cron_update_6105()
+    // - hence, it needs to be run.
+    $items = db_select('ultimate_cron')
+      ->fields('ultimate_cron', array('fid', 'function'))
+      ->orderBy('fid', 'ASC')
+      ->execute()
+      ->fetchAllAssoc('fid', PDO::FETCH_ASSOC);
+    $fids = array();
+    $keep = array();
+    foreach ($items as $item) {
+      if (isset($keep[$item['function']])) {
+        $fids[] = $keep[$item['function']];
+      }
+      $keep[$item['function']] = $item['fid'];
     }
-    $keep[$item['function']] = $item['fid'];
+    if ($fids) {
+      db_delete('ultimate_cron')
+        ->condition('fid', $fids)
+        ->execute();
+    }
+    db_add_unique_key('ultimate_cron', 'uniq_function', array('function'));
   }
-  if ($fids) {
-    db_delete('ultimate_cron')
-      ->condition('fid', $fids)
-      ->execute();
-  }
-  db_add_unique_key('ultimate_cron', 'uniq_function', array('function'));
 }
 
 /**
  * Change schema to SQL 99 compliance.
  */
 function ultimate_cron_update_7106() {
-  if (_ultimate_cron_contains_counterpart_version(7106)) {
-    return;
+  // Check each change in case it was previously run when this udpate was
+  // called ultimate_cron_update_6106().
+  if (db_index_exists('ultimate_cron', 'idx_function')) {
+    db_drop_unique_key('ultimate_cron', 'idx_function');
   }
-  db_drop_unique_key('ultimate_cron', 'idx_function');
-  db_change_field('ultimate_cron', 'function', 'name', array(
-    'description' => 'Function name',
-    'type' => 'varchar',
-    'length' => 127,
-    'not null' => TRUE,
-  ));
-  db_add_unique_key('ultimate_cron', 'idx_name', array('name'));
-
-  db_change_field('ultimate_cron_log', 'function', 'name', array(
-    'description' => 'Function name',
-    'type' => 'varchar',
-    'length' => 127,
-    'not null' => TRUE,
-  ));
-  db_change_field('ultimate_cron_log', 'start', 'start_stamp', array(
-    'description' => 'Timstamp of execution start',
-    'type' => 'float',
-    'size' => 'big',
-    'not null' => TRUE,
-    'default' => 0,
-  ));
-  db_change_field('ultimate_cron_log', 'end', 'end_stamp', array(
-    'description' => 'Timstamp of execution end',
-    'type' => 'float',
-    'size' => 'big',
-    'not null' => TRUE,
-    'default' => 0,
-  ));
-  db_change_field('ultimate_cron_log', 'status', 'exec_status', array(
-    'description' => 'Status of the execution',
-    'type' => 'int',
-    'size' => 'normal',
-    'not null' => FALSE,
-    'default' => NULL,
-  ));
+  if (db_field_exists('ultimate_cron', 'function')) {
+    db_change_field('ultimate_cron', 'function', 'name', array(
+      'description' => 'Function name',
+      'type' => 'varchar',
+      'length' => 127,
+      'not null' => TRUE,
+      'default' => '',
+    ));
+  }
+  if (!db_index_exists('ultimate_cron', 'idx_name')) {
+    db_add_unique_key('ultimate_cron', 'idx_name', array('name'));
+  }
+  if (db_field_exists('ultimate_cron_log', 'function')) {
+    db_change_field('ultimate_cron_log', 'function', 'name', array(
+      'description' => 'Function name',
+      'type' => 'varchar',
+      'length' => 127,
+      'not null' => TRUE,
+      'default' => '',
+    ));
+  }
+  if (db_field_exists('ultimate_cron_log', 'start')) {
+    db_change_field('ultimate_cron_log', 'start', 'start_stamp', array(
+      'description' => 'Timstamp of execution start',
+      'type' => 'float',
+      'size' => 'big',
+      'not null' => TRUE,
+      'default' => 0,
+    ));
+  }
+  if (db_field_exists('ultimate_cron_log', 'end')) {
+    db_change_field('ultimate_cron_log', 'end', 'end_stamp', array(
+      'description' => 'Timstamp of execution end',
+      'type' => 'float',
+      'size' => 'big',
+      'not null' => TRUE,
+      'default' => 0,
+    ));
+  }
+  if (db_field_exists('ultimate_cron_log', 'status')) {
+    db_change_field('ultimate_cron_log', 'status', 'exec_status', array(
+      'description' => 'Status of the execution',
+      'type' => 'int',
+      'size' => 'normal',
+      'not null' => FALSE,
+      'default' => NULL,
+    ));
+  }
 }
 
 /**
  * Add service host to log.
  */
 function ultimate_cron_update_7107() {
-  if (_ultimate_cron_contains_counterpart_version(7107)) {
-    return;
-  }
+  // This update is part of the the Drupal 6.x branch, so we don't need to
+  // safety check it.
   db_add_field('ultimate_cron_log', 'service_host', array(
     'description' => 'Service host',
     'type' => 'varchar',
     'length' => 127,
     'not null' => TRUE,
+    'default' => '',
   ));
 }
 
@@ -477,28 +532,228 @@ function ultimate_cron_update_7107() {
  * Add severity level to log.
  */
 function ultimate_cron_update_7108() {
-  if (_ultimate_cron_contains_counterpart_version(7108)) {
-    return;
+  if (!db_field_exists('ultimate_cron_log', 'severity')) {
+    // 'severity' does not exist, so this update was not run when it was called
+    // ultimate_cron_update_6107() - hence it needs to be run.
+    db_add_field('ultimate_cron_log', 'severity', array(
+      'description' => 'Log level severity',
+      'type' => 'int',
+      'size' => 'normal',
+      'not null' => TRUE,
+      'default' => -1,
+    ));
   }
-  db_add_field('ultimate_cron_log', 'severity', array(
-    'description' => 'Log level severity',
-    'type' => 'int',
-    'size' => 'normal',
-    'not null' => TRUE,
-    'default' => -1,
-  ));
+}
+
+/**
+ * Rename uniq_function to uniq_name to match the schema.
+ */
+function ultimate_cron_update_7109() {
+  // ultimate_cron_update_7105() adds unique key 'uniq_function', but
+  // ultimate_cron_schema() creates 'uniq_name' - so we must correct that here.
+  if (db_index_exists('ultimate_cron', 'uniq_function')) {
+    db_drop_unique_key('ultimate_cron', 'uniq_function');
+    db_add_unique_key('ultimate_cron', 'uniq_name', array('name'));
+  }
 }
 
 /**
  * Rename columns and indices to 2.x style.
  */
 function ultimate_cron_update_7200() {
-  $schema = drupal_get_schema('ultimate_cron_lock', TRUE);
-  db_create_table('ultimate_cron_lock', $schema);
-  $schema = drupal_get_schema('ultimate_cron_job');
-  db_create_table('ultimate_cron_job', $schema);
-  $schema = drupal_get_schema('ultimate_cron_signal');
-  db_create_table('ultimate_cron_signal', $schema);
+  $schema = array();
+
+  $schema['ultimate_cron_job'] = array(
+    'description' => 'Cron jobs',
+    'export' => array(
+      'admin_title' => 'title',
+      'key' => 'name',
+      'primary key' => 'jid',
+      'identifier' => 'job',
+      'load callback' => 'ultimate_cron_job_load',
+      'load all callback' => 'ultimate_cron_job_load_all',
+      'load multiple callback' => 'ultimate_cron_job_load_multiple',
+      'save callback' => 'ultimate_cron_job_save',
+      'delete callback' => 'ultimate_cron_job_delete',
+      'status callback' => 'ultimate_cron_job_set_status',
+      'object' => 'UltimateCronJob',
+      'api' => array(
+        'owner' => 'ultimate_cron',
+        'api' => 'ultimate_cron',
+        'minimum_version' => 3,
+        'current_version' => 3,
+      ),
+      'in_code_only' => TRUE,
+    ),
+    'fields' => array(
+      'jid' => array(
+        'description' => 'Job ID',
+        'type' => 'serial',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'no export' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'Name',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'title' => array(
+        'description' => 'Title',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'settings' => array(
+        'description' => 'Settings',
+        'type' => 'text',
+        'serialize' => TRUE,
+        'not null' => FALSE,
+        'object default' => array(
+          'scheduler' => array(),
+          'launcher' => array(),
+          'logger' => array(),
+          'settings' => array(),
+        ),
+      ),
+    ),
+    'primary key' => array('jid'),
+    'unique keys' => array(
+      'machine_name' => array('name')
+    ),
+  );
+
+  $schema['ultimate_cron_log'] = array(
+    'description' => 'Logs',
+    'fields' => array(
+      'lid' => array(
+        'description' => 'Lock ID',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'Name',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'start_time' => array(
+        'description' => 'Timestamp of execution start',
+        'type' => 'float',
+        'size' => 'big',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'end_time' => array(
+        'description' => 'Timestamp of execution end',
+        'type' => 'float',
+        'size' => 'big',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'uid' => array(
+        'description' => 'User ID',
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'init_message' => array(
+        'description' => 'Initial message',
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
+      'message' => array(
+        'description' => 'Message',
+        'type' => 'text',
+        'not null' => FALSE,
+      ),
+      'severity' => array(
+        'description' => 'Max severity level of the execution',
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => FALSE,
+        'default' => -1,
+      ),
+    ),
+    'primary key' => array('lid'),
+    'indexes' => array(
+      'idx_last' => array(
+        'name',
+        'start_time',
+        'end_time',
+      ),
+    ),
+  );
+
+  $schema['ultimate_cron_lock'] = array(
+    'description' => 'Locks',
+    'fields' => array(
+      'lid' => array(
+        'description' => 'Lock ID',
+        'type' => 'serial',
+        'size' => 'big',
+        'not null' => TRUE,
+      ),
+      'name' => array(
+        'description' => 'Name',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'current' => array(
+        'description' => 'Current lock',
+        'type' => 'int',
+        'size' => 'big',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'expire' => array(
+        'description' => 'Expiration time of lock',
+        'type' => 'float',
+        'size' => 'big',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('lid'),
+    'unique keys' => array(
+      'idx_name' => array('name', 'current'),
+    ),
+  );
+
+  $schema['ultimate_cron_signal'] = array(
+    'description' => 'Signals',
+    'fields' => array(
+      'job_name' => array(
+        'description' => 'Name of job',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'signal_name' => array(
+        'description' => 'Name of signal',
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ),
+      'claimed' => array(
+        'description' => 'Is signal claimed',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('job_name', 'signal_name'),
+  );
+
+  db_create_table('ultimate_cron_lock', $schema['ultimate_cron_lock']);
+  db_create_table('ultimate_cron_job', $schema['ultimate_cron_job']);
+  db_create_table('ultimate_cron_signal', $schema['ultimate_cron_signal']);
 
   // New table is ready. Let's migrate the settings.
   ctools_include('export');
