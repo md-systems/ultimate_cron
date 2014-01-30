@@ -757,6 +757,8 @@ function ultimate_cron_update_7200() {
 
   // New table is ready. Let's migrate the settings.
   ctools_include('export');
+  ctools_include('plugins');
+  ctools_plugin_get_plugin_type_info(TRUE);
   $old_jobs = db_query("SELECT * FROM {ultimate_cron}");
   $jobs = ultimate_cron_job_load_all();
 
