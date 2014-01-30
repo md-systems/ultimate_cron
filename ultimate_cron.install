@@ -788,7 +788,7 @@ function ultimate_cron_update_7200() {
     }
 
     $status = isset($old_job->settings['enabled']) ? $old_job->settings['enabled'] : TRUE;
-    ctools_export_crud_set_status('ultimate_cron_job', $name, !$status);
+    variable_set('default_ultimate_cron_job_' . $name, !$status ? TRUE : FALSE);
   }
 
   // Don't need the old one anymore.
