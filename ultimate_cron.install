@@ -285,16 +285,40 @@ function ultimate_cron_requirements($phase) {
 /**
  * Major version upgrade of Drupal.
  */
-function ultimate_cron_update_7000(&$context) {
+function ultimate_cron_update_7000() {
+  $last_version = db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField();
+  variable_set('ultimate_cron_major_drupal_upgrade', $last_version);
+}
+
+/**
+ * Check if a 71xx version counterpart is already installed.
+ *
+ * @param integer $version
+ *   The 71xx version to check.
+ *
+ * @return boolean
+ *   TRUE if counterpart is already installed.
+ */
+function _ultimate_cron_contains_counterpart_version($version) {
+  $last_version = variable_get('ultimate_cron_major_drupal_upgrade', 7000);
+  $mapping = array(
+    7101 => 6000,
+    7102 => 6001,
+    7103 => 6002,
+    7104 => 6003,
+    7105 => 6105,
+    7106 => 6106,
+    7107 => 7107,
+    7108 => 6107,
+  );
+  return $mapping[$version] <= $last_version;
 }
 
 /**
  * Move messages to log table.
  */
-function ultimate_cron_update_7101(&$context) {
-  $schema_version = (int) (db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
-  if ($schema_version >= 7000) {
-    // Old hook_update_N was 7000
+function ultimate_cron_update_7101() {
+  if (_ultimate_cron_contains_counterpart_version(7101)) {
     return;
   }
   db_add_field('ultimate_cron_log', 'msg', array(
@@ -309,10 +333,8 @@ function ultimate_cron_update_7101(&$context) {
 /**
  * Convert polling latenct from microseconds to miliseconds.
  */
-function ultimate_cron_update_7102(&$context) {
-  $schema_version = (int) (db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
-  if ($schema_version >= 7001) {
-    // Old hook_update_N was 7001
+function ultimate_cron_update_7102() {
+  if (_ultimate_cron_contains_counterpart_version(7102)) {
     return;
   }
   // Convert polling latency from microseconds to miliseconds.
@@ -326,10 +348,8 @@ function ultimate_cron_update_7102(&$context) {
 /**
  * Merge ultimate_cron_function and ultimate_cron_configuration into ultimate_cron.
  */
-function ultimate_cron_update_7103(&$context) {
-  $schema_version = (int) (db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
-  if ($schema_version >= 7002) {
-    // Old hook_update_N was 7002
+function ultimate_cron_update_7103() {
+  if (_ultimate_cron_contains_counterpart_version(7103)) {
     return;
   }
   $schema = ultimate_cron_schema();
@@ -342,10 +362,8 @@ function ultimate_cron_update_7103(&$context) {
 /**
  * Switch from fid to function name in ultimate_cron_log.
  */
-function ultimate_cron_update_7104(&$context) {
-  $schema_version = (int) (db_query("SELECT schema_version FROM {system} WHERE name = 'ultimate_cron'")->fetchField());
-  if ($schema_version >= 7003) {
-    // Old hook_update_N was 7003
+function ultimate_cron_update_7104() {
+  if (_ultimate_cron_contains_counterpart_version(7104)) {
     return;
   }
   db_add_field('ultimate_cron_log', 'function', array(
@@ -370,7 +388,10 @@ function ultimate_cron_update_7104(&$context) {
 /**
  * Add missing index to database.
  */
-function ultimate_cron_update_7105(&$context) {
+function ultimate_cron_update_7105() {
+  if (_ultimate_cron_contains_counterpart_version(7105)) {
+    return;
+  }
   $items = db_select('ultimate_cron')
     ->fields('ultimate_cron', array('fid', 'function'))
     ->orderBy('fid', 'ASC')
@@ -395,7 +416,10 @@ function ultimate_cron_update_7105(&$context) {
 /**
  * Change schema to SQL 99 compliance.
  */
-function ultimate_cron_update_7106(&$context) {
+function ultimate_cron_update_7106() {
+  if (_ultimate_cron_contains_counterpart_version(7106)) {
+    return;
+  }
   db_drop_unique_key('ultimate_cron', 'idx_function');
   db_change_field('ultimate_cron', 'function', 'name', array(
     'description' => 'Function name',
@@ -437,12 +461,31 @@ function ultimate_cron_update_7106(&$context) {
 /**
  * Add service host to log.
  */
-function ultimate_cron_update_7107(&$context) {
+function ultimate_cron_update_7107() {
+  if (_ultimate_cron_contains_counterpart_version(7107)) {
+    return;
+  }
   db_add_field('ultimate_cron_log', 'service_host', array(
     'description' => 'Service host',
     'type' => 'varchar',
     'length' => 127,
     'not null' => TRUE,
+  ));
+}
+
+/**
+ * Add severity level to log.
+ */
+function ultimate_cron_update_7108() {
+  if (_ultimate_cron_contains_counterpart_version(7108)) {
+    return;
+  }
+  db_add_field('ultimate_cron_log', 'severity', array(
+    'description' => 'Log level severity',
+    'type' => 'int',
+    'size' => 'normal',
+    'not null' => TRUE,
+    'default' => -1,
   ));
 }
 
