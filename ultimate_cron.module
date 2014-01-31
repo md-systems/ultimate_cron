@@ -1313,7 +1313,7 @@ function ultimate_cron_plugin_crontab_element_validate_rule($element, &$form_sta
  */
 function ultimate_cron_validate_rule($rule) {
   require_once 'CronRule.class.php';
-  $cron = new CronRule($rule);
+  $cron = CronRule::factory($rule);
   if (!$cron->isValid()) {
     return FALSE;
   }
