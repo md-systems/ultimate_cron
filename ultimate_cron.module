@@ -564,12 +564,6 @@ function ultimate_cron_help($path, $arg) {
     case 'admin/help#ultimate_cron':
       // Return a line-break version of the module README.
       return '<pre>' . file_get_contents(dirname(__FILE__) . '/README.txt') . '</pre>';
-
-    case 'admin/build/cron':
-      return '<p>' . t('Here you can see the crontab settings for each job available') . '</p>';
-
-    case 'admin/build/cron/settings':
-      return '<p>' . t('Here you can change the crontab settings for each job available') . '</p>';
   }
 }
 
