@@ -1143,7 +1143,9 @@ abstract class UltimateCronLogEntry {
   public $init_message = '';
   public $message = '';
   public $severity = -1;
-  public $log_entry_size = 2000;
+
+  // Default 1MiB log entry.
+  public $log_entry_size = 1048576;
 
   public $log_entry_fields = array(
     'lid', 'uid', 'start_time', 'end_time', 'init_message', 'message', 'severity',
@@ -1218,12 +1220,12 @@ abstract class UltimateCronLogEntry {
     if ($this->severity < 0 || $this->severity > $log_entry['severity']) {
       $this->severity = $log_entry['severity'];
     }
-    // Make sure that message don't become too big.
+    // Make sure that message doesn't become too big.
     if (mb_strlen($this->message) > $this->log_entry_size) {
       while (mb_strlen($this->message) > $this->log_entry_size) {
-        $firstline = strpos($this->message, "\n");
-        if ($firstline === FALSE) {
-          // Only one line? That's a big line ... truncate it!
+        $firstline = mb_strpos(rtrim($this->message, "\n"), "\n");
+        if ($firstline === FALSE || $firstline == mb_strlen($this->message)) {
+          // Only one line? That's a big line ... truncate it without mercy!
           $this->message = mb_substr($this->message, -$this->log_entry_size);
           break;
         }
@@ -1233,13 +1235,18 @@ abstract class UltimateCronLogEntry {
     }
   }
 
+  /**
+   * Re-implementation of watchdog().
+   *
+   * @see watchdog()
+   */
   public function log($type, $message, $variables = array(), $severity = WATCHDOG_NOTICE, $link = NULL) {
     global $user, $base_root;
 
     // The user object may not exist in all conditions, so 0 is substituted if needed.
     $user_uid = isset($user->uid) ? $user->uid : 0;
 
-    // Prepare the fields to be logged
+    // Prepare the fields to be logged.
     $log_entry = array(
       'type'        => $type,
       'message'     => $message,
