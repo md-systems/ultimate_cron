@@ -153,7 +153,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     $lock_id = $job->lock();
 
     if (!$lock_id) {
-      return;
+      return FALSE;
     }
 
     if ($this->currentThread) {
@@ -177,10 +177,14 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     }
     catch (Exception $e) {
       watchdog('serial_launcher', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);
+      $log_entry->finish();
+      $job->unlock($lock_id);
+      return FALSE;
     }
 
     $log_entry->finish();
     $job->unlock($lock_id);
+    return TRUE;
   }
 
   /**
@@ -268,7 +272,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     foreach ($jobs as $job) {
       $settings = $job->getSettings('launcher');
       $proper_thread = ($settings['thread'] == 'any') || ($settings['thread'] == $thread);
-      if ($job->schedule() && $proper_thread) {
+      if ($job->isScheduled() && $proper_thread) {
         $job->launch();
         // Be friendly, and check if we still own the lock.
         // If we don't, bail out, since someone else is handling

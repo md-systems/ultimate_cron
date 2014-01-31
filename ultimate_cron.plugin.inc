@@ -711,6 +711,22 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
   }
 }
 
+/**
+ * Abstract class for Ultimate Cron schedulers
+ *
+ * A scheduler is responsible for telling Ultimate Cron whether a job should
+ * run or not.
+ *
+ * Abstract methods:
+ *   isScheduled($job)
+ *     - Check if the given job is scheduled for launch at this time.
+ *       TRUE if it's scheduled for launch, otherwise FALSE.
+ *
+ *   isBehind($job)
+ *     - Check if the given job is behind its schedule.
+ *       FALSE if not behind, otherwise the amount of time it's behind
+ *       in seconds.
+ */
 abstract class UltimateCronScheduler extends UltimateCronPlugin {
   /**
    * Check job schedule.
@@ -721,7 +737,7 @@ abstract class UltimateCronScheduler extends UltimateCronPlugin {
    * @return boolean
    *   TRUE if job is scheduled to run.
    */
-  abstract public function schedule($job);
+  abstract public function isScheduled($job);
 
   /**
    * Check if job is behind schedule.
@@ -735,6 +751,39 @@ abstract class UltimateCronScheduler extends UltimateCronPlugin {
   abstract public function isBehind($job);
 }
 
+/**
+ * Abstract class for Ultimate Cron launchers
+ *
+ * A launcher is responsible for locking and launching/running a job.
+ *
+ * Abstract methods:
+ *   lock($job)
+ *     - Lock a job. This method must return the lock_id on success
+ *       or FALSE on failure.
+ *
+ *   unlock($lock_id, $manual = FALSE)
+ *     - Release a specific lock id. If $manual is set, then the release
+ *       was triggered manually by a user.
+ *
+ *   isLocked($job)
+ *     - Check if a job is locked. This method must return the current
+ *     - lock_id for the given job, or FALSE if it is not locked.
+ *
+ *   launch($job)
+ *     - This method launches/runs the given job. This method must handle
+ *       the locking of job before launching it. Returns TRUE on successful
+ *       launch, FALSE if not.
+ *
+ * Important methods:
+ *   isLockedMultiple($jobs)
+ *     - Check locks for multiple jobs. Each launcher should implement an
+ *       optimized version of this method if possible.
+ *
+ *   launchJobs($jobs)
+ *     - Launches the jobs provided to it. A default implementation of this
+ *       exists, but can be overridden. It is assumed that this function
+ *       checks the jobs schedule before launching.
+ */
 abstract class UltimateCronLauncher extends UltimateCronPlugin {
 
   /**
@@ -791,7 +840,10 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
   abstract public function launch($job);
 
   /**
-   * Default implementation of multiple lock check.
+   * Fallback implementation of multiple lock check.
+   *
+   * Each launcher should implement an optimized version of this method
+   * if possible.
    *
    * @param array $jobs
    *   Array of UltimateCronJob to check.
@@ -846,7 +898,7 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    */
   public function launchJobs($jobs) {
     foreach ($jobs as $job) {
-      if ($job->schedule()) {
+      if ($job->isScheduled()) {
         $job->launch();
       }
     }
@@ -874,16 +926,50 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
 
 }
 
+/**
+ * Abstract class for Ultimate Cron loggers
+ *
+ * Each logger must implement its own functions for getting/setting data
+ * from the its storage backend.
+ *
+ * Abstract methods:
+ *   load($name, $lock_id = NULL)
+ *     - Load a log entry. If no $lock_id is provided, this method should
+ *       load the latest log entry for $name.
+ *
+ * "Abstract" properties:
+ *   $log_entry_class
+ *     - The class name of the log entry class associated with this logger.
+ */
 abstract class UltimateCronLogger extends UltimateCronPlugin {
   static public $log_entries = NULL;
   public $log_entry_class = 'UltimateCronLogEntry';
 
+  /**
+   * Factory method for creating a new unsaved log entry object.
+   *
+   * @param string $name
+   *   Name of the log entry (name of the job).
+   *
+   * @return UltimateCronLogEntry
+   *   The log entry.
+   */
   public function factoryLogEntry($name) {
     return new $this->log_entry_class($name, $this);
   }
 
   /**
    * Create a new log entry.
+   *
+   * @param string $name
+   *   Name of the log entry (name of the job).
+   * @param string $lock_id
+   *   The lock id.
+   * @param string $init_message
+   *   (optional) The initial message for the log entry.
+   *
+   * @return UltimateCronLogEntry
+   *   The log entry created.
    */
   public function create($name, $lock_id, $init_message = '') {
     global $user;
@@ -899,6 +985,9 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
 
   /**
    * Begin capturing messages.
+   *
+   * @param UltimateCronLogEntry $log_entry
+   *   The log entry that should capture messages.
    */
   public function catchMessages($log_entry) {
     $class = get_class($this);
@@ -913,6 +1002,11 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
 
   /**
    * End message capturing.
+   *
+   * Effectively disables the shutdown function for the given log entry.
+   *
+   * @param UltimateCronLogEntry $log_entry
+   *   The log entry.
    */
   public function unCatchMessages($log_entry) {
     $class = get_class($this);
@@ -920,26 +1014,24 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   }
 
   /**
-   * Check if we're already catching messages.
-   */
-  public function isCatched($log_entry) {
-    $class = get_class($this);
-    return !empty($class::$log_entries[$log_entry->lid]);
-  }
-
-  /**
    * Invoke loggers watchdog hooks.
+   *
+   * @param array $log_entry
+   *   Watchdog log entry array.
    */
-  final static public function hook_watchdog(array $data) {
+  final static public function hook_watchdog(array $log_entry) {
     if (self::$log_entries) {
-      foreach (self::$log_entries as $log_entry) {
-        $log_entry->watchdog($data);
+      foreach (self::$log_entries as $log_entry_object) {
+        $log_entry_object->watchdog($log_entry);
       }
     }
   }
 
   /**
    * Shutdown handler wrapper for catching messages.
+   *
+   * @param string $class
+   *   The class in question.
    */
   static public function catchMessagesShutdownWrapper($class) {
     if ($class::$log_entries) {
@@ -952,7 +1044,10 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   /**
    * PHP shutdown function callback.
    *
-   * Log errors if any.
+   * Ensures that a log entry has been closed properly on shutdown.
+   *
+   * @param UltimateCronLogEntry $log_entry
+   *   The log entry to close.
    */
   public function catchMessagesShutdown($log_entry) {
     $this->unCatchMessages($log_entry);
@@ -999,9 +1094,10 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   }
 
   /**
-   * Check locked state for multiple jobs.
+   * Load latest log entry for multiple jobs.
    *
-   * This has yet to be optimized.
+   * This is the fallback method. Loggers should implement an optimized
+   * version if possible.
    */
   public function loadLatestLogEntries($jobs) {
     $logs = array();
@@ -1025,6 +1121,19 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   abstract public function load($name, $lock_id = NULL);
 }
 
+/**
+ * Abstract class for Ultimate Cron log entries.
+ *
+ * Each logger must implement its own log entry class based on this one.
+ *
+ * Abstract methods:
+ *   save()
+ *     - Save the actual log entry to whereever you please.
+ *
+ * Important properties:
+ *   $log_entry_size
+ *     - The maximum number of characters of the message in the log entry.
+ */
 abstract class UltimateCronLogEntry {
   public $lid = NULL;
   public $name = '';
@@ -1034,6 +1143,7 @@ abstract class UltimateCronLogEntry {
   public $init_message = '';
   public $message = '';
   public $severity = -1;
+  public $log_entry_size = 2000;
 
   public $log_entry_fields = array(
     'lid', 'uid', 'start_time', 'end_time', 'init_message', 'message', 'severity',
@@ -1060,6 +1170,9 @@ abstract class UltimateCronLogEntry {
 
   /**
    * Get current log entry data as an associative array.
+   *
+   * @return array
+   *   Log entry data.
    */
   public function getData() {
     $result = array();
@@ -1071,6 +1184,9 @@ abstract class UltimateCronLogEntry {
 
   /**
    * Set current log entry data from an associative array.
+   *
+   * @param array $data
+   *   Log entry data.
    */
   public function setData($data) {
     foreach ($this->log_entry_fields as $field) {
@@ -1094,6 +1210,8 @@ abstract class UltimateCronLogEntry {
 
   /**
    * Implements hook_watchdog().
+   *
+   * Capture watchdog message and append it to the log entry.
    */
   public function watchdog(array $log_entry) {
     $this->message .= t($log_entry['message'], $log_entry['variables']) . "\n";
@@ -1101,13 +1219,12 @@ abstract class UltimateCronLogEntry {
       $this->severity = $log_entry['severity'];
     }
     // Make sure that message don't become too big.
-    $size = 2000;
-    if (mb_strlen($this->message) > $size) {
-      while (mb_strlen($this->message) > $size) {
+    if (mb_strlen($this->message) > $this->log_entry_size) {
+      while (mb_strlen($this->message) > $this->log_entry_size) {
         $firstline = strpos($this->message, "\n");
         if ($firstline === FALSE) {
           // Only one line? That's a big line ... truncate it!
-          $this->message = mb_substr($this->message, -$size);
+          $this->message = mb_substr($this->message, -$this->log_entry_size);
           break;
         }
         $this->message = substr($this->message, $firstline + 1);
@@ -1261,9 +1378,20 @@ abstract class UltimateCronLogEntry {
   abstract public function save();
 }
 
+/**
+ * Base class for settings.
+ *
+ * There's nothing special about this plugin.
+ */
 class UltimateCronSettings extends UltimateCronPluginMultiple {
 }
 
+/**
+ * Base class for tagged settings.
+ *
+ * Settings plugins using this as a base class, will only be available
+ * to jobs having the same tag as the name of the plugin.
+ */
 class UltimateCronTaggedSettings extends UltimateCronSettings {
   /**
    * Only valid for jobs tagged with the proper tag.

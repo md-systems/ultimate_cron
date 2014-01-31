@@ -84,12 +84,12 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   /**
    * Schedule handler.
    */
-  public function schedule($job) {
+  public function isScheduled($job) {
     $settings = $job->getSettings($this->type);
     $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
     $offset = $this->getOffset($job);
     $class = get_class($this);
-    return $class::shouldRun($settings['rules'], $log_entry->start_time, NULL, $settings['catch_up'], $offset);
+    return $class::shouldRun($settings['rules'], $log_entry->start_time, NULL, $settings['catch_up'], $offset) ? TRUE : FALSE;
   }
 
   /**

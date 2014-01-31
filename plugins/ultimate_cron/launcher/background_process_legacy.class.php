@@ -249,7 +249,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   public function launch($job) {
     $lock_id = $job->lock();
     if (!$lock_id) {
-      return;
+      return FALSE;
     }
 
     $settings = $job->getSettings();
@@ -315,7 +315,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     $expire = microtime(TRUE) + 45;
 
     foreach ($jobs as $job) {
-      if (!$job->schedule()) {
+      if (!$job->isScheduled()) {
         continue;
       }
 

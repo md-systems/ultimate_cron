@@ -188,7 +188,7 @@ function drush_ultimate_cron_cron_list() {
       continue;
     }
 
-    if ($scheduled && !$job->schedule()) {
+    if ($scheduled && !$job->isScheduled()) {
       continue;
     }
 
