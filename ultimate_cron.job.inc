@@ -10,6 +10,7 @@ class UltimateCronJob {
   public $progressUpdated = 0;
   private $plugins = array();
   private $pluginSettings = array();
+  private $cacheSettings = array();
 
   /**
    * Invoke plugin cron_alter().
@@ -86,7 +87,10 @@ class UltimateCronJob {
   /**
    * Get job settings.
    */
-  public function getSettings($type = NULL) {
+  public function getSettings($type = '') {
+    if (isset($this->cacheSettings[$type])) {
+      return $this->cacheSettings[$type];
+    }
     ctools_include('plugins');
     $settings = array();
 
@@ -97,11 +101,18 @@ class UltimateCronJob {
     if ($type) {
       $class = $plugin_types['ultimate_cron'][$type]['defaults']['static']['class'];
       if (!$class::$multiple) {
-        return $settings[$type][$settings[$type]['name']];
+        $result = $settings[$type][$settings[$type]['name']];
       }
-      return $settings[$type];
+      else {
+        $result = $settings[$type];
+      }
     }
-    return $settings;
+    else {
+      $result = $settings;
+    }
+
+    $this->cacheSettings[$type] = $result;
+    return $result;
   }
 
   /**
