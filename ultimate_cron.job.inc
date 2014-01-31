@@ -8,6 +8,8 @@ class UltimateCronJob {
   static public $signals;
   static public $currentJob;
   public $progressUpdated = 0;
+  private $plugins = array();
+  private $pluginSettings = array();
 
   /**
    * Invoke plugin cron_alter().
@@ -115,18 +117,30 @@ class UltimateCronJob {
     if ($name) {
       return ultimate_cron_plugin_load($plugin_type, $name);
     }
+    if (isset($this->plugins[$plugin_type])) {
+      return $this->plugins[$plugin_type];
+    }
+
+    if ($name) {
+    }
     elseif (!empty($this->settings[$plugin_type]['name'])) {
-      return ultimate_cron_plugin_load($plugin_type, $this->settings[$plugin_type]['name']);
+      $name = $this->settings[$plugin_type]['name'];
     }
     else {
-      return ultimate_cron_plugin_load($plugin_type, $this->hook[$plugin_type]['name']);
+      $name = $this->hook[$plugin_type]['name'];
     }
+    $this->plugins[$plugin_type] = ultimate_cron_plugin_load($plugin_type, $name);
+    return $this->plugins[$plugin_type];
   }
 
   /**
    * Get plugin settings.
    */
   public function getPluginSettings($plugin_type) {
+    if (isset($this->pluginSettings[$plugin_type])) {
+      return $this->pluginSettings[$plugin_type];
+    }
+
     ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     $plugin_info = $plugin_types['ultimate_cron'][$plugin_type];
@@ -154,6 +168,7 @@ class UltimateCronJob {
         }
       }
     }
+    $this->pluginSettings[$plugin_type] = $settings;
     return $settings;
   }
 

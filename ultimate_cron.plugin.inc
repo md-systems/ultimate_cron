@@ -4,6 +4,12 @@
  * Plugin framework for Ultimate Cron.
  */
 
+/**
+ * This is the base class for all Ultimate Cron plugins.
+ *
+ * This class handles all the load/save settings for a plugin as well as the
+ * forms, etc.
+ */
 class UltimateCronPlugin {
   public $name = '';
   public $title = '';
