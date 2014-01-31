@@ -269,7 +269,7 @@ class UltimateCronJob {
         }
       }
     }
-    drupal_alter('ultimate_cron_plugin_build_operations_alter', $this, $allowed_operations);
+    drupal_alter('ultimate_cron_plugin_build_operations', $this, $allowed_operations);
   }
 
   /**
@@ -437,7 +437,7 @@ class UltimateCronJob {
     $result = $this->getPlugin('launcher')->run($this);
     self::$currentJob = NULL;
     UltimateCronPlugin::hook_cron_post_run($this);
-    module_invoke_all('cron_post_launch', $this);
+    module_invoke_all('cron_post_run', $this);
     $this->clearSignals();
     $this->setProgress(FALSE);
     return $result;
