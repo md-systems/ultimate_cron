@@ -1,7 +1,6 @@
 <?php
 /**
  * @file
- *
  * This class parses cron rules and determines last execution time using least case integer comparison.
  */
 
@@ -24,7 +23,20 @@ class CronRule {
   private $type = NULL;
   static private $instances = array();
 
-  function factory($rule, $time = NULL, $offset = 0) {
+  /**
+   * Factory method for CronRule instance.
+   *
+   * @param string $rule
+   *   The crontab rule to use.
+   * @param integer $time
+   *   The time to test against.
+   * @param integer $offset
+   *   Offset for @ flag.
+   *
+   * @return CronRule
+   *   CronRule object.
+   */
+  public function factory($rule, $time = NULL, $offset = 0) {
     if (strpos($rule, '@') === FALSE) {
       $offset = 0;
     }
@@ -40,28 +52,36 @@ class CronRule {
   }
 
   /**
-   * Constructor
+   * Constructor.
+   *
+   * @param string $rule
+   *   The crontab rule to use.
+   * @param integer $time
+   *   The time to test against.
+   * @param integer $offset
+   *   Offset for @ flag.
    */
-  function __construct($rule, $time, $offset) {
+  public function __construct($rule, $time, $offset) {
     $this->rule = $rule;
     $this->time = $time;
     $this->offset = $offset;
   }
 
   /**
-   * Expand interval from cronrule part
+   * Expand interval from cronrule part.
    *
-   * @param $matches (e.g. 4-43/5+2)
+   * @param array $matches
+   *   (e.g. 4-43/5+2).
    *   array of matches:
    *     [1] = lower
    *     [2] = upper
    *     [5] = step
    *     [7] = offset
    *
-   * @return
-   *   (string) comma-separated list of values
+   * @return string
+   *   Comma-separated list of values.
    */
-  function expandInterval($matches) {
+  public function expandInterval($matches) {
     $result = array();
 
     $lower = $matches[1];
@@ -69,27 +89,29 @@ class CronRule {
     $step = isset($matches[5]) && $matches[5] != '' ? $matches[5] : 1;
     $offset = isset($matches[7]) && $matches[7] != '' ? $matches[7] : 0;
 
-    if ($step <= 0) return '';
+    if ($step <= 0) {
+      return '';
+    }
+
     $step = ($step > 0) ? $step : 1;
-    for ($i = $lower; $i <= $upper; $i+=$step) {
+    for ($i = $lower; $i <= $upper; $i += $step) {
       $result[] = ($i + $offset) % (self::$ranges[$this->type][1] + 1);
     }
     return implode(',', $result);
   }
 
   /**
-   * Expand range from cronrule part
+   * Expand range from cronrule part.
    *
-   * @param $rule
-   *   (string) cronrule part, e.g.: 1,2,3,4-43/5
-   * @param $max
-   *   (string) boundaries, e.g.: 0-59
-   * @param $digits
-   *   (int) number of digits of value (leading zeroes)
-   * @return
-   *   (array) array of valid values
+   * @param string $rule
+   *   Cronrule part, e.g.: 1,2,3,4-43/5.
+   * @param string $type
+   *   Type of range (minutes, hours, etc.)
+   *
+   * @return array
+   *   Valid values for this range.
    */
-  function expandRange($rule, $type) {
+  public function expandRange($rule, $type) {
     $this->type = $type;
     $max = implode('-', self::$ranges[$type]);
     $rule = str_replace("*", $max, $rule);
@@ -110,50 +132,68 @@ class CronRule {
    * Pre process rule.
    *
    * @param array &$parts
+   *   Parts of rules to pre process.
    */
-  function preProcessRule(&$parts) {
-    // Allow JAN-DEC
+  public function preProcessRule(&$parts) {
+    // Allow JAN-DEC.
     $months = array(1 => 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec');
     $parts[3] = strtr(strtolower($parts[3]), array_flip($months));
 
-    // Allow SUN-SUN
+    // Allow SUN-SUN.
     $days = array('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat');
     $parts[4] = strtr(strtolower($parts[4]), array_flip($days));
     $parts[4] = str_replace('7', '0', $parts[4]);
   }
 
   /**
-   * Post process rule
+   * Post process rule.
    *
-   * @param array $intervals
+   * @param array &$intervals
+   *   Intervals to post process.
    */
-  function postProcessRule(&$intervals) {
+  public function postProcessRule(&$intervals) {
   }
 
   /**
-   * Generate regex rules
+   * Generate regex rules.
    *
-   * @param $rule
-   *   (string) cronrule, e.g: 1,2,3,4-43/5 * * * 2,5
-   * @return
-   *   (array) date and time regular expression for mathing rule
+   * @param string $rule
+   *   Cronrule, e.g: 1,2,3,4-43/5 * * * 2,5.
+   *
+   * @return array
+   *   Date and time regular expression for mathing rule.
    */
-  function getIntervals($rule = NULL) {
+  public function getIntervals($rule = NULL) {
     $parts = preg_split('/\s+/', isset($rule) ? $rule : $this->rule);
-    if ($this->allow_shorthand) $parts += array('*', '*', '*', '*', '*'); // Allow short rules by appending wildcards?
-    if (count($parts) != 5) return FALSE;
+    if ($this->allow_shorthand) {
+      // Allow short rules by appending wildcards?
+      $parts += array('*', '*', '*', '*', '*');
+    }
+    if (count($parts) != 5) {
+      return FALSE;
+    }
     $this->preProcessRule($parts);
     $intervals = array();
     $intervals['minutes']  = $this->expandRange($parts[0], 'minutes');
-    if (empty($intervals['minutes'])) return FALSE;
+    if (empty($intervals['minutes'])) {
+      return FALSE;
+    }
     $intervals['hours']    = $this->expandRange($parts[1], 'hours');
-    if (empty($intervals['hours'])) return FALSE;
+    if (empty($intervals['hours'])) {
+      return FALSE;
+    }
     $intervals['days']     = $this->expandRange($parts[2], 'days');
-    if (empty($intervals['days'])) return FALSE;
+    if (empty($intervals['days'])) {
+      return FALSE;
+    }
     $intervals['months']   = $this->expandRange($parts[3], 'months');
-    if (empty($intervals['months'])) return FALSE;
+    if (empty($intervals['months'])) {
+      return FALSE;
+    }
     $intervals['weekdays'] = $this->expandRange($parts[4], 'weekdays');
-    if (empty($intervals['weekdays'])) return FALSE;
+    if (empty($intervals['weekdays'])) {
+      return FALSE;
+    }
     $intervals['weekdays'] = array_flip($intervals['weekdays']);
     $this->postProcessRule($intervals);
 
@@ -161,9 +201,15 @@ class CronRule {
   }
 
   /**
-   * Convert intervals back into crontab rule format
+   * Convert intervals back into crontab rule format.
+   *
+   * @param array $intervals
+   *   Intervals to convert.
+   *
+   * @return string
+   *   Crontab rule.
    */
-  function rebuildRule($intervals) {
+  public function rebuildRule($intervals) {
     $parts = array();
     foreach ($intervals as $type => $interval) {
       $parts[] = $this->parsed_rule[$type];
@@ -174,7 +220,7 @@ class CronRule {
   /**
    * Parse rule. Run through parser expanding expression, and recombine into crontab syntax.
    */
-  function parseRule() {
+  public function parseRule() {
     if (isset($this->parsed)) {
       return $this->parsed;
     }
@@ -183,61 +229,76 @@ class CronRule {
   }
 
   /**
-   * Get last execution time of rule in unix timestamp format
+   * Get last execution time of rule in UNIX timestamp format.
    *
-   * @param $time
-   *   (int) time to use as relative time (default now)
-   * @return
-   *   (int) unix timestamp of last execution time
+   * @return integer
+   *   UNIX timestamp of last execution time
    */
-  function getLastRan() {
+  public function getLastRan() {
     if (isset($this->last_ran)) {
       return $this->last_ran;
     }
     error_log("PARSING: $this->rule : $this->time : $this->offset");
 
-    // Current time round to last minute
+    // Current time round to last minute.
     $time = floor($this->time / 60) * 60;
 
-    // Generate regular expressions from rule
+    // Generate regular expressions from rule.
     $intervals = $this->getIntervals();
-    if ($intervals === FALSE) return FALSE;
+    if ($intervals === FALSE) {
+      return FALSE;
+    }
 
-    // Get starting points
+    // Get starting points.
     $start_year   = date('Y', $time);
-    $end_year     = $start_year - 28; // Go back max 28 years (leapyear * weekdays)
+    // Go back max 28 years (leapyear * weekdays).
+    $end_year     = $start_year - 28;
     $start_month  = date('n', $time);
     $start_day    = date('j', $time);
     $start_hour   = date('G', $time);
-    $start_minute = (int)date('i', $time);
+    $start_minute = (int) date('i', $time);
 
     // If both weekday and days are restricted, then use either or
     // otherwise, use and ... when using or, we have to try out all the days in the month
-    // and not just to the ones restricted
+    // and not just to the ones restricted.
     $check_both = (count($intervals['days']) != 31 && count($intervals['weekdays']) != 7) ? FALSE : TRUE;
     $days = $check_both ? $intervals['days'] : range(31, 1);
 
-    // Find last date and time this rule was run
+    // Find last date and time this rule was run.
     for ($year = $start_year; $year > $end_year; $year--) {
       foreach ($intervals['months'] as $month) {
-        if ($month < 1 || $month > 12) continue;
-        if ($year >= $start_year && $month > $start_month) continue;
+        if ($month < 1 || $month > 12) {
+          continue;
+        }
+        if ($year >= $start_year && $month > $start_month) {
+          continue;
+        }
 
         foreach ($days as $day) {
-          if ($day < 1 || $day > 31) continue;
-          if ($year >= $start_year && $month >= $start_month && $day > $start_day) continue;
-          if (!checkdate($month, $day, $year)) continue;
+          if ($day < 1 || $day > 31) {
+            continue;
+          }
+          if ($year >= $start_year && $month >= $start_month && $day > $start_day) {
+            continue;
+          }
+          if (!checkdate($month, $day, $year)) {
+            continue;
+          }
 
-          // Check days and weekdays using and/or logic
+          // Check days and weekdays using and/or logic.
           $date_array = getdate(mktime(0, 0, 0, $month, $day, $year));
           if ($check_both) {
-            if (!isset($intervals['weekdays'][$date_array['wday']])) continue;
+            if (!isset($intervals['weekdays'][$date_array['wday']])) {
+              continue;
+            }
           }
           else {
             if (
               !in_array($day, $intervals['days']) &&
               !isset($intervals['weekdays'][$date_array['wday']])
-            ) continue;
+            ) {
+              continue;
+            }
           }
 
           if ($day != $start_day || $month != $start_month || $year != $start_year) {
@@ -245,12 +306,22 @@ class CronRule {
             $start_minute = 59;
           }
           foreach ($intervals['hours'] as $hour) {
-            if ($hour < 0 || $hour > 23) continue;
-            if ($hour > $start_hour) continue;
-            if ($hour < $start_hour) $start_minute = 59;
+            if ($hour < 0 || $hour > 23) {
+              continue;
+            }
+            if ($hour > $start_hour) {
+              continue;
+            }
+            if ($hour < $start_hour) {
+              $start_minute = 59;
+            }
             foreach ($intervals['minutes'] as $minute) {
-              if ($minute < 0 || $minute > 59) continue;
-              if ($minute > $start_minute) continue;
+              if ($minute < 0 || $minute > 59) {
+                continue;
+              }
+              if ($minute > $start_minute) {
+                continue;
+              }
               break 5;
             }
           }
@@ -258,16 +329,16 @@ class CronRule {
       }
     }
 
-    // Create unix timestamp from derived date+time
+    // Create UNIX timestamp from derived date+time.
     $this->last_ran = mktime($hour, $minute, 0, $month, $day, $year);
 
     return $this->last_ran;
   }
 
   /**
-   * Check if a rule is valid
+   * Check if a rule is valid.
    */
-  function isValid() {
+  public function isValid() {
     return $this->getLastRan() === FALSE ? FALSE : TRUE;
   }
 }
