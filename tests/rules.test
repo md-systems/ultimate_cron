@@ -24,7 +24,7 @@ class UltimateCronRulesUnitTestCase extends DrupalUnitTestCase {
     // Generate result message
     require_once dirname(__FILE__) . '/../CronRule.class.php';
     $message = array();
-    $cron = new CronRule($rule);
+    $cron = CronRule::factory($rule, $_SERVER['REQUEST_TIME']);
     return $cron->getIntervals();
   }
 
@@ -37,14 +37,14 @@ class UltimateCronRulesUnitTestCase extends DrupalUnitTestCase {
     require_once dirname(__FILE__) . '/../CronRule.class.php';
     $message = array();
     foreach ($options['rules'] as $rule) {
-      $cron = new CronRule($rule);
+      $cron = CronRule::factory($rule, strtotime($options['now']));
       $intervals = $cron->getIntervals();
       $parsed_rule = '';
       foreach ($intervals as $key => $value) {
         $parsed_rule .= "$key: " . implode(',', $value) . "\n";
       }
       #$parsed_rule = str_replace(" ", "\n", $cron->rebuildRule($cron->getIntervals()));
-      $last_scheduled = $cron->getLastRan(strtotime($options['now']));
+      $last_scheduled = $cron->getLastRan();
       $message[] = "<span title=\"$parsed_rule\">$rule</span> @ " . date('Y-m-d H:i:s', $last_scheduled);
     }
     $message[] = 'now      @ ' . $options['now'];
