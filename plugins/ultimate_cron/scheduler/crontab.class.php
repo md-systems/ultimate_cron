@@ -35,8 +35,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
 
     include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
     foreach ($settings['rules'] as $rule); {
-      $cron = new CronRule($rule);
-      $cron->offset = $this->getOffset($job);
+      $cron = CronRule::factory($rule, $_SERVER['REQUEST_TIME'], $this->getOffset($job));
       $parsed[] = $cron->parseRule();
     }
     return implode(', ', $parsed);
@@ -98,15 +97,14 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
    */
   static public function shouldRun($rules, $job_last_ran, $now = NULL, $catch_up = 0, $offset = 0) {
     include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
-    $now = is_null($now) ? time() : $now;
+    $now = is_null($now) ? $_SERVER['REQUEST_TIME'] : $now;
     foreach ($rules as $rule) {
-      $cron = new CronRule($rule);
-      $cron->offset = $offset;
-      $cron_last_ran = $cron->getLastRan($now);
+      $cron = CronRule::factory($rule, $now, $offset);
+      $cron_last_ran = $cron->getLastRan();
 
       if ($job_last_ran < $cron_last_ran && $cron_last_ran <= $now) {
         if ($now <= $cron_last_ran + $catch_up) {
-          return TRUE;
+          return $now - $job_last_ran;
         }
       }
     }
@@ -117,34 +115,21 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
    * Determine if job is behind schedule.
    */
   public function isBehind($job) {
-    include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
-    $settings = $job->getSettings($this->type);
-    $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
-
     // Disabled jobs are not behind!
     if (!empty($job->disabled)) {
       return FALSE;
     }
 
+    $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
     // If job hasn't run yet, then who are we to say it's behind its schedule?
     if (!$log_entry->start_time) {
       return FALSE;
     }
 
-    $job_last_ran = $log_entry->start_time;
+    $settings = $job->getSettings($this->type);
     $offset = $this->getOffset($job);
-
-    foreach ($settings['rules'] as $rule) {
-      $now = time();
-      $cron = new CronRule($rule);
-      $cron->offset = $offset;
-      $cron_last_ran = $cron->getLastRan($now);
-
-      if ($cron_last_ran >= $job_last_ran && $now >= $job_last_ran + $settings['catch_up']) {
-        return $now - $cron_last_ran;
-      }
-    }
-    return FALSE;
+    $class = get_class($this);
+    return $class::shouldRun($settings['rules'], $log_entry->start_time, NULL, 86400 * 10 * 365, $offset);
   }
 
   /**

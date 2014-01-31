@@ -8,6 +8,9 @@
 class CronRule {
 
   public $rule = NULL;
+  public $time = NULL;
+  public $offset = 0;
+
   public $allow_shorthand = FALSE;
   private static $ranges = array(
     'minutes' => array(0, 59),
@@ -18,14 +21,29 @@ class CronRule {
   );
 
   private $parsed_rule = array();
-  public $offset = 0;
   private $type = NULL;
+  static private $instances = array();
+
+  function factory($rule, $time = NULL, $offset = 0) {
+    if (strpos($rule, '@') === FALSE) {
+      $offset = 0;
+    }
+
+    $key = "$rule:$time:$offset";
+    if (isset(self::$instances[$key])) {
+      return self::$instances[$key];
+    }
+    self::$instances[$key] = new CronRule($rule, $time, $offset);
+    return self::$instances[$key];
+  }
 
   /**
    * Constructor
    */
-  function __construct($rule = NULL) {
+  function __construct($rule, $time, $offset) {
     $this->rule = $rule;
+    $this->time = $time;
+    $this->offset = $offset;
   }
 
   /**
@@ -155,7 +173,11 @@ class CronRule {
    * Parse rule. Run through parser expanding expression, and recombine into crontab syntax.
    */
   function parseRule() {
-    return $this->rebuildRule($this->getIntervals());
+    if (isset($this->parsed)) {
+      return $this->parsed;
+    }
+    $this->parsed = $this->rebuildRule($this->getIntervals());
+    return $this->parsed;
   }
 
   /**
@@ -166,10 +188,14 @@ class CronRule {
    * @return
    *   (int) unix timestamp of last execution time
    */
-  function getLastRan($time = NULL) {
+  function getLastRan() {
+    if (isset($this->last_ran)) {
+      return $this->last_ran;
+    }
+    error_log("PARSING: $this->rule : $this->time : $this->offset");
+
     // Current time round to last minute
-    if (!isset($time)) $time = time();
-    $time = floor($time / 60) * 60;
+    $time = floor($this->time / 60) * 60;
 
     // Generate regular expressions from rule
     $intervals = $this->getIntervals();
@@ -231,15 +257,15 @@ class CronRule {
     }
 
     // Create unix timestamp from derived date+time
-    $time = mktime($hour, $minute, 0, $month, $day, $year);
+    $this->last_ran = mktime($hour, $minute, 0, $month, $day, $year);
 
-    return $time;
+    return $this->last_ran;
   }
 
   /**
    * Check if a rule is valid
    */
-  function isValid($time = NULL) {
-    return $this->getLastRan($time) === FALSE ? FALSE : TRUE;
+  function isValid() {
+    return $this->getLastRan() === FALSE ? FALSE : TRUE;
   }
 }
