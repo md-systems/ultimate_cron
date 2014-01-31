@@ -239,7 +239,6 @@ class CronRule {
     if (isset($this->last_ran)) {
       return $this->last_ran;
     }
-    error_log("PARSING: $this->rule : $this->time : $this->offset");
 
     // Current time round to last minute.
     $time = floor($this->time / 60) * 60;

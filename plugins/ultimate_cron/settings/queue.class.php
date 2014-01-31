@@ -14,6 +14,9 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
   public function cron_alter(&$jobs) {
     $new_jobs = array();
     foreach ($jobs as $job) {
+      if (!$this->isValid($job)) {
+        continue;
+      }
       $settings = $job->getSettings();
       if (isset($settings['settings']['queue']['name'])) {
         if ($settings['settings']['queue']['throttle']) {

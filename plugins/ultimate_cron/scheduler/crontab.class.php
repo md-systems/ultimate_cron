@@ -8,6 +8,8 @@
  * Crontab scheduler.
  */
 class UltimateCronCrontabScheduler extends UltimateCronScheduler {
+  private $offsets = array();
+
   /**
    * Default settings.
    */
@@ -136,6 +138,6 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
    * Get a "unique" offset for a job.
    */
   protected function getOffset($job) {
-    return hexdec(substr(sha1($job->name), -2));
+    return isset($this->offsets[$job->name]) ? $this->offsets[$job->name] : $this->offsets[$job->name] = hexdec(substr(sha1($job->name), -2));
   }
 }
