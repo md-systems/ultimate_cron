@@ -29,6 +29,8 @@ class CronRule {
       $offset = 0;
     }
 
+    $time = isset($time) ? $time : now();
+
     $key = "$rule:$time:$offset";
     if (isset(self::$instances[$key])) {
       return self::$instances[$key];
