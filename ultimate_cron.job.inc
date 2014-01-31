@@ -281,8 +281,6 @@ class UltimateCronJob {
     switch ($this->hook['api_version']) {
       case 'ultimate_cron-1':
         // error_log("$this->name : INVOKE 1.x");
-        $args = array($this->hook);
-        $args = array_merge($args, $this->hook['callback arguments']);
         if (is_callable($this->hook['callback'])) {
           $result = call_user_func_array($this->hook['callback'], array(
             $this->name, $this->hook
@@ -296,12 +294,18 @@ class UltimateCronJob {
 
       case 'ultimate_cron-2':
         // error_log("$this->name : INVOKE 2.x");
+        if (isset($this->hook['file'])) {
+          require_once $this->hook['file path'] . '/' . $this->hook['file'];
+        }
         $result = call_user_func_array($this->hook['callback'], array(
           $this, $this->hook['callback arguments']
         ));
         break;
 
       case 'elysia_cron-2':
+        if (isset($this->hook['file'])) {
+          require_once $this->hook['file path'] . '/' . $this->hook['file'];
+        }
         // error_log("$this->name : INVOKE ELYSIA CRON 2.x");
         if (is_callable($this->hook['callback'])) {
           $arguments = !empty($this->hook['arguments']) ? $this->hook['arguments'] : array();
