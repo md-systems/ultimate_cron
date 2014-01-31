@@ -168,6 +168,7 @@ class CronRule {
     if ($this->allow_shorthand) {
       // Allow short rules by appending wildcards?
       $parts += array('*', '*', '*', '*', '*');
+      $parts = array_slice($parts, 0, 5);
     }
     if (count($parts) != 5) {
       return FALSE;
