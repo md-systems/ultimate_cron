@@ -57,15 +57,20 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * Only expose this plugin, if Background Process is 1.x.
    */
   public function isValid($job = NULL) {
-    // Intermistic way of determining version of Background Process.
-    // Background Process 1.x has a dependency on the Progress module.
-    if (module_exists('background_process')) {
-      $info = system_get_info('module', 'background_process');
-      if (!empty($info['dependencies']) && in_array('progress', $info['dependencies'])) {
-        return parent::isValid($job);
+    static $correct_version;
+    if (!isset($correct_version)) {
+      $correct_version = FALSE;
+      // Interimistic way of determining version of Background Process.
+      // Background Process 1.x has a dependency on the Progress module.
+      if (module_exists('background_process')) {
+        $info = system_get_info('module', 'background_process');
+        if (!empty($info['dependencies']) && in_array('progress', $info['dependencies'])) {
+          $correct_version = TRUE;
+        }
       }
     }
-    return FALSE;
+
+    return $correct_version && parent::isValid($job);
   }
 
   /**
