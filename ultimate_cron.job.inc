@@ -4,6 +4,11 @@
  * Job class for Ultimate Cron.
  */
 
+/**
+ * Class for handling cron jobs.
+ *
+ * This class represents the jobs available in the system.
+ */
 class UltimateCronJob {
   static public $signals;
   static public $currentJob;
@@ -14,6 +19,8 @@ class UltimateCronJob {
 
   /**
    * Invoke plugin cron_alter().
+   *
+   * Calls on cron_alter() on all valid plugins for this job.
    */
   public function cron_alter() {
     $plugin_types = ctools_plugin_get_plugin_type_info();
@@ -36,6 +43,8 @@ class UltimateCronJob {
 
   /**
    * Get a signal without affecting it.
+   *
+   * @see ultimate_cron_peek_signal()
    */
   public function peekSignal($signal) {
     if (isset(self::$signals[$this->name][$signal])) {
@@ -46,6 +55,8 @@ class UltimateCronJob {
 
   /**
    * Get a signal and clear it if found.
+   *
+   * @see ultimate_cron_get_signal()
    */
   public function getSignal($signal) {
     if (isset(self::$signals[$this->name][$signal])) {
@@ -58,6 +69,8 @@ class UltimateCronJob {
 
   /**
    * Send a signal.
+   *
+   * @see ultimate_cron_set_signal()
    */
   public function sendSignal($signal, $persist = FALSE) {
     if ($persist) {
@@ -70,6 +83,8 @@ class UltimateCronJob {
 
   /**
    * Clear a signal.
+   *
+   * @see ultimate_cron_clear_signal()
    */
   public function clearSignal($signal) {
     unset(self::$signals[$this->name][$signal]);
@@ -78,6 +93,8 @@ class UltimateCronJob {
 
   /**
    * Send all signal for the job.
+   *
+   * @see ultimate_cron_clear_signals()
    */
   public function clearSignals() {
     unset(self::$signals[$this->name]);
@@ -86,6 +103,13 @@ class UltimateCronJob {
 
   /**
    * Get job settings.
+   *
+   * @param string $type
+   *   (optional) The plugin type to get settings for.
+   *
+   * @return array
+   *   The settings for the given plugin. If no plugin is given, returns
+   *   all settings.
    */
   public function getSettings($type = '') {
     if (isset($this->cacheSettings[$type])) {
@@ -118,8 +142,13 @@ class UltimateCronJob {
   /**
    * Get job plugin.
    *
+   * If no plugin name is provided current plugin of the specified type will
+   * be returned.
+   *
    * @param string $plugin_type
    *   Name of plugin type.
+   * @param string $name
+   *   (optional) The name of the plugin.
    *
    * @return mixed
    *   Plugin instance of the specified type.
@@ -146,6 +175,12 @@ class UltimateCronJob {
 
   /**
    * Get plugin settings.
+   *
+   * @param string $plugin_type
+   *   The plugin type.
+   *
+   * @return array
+   *   Settings for the given plugin type.
    */
   public function getPluginSettings($plugin_type) {
     if (isset($this->pluginSettings[$plugin_type])) {
@@ -341,6 +376,11 @@ class UltimateCronJob {
 
   /**
    * Unlock job.
+   *
+   * @param string $lock_id
+   *   The lock id to unlock.
+   * @param boolean $manual
+   *   Whether or not this is a manual unlock.
    */
   public function unlock($lock_id = NULL, $manual = FALSE) {
     $result = NULL;
@@ -365,6 +405,9 @@ class UltimateCronJob {
 
   /**
    * Get locked state for multiple jobs.
+   *
+   * @param array $jobs
+   *   Jobs to check locks for.
    */
   static public function isLockedMultiple($jobs) {
     $launchers = array();
@@ -398,6 +441,12 @@ class UltimateCronJob {
 
   /**
    * Get log entries.
+   *
+   * @param integer $limit
+   *   (optional) Number of log entries per page.
+   *
+   * @return array
+   *   Array of UltimateCronLogEntry objects.
    */
   public function getLogEntries($limit = 10) {
     return $this->getPlugin('logger')->getLogEntries($this->name, $limit);
@@ -405,6 +454,12 @@ class UltimateCronJob {
 
   /**
    * Load log entry.
+   *
+   * @param string $lock_id
+   *   The lock id of the log entry.
+   *
+   * @return UltimateCronLogEntry
+   *   The log entry.
    */
   public function loadLogEntry($lock_id) {
     return $this->getPlugin('logger')->load($this->name, $lock_id);
@@ -412,6 +467,9 @@ class UltimateCronJob {
 
   /**
    * Load latest log.
+   *
+   * @return UltimateCronLogEntry
+   *   The latest log entry for this job.
    */
   public function loadLatestLogEntry() {
     return $this->getPlugin('logger')->load($this->name);
@@ -419,6 +477,12 @@ class UltimateCronJob {
 
   /**
    * Load latest log entries.
+   *
+   * @param array $jobs
+   *   Jobs to load log entries for.
+   *
+   * @return array
+   *   Array of UltimateCronLogEntry objects.
    */
   static public function loadLatestLogEntries($jobs) {
     $loggers = array();
@@ -453,6 +517,12 @@ class UltimateCronJob {
 
   /**
    * Resume a previosly saved log.
+   *
+   * @param string $lock_id
+   *   The lock id of the log to resume.
+   *
+   * @return UltimateCronLogEntry
+   *   The log entry object.
    */
   public function resumeLog($lock_id) {
     $logger = $this->getPlugin('logger');
@@ -480,6 +550,12 @@ class UltimateCronJob {
 
   /**
    * Get multiple job progresses.
+   *
+   * @param array $jobs
+   *   Jobs to get progress for.
+   *
+   * @return array
+   *   Progress of jobs, keyed by job name.
    */
   static public function getProgresses($jobs) {
     $names = array();
@@ -496,6 +572,9 @@ class UltimateCronJob {
 
   /**
    * Get job progress.
+   *
+   * @return float
+   *   The progress of this job.
    */
   public function getProgress() {
     $name = 'uc-progress:' . $this->name;
@@ -504,6 +583,9 @@ class UltimateCronJob {
 
   /**
    * Set job progress.
+   *
+   * @param float $progress
+   *   The progress (0 - 1).
    */
   public function setProgress($progress) {
     if (microtime(TRUE) >= $this->progressUpdated + 1) {
@@ -518,6 +600,13 @@ class UltimateCronJob {
 
   /**
    * Format progress.
+   *
+   * @param float $progress
+   *   (optional) The progress to format. Uses the progress on the object
+   *              if not specified.
+   *
+   * @return string
+   *   Formatted progress.
    */
   public function formatProgress($progress = NULL) {
     if (!isset($progress)) {
@@ -530,6 +619,11 @@ class UltimateCronJob {
 
   /**
    * Send a nodejs message.
+   *
+   * @param string $action
+   *   The action performed.
+   * @param array $data
+   *   Data blob for the given action.
    */
   public function sendMessage($action, $data = array()) {
     if (module_exists('nodejs')) {

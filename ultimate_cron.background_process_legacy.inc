@@ -6,6 +6,11 @@
 
 /**
  * Implements hook_background_process_shutdown().
+ *
+ * @param BackgroundProcess $process
+ *   The background process object.
+ * @param string $msg
+ *   The shutdown message.
  */
 function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL) {
   // Some sanity checking.
@@ -49,6 +54,11 @@ function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL)
 
 /**
  * Background Process legacy callback for running cron jobs.
+ *
+ * @param string $name
+ *   The name of the job.
+ * @param string $lock_id
+ *   The lock id.
  */
 function ultimate_cron_background_process_legacy_callback($name, $lock_id) {
   $job = ultimate_cron_job_load($name);
