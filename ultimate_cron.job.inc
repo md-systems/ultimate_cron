@@ -282,7 +282,7 @@ class UltimateCronJob {
       case 'ultimate_cron-1':
         // error_log("$this->name : INVOKE 1.x");
         $args = array($this->hook);
-        $args = array_merge($args, $this->hook['callback_arguments']);
+        $args = array_merge($args, $this->hook['callback arguments']);
         if (is_callable($this->hook['callback'])) {
           $result = call_user_func_array($this->hook['callback'], array(
             $this->name, $this->hook
@@ -297,7 +297,7 @@ class UltimateCronJob {
       case 'ultimate_cron-2':
         // error_log("$this->name : INVOKE 2.x");
         $result = call_user_func_array($this->hook['callback'], array(
-          $this, $this->hook['callback_arguments']
+          $this, $this->hook['callback arguments']
         ));
         break;
 

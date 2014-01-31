@@ -735,7 +735,7 @@ function ultimate_cron_cronapi() {
           '@title' => $plugin->title,
         )),
         'callback' => 'ultimate_cron_plugin_cleanup',
-        'callback_arguments' => array(
+        'callback arguments' => array(
           'type' => $plugin_type,
           'name' => $name,
         ),
@@ -1235,8 +1235,8 @@ function ultimate_cron_get_module_hooks($module) {
       'title' => $name,
       'description' => isset($item['title']) ? $item['title'] : $name,
       'module' => $module,
-      'file path' => drupal_get_path('module', $module),
-      'callback_arguments' => array(),
+      'file path' => drupal_get_path('module', isset($item['module']) ? $item['module'] : $module),
+      'callback arguments' => array(),
       'callback' => $name,
       'enabled' => TRUE,
       'tags' => array(),
