@@ -1,19 +1,41 @@
 <?php
+/**
+ * @file
+ * File containing functions for Ultimate Cron signal handling.
+ */
 
 /**
  * Get a signal without claiming it.
+ *
+ * @param string $name
+ *   The name of the job.
+ * @param string $signal
+ *   The name of the signal.
+ *
+ * @return string
+ *   The signal if any.
  */
 function ultimate_cron_peek_signal($name, $signal) {
   return db_select('ultimate_cron_signal', 's')
     ->fields('s', array('job_name'))
     ->condition('job_name', $name)
     ->condition('signal_name', $signal)
+    ->condition('claimed', 0)
     ->execute()
     ->fetchField();
 }
 
 /**
  * Get and claim signal.
+ *
+ * @param string $name
+ *   The name of the job.
+ * @param string $signal
+ *   The name of the signal.
+ *
+ * @return string
+ *   The signal if any. If a signal is found, it is "claimed" and therefore
+ *   cannot be claimed again.
  */
 function ultimate_cron_get_signal($name, $signal) {
   $claimed = db_update('ultimate_cron_signal')
@@ -35,6 +57,14 @@ function ultimate_cron_get_signal($name, $signal) {
 
 /**
  * Set signal.
+ *
+ * @param string $name
+ *   The name of the job.
+ * @param string $signal
+ *   The name of the signal.
+ *
+ * @return boolean
+ *   TRUE if the signal was set.
  */
 function ultimate_cron_set_signal($name, $signal) {
   return db_merge('ultimate_cron_signal')
@@ -48,6 +78,11 @@ function ultimate_cron_set_signal($name, $signal) {
 
 /**
  * Clear signal.
+ *
+ * @param string $name
+ *   The name of the job.
+ * @param string $signal
+ *   The name of the signal.
  */
 function ultimate_cron_clear_signal($name, $signal) {
   db_delete('ultimate_cron_signal')
@@ -58,6 +93,9 @@ function ultimate_cron_clear_signal($name, $signal) {
 
 /**
  * Clear signals.
+ *
+ * @param string $name
+ *   The name of the job.
  */
 function ultimate_cron_clear_signals($name) {
   db_delete('ultimate_cron_signal')

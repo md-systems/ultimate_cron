@@ -6,6 +6,11 @@
  * Supports cross request persistance as well as GAP-LOCK mitigation.
  */
 
+/**
+ * Class for handling lock functions.
+ *
+ * This is a pseudo namespace really. Should probably be refactored...
+ */
 class UltimateCronLock {
   private static $locks = NULL;
 
@@ -22,6 +27,9 @@ class UltimateCronLock {
 
   /**
    * Dont release lock on shutdown.
+   *
+   * @param string $lock_id
+   *   The lock id to persist.
    */
   static public function persist($lock_id) {
     if (isset(self::$locks)) {
@@ -31,6 +39,14 @@ class UltimateCronLock {
 
   /**
    * Acquire lock.
+   *
+   * @param string $name
+   *   The name of the lock to acquire.
+   * @param float $timeout
+   *   The timeout in seconds for the lock.
+   *
+   * @return string
+   *   The lock id acquired.
    */
   static public function lock($name, $timeout = 30.0) {
     // First, ensure cleanup.
@@ -67,7 +83,12 @@ class UltimateCronLock {
   }
 
   /**
-   * Release lock if applicable.
+   * Release lock if expired.
+   *
+   * Checks if expiration time has been reached, and releases the lock if so.
+   *
+   * @param string $name
+   *   The name of the lock.
    */
   static public function expire($name) {
     if ($lock_id = self::isLocked($name, TRUE)) {
@@ -82,6 +103,9 @@ class UltimateCronLock {
 
   /**
    * Release lock.
+   *
+   * @param string $lock_id
+   *   The lock id to release.
    */
   static public function unlock($lock_id) {
     $unlocked = db_update('ultimate_cron_lock')
@@ -95,6 +119,15 @@ class UltimateCronLock {
 
   /**
    * Check if lock is taken.
+   *
+   * @param string $name
+   *   Name of the lock.
+   * @param boolean $ignore_expiration
+   *   Ignore expiration, just check if it's present.
+   *   Used for retrieving the lock id of an expired lock.
+   *
+   * @return mixed
+   *   The lock id if found, otherwise FALSE.
    */
   static public function isLocked($name, $ignore_expiration = FALSE) {
     $now = microtime(TRUE);
@@ -109,6 +142,12 @@ class UltimateCronLock {
 
   /**
    * Check multiple locks.
+   *
+   * @param array $names
+   *   The names of the locks to check.
+   *
+   * @return array
+   *   Array of lock ids.
    */
   static public function isLockedMultiple($names) {
     $now = microtime(TRUE);

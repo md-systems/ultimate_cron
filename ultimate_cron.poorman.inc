@@ -6,6 +6,12 @@
 
 /**
  * Output buffer callback for poormans cron early page flush.
+ *
+ * @param string $content
+ *   The content of the output buffer.
+ *
+ * @return string
+ *   The content of the output buffer.
  */
 function _ultimate_cron_poormans_page_flush($content) {
   if (!empty($GLOBALS['poorman_active'])) {
@@ -146,6 +152,12 @@ function ultimate_cron_poorman_page_flush() {
 
 /**
  * Page callback for launching launcher threads.
+ *
+ * If no launcher is specified, a new request will be spawned
+ * per available launcher in use.
+ *
+ * @param string $launcher
+ *   The name of the launcher (serial, etc.)
  */
 function ultimate_cron_poorman_page($launcher = NULL) {
   if (!isset($_GET['cron_key']) || variable_get('cron_key', 'drupal') != $_GET['cron_key']) {
@@ -270,6 +282,9 @@ function ultimate_cron_launch_launchers() {
 
 /**
  * Run the actual jobs for the specified launcher.
+ *
+ * @param string $launcher
+ *   The name of the launcher to run.
  */
 function ultimate_cron_run_launcher($launcher) {
   // We're ready to launch the jobs for the specified launcher.
@@ -293,6 +308,9 @@ function ultimate_cron_run_launcher($launcher) {
 
 /**
  * Send the actual HTTP request for launching threads.
+ *
+ * @param string $launcher
+ *   The name of the launcher.
  */
 function ultimate_cron_poorman_launcher($launcher = '') {
   $url = url('admin/config/system/cron/poorman/' . $launcher, array(
