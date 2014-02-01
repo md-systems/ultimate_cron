@@ -169,7 +169,10 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     if (!$process->lock()) {
       return FALSE;
     }
-    return $job->name . ':' . uniqid('bgpl', TRUE);
+    $lock_id = $job->name . ':' . uniqid('bgpl', TRUE);
+    global $user;
+    background_process_set_process($process->handle, '__LOCKED__', $user->uid, array($job->name, $lock_id), $process->token);
+    return $lock_id;
   }
 
   /**
