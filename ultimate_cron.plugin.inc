@@ -185,6 +185,13 @@ class UltimateCronPlugin {
   }
 
   /**
+   * A hook_cronapi() for plugins.
+   */
+  public function cronapi() {
+    return array();
+  }
+
+  /**
    * A hook_cron_alter() for plugins.
    */
   public function cron_alter(&$jobs) {
