@@ -1165,7 +1165,7 @@ function ultimate_cron_get_hooks($reset = FALSE) {
   }
 
   $cache = cache_get('ultimate_cron_hooks');
-  if (FALSE && $cache && $cache->data) {
+  if ($cache && $cache->data) {
     $cache = $cache->data;
     return $cache;
   }
