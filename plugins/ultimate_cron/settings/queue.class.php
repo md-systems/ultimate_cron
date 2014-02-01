@@ -9,6 +9,136 @@
  */
 class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
   /**
+   * Get cron queues and static cache them.
+   *
+   * Works like module_invoke_all('cron_queue_info'), but adds
+   * a 'module' to each item.
+   *
+   * @return array
+   *   Cron queue definitions.
+   */
+  private function get_queues() {
+    static $queues = NULL;
+    if (!isset($queues)) {
+      $queues = array();
+      foreach (module_implements('cron_queue_info') as $module) {
+        $items = module_invoke($module, 'cron_queue_info');
+        if (is_array($items)) {
+          foreach ($items as &$item) {
+            $item['module'] = $module;
+          }
+          $queues += $items;
+        }
+      }
+      drupal_alter('cron_queue_info', $queues);
+    }
+    return $queues;
+  }
+
+  /**
+   * Implements hook_cronapi().
+   */
+  public function cronapi() {
+    $items = array();
+
+    // Grab the defined cron queues.
+    $queues = self::get_queues();
+
+    foreach ($queues as $name => $info) {
+      if (!empty($info['skip on cron'])) {
+        continue;
+      }
+
+      $items['queue_' . $name] = array(
+        'title' => t('Queue: !name', array('!name' => $name)),
+        'callback' => array(get_class($this), 'worker_callback'),
+        'scheduler' => array(
+          'simple' => array(
+            'rules' => array('* * * * *'),
+          ),
+          'crontab' => array(
+            'rules' => array('* * * * *'),
+          ),
+        ),
+        'settings' => array(
+          'queue' => array(
+            'name' => $name,
+            'worker callback' => $info['worker callback'],
+          ),
+        ),
+        'tags' => array('queue'),
+        'module' => $info['module'],
+      );
+      if (isset($info['time'])) {
+        $items['queue_' . $name]['settings']['queue']['time'] = $info['time'];
+      }
+    }
+
+    return $items;
+  }
+
+  /**
+   * Process a cron queue.
+   *
+   * This is a wrapper around the cron queues "worker callback".
+   *
+   * @param UltimateCronJob $job
+   *   The job being run.
+   */
+  static public function worker_callback($job) {
+    $settings = $job->getPluginSettings('settings');
+    $queue = DrupalQueue::get($settings['queue']['name']);
+    $function = $settings['queue']['worker callback'];
+
+    // Re-throttle.
+    $job->getPlugin('settings', 'queue')->throttle($job);
+
+    $end = microtime(TRUE) + $settings['queue']['time'];
+    $items = 0;
+    while (microtime(TRUE) < $end) {
+      $item = $queue->claimItem($settings['queue']['lease_time']);
+      if (!$item) {
+        if ($settings['queue']['empty_delay']) {
+          usleep($settings['queue']['empty_delay'] * 1000000);
+          continue;
+        }
+        else {
+          break;
+        }
+      }
+      try {
+        if ($settings['queue']['item_delay']) {
+          if ($items == 0) {
+            // Move the boundary if using a throttle, to avoid waiting for nothing.
+            $end -= $settings['queue']['item_delay'] * 1000000;
+          }
+          else {
+            // Sleep before retrieving.
+            usleep($settings['queue']['item_delay'] * 1000000);
+          }
+        }
+        $function($item->data);
+        $queue->deleteItem($item);
+        $items++;
+      }
+      catch (Exception $e) {
+        // Just continue ...
+        watchdog($job->hook['module'], "Queue item @item_id from queue @queue failed with message @message", array(
+          '@item_id' => $item->item_id,
+          '@queue' => $settings['queue']['name'],
+          '@message' => $e->getMessage()
+        ), WATCHDOG_ERROR);
+      }
+    }
+    watchdog($job->hook['module'], 'Processed @items items from queue @queue', array(
+      '@items' => $items,
+      '@queue' => $settings['queue']['name'],
+    ), WATCHDOG_INFO);
+
+    return;
+  }
+
+  /**
    * Implements hook_cron_alter().
    */
   public function cron_alter(&$jobs) {

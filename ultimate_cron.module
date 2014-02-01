@@ -704,7 +704,7 @@ function ultimate_cron_plugin_cleanup($job, $arguments) {
 /**
  * Implements hook_cronapi().
  *
- * Exposes cron queues to Ultimate Cron and adds clean up jobs for plugins.
+ * Adds clean up jobs for plugins.
  */
 function ultimate_cron_cronapi() {
   $items = array();
@@ -727,101 +727,10 @@ function ultimate_cron_cronapi() {
     }
   }
 
-  // Grab the defined cron queues.
-  $queues = _ultimate_cron_get_queues();
-
-  foreach ($queues as $name => $info) {
-    if (!empty($info['skip on cron'])) {
-      continue;
-    }
-
-    $items['queue_' . $name] = array(
-      'title' => t('Queue: !name', array('!name' => $name)),
-      'callback' => 'ultimate_cron_queue_cron',
-      'scheduler' => array(
-        'simple' => array(
-          'rules' => array('* * * * *'),
-        ),
-        'crontab' => array(
-          'rules' => array('* * * * *'),
-        ),
-      ),
-      'settings' => array(
-        'queue' => array(
-          'name' => $name,
-          'worker callback' => $info['worker callback'],
-        ),
-      ),
-      'tags' => array('queue'),
-      'module' => $info['module'],
-    );
-    if (isset($info['time'])) {
-      $items['queue_' . $name]['settings']['queue']['time'] = $info['time'];
-    }
-  }
   return $items;
 }
 
-/**
- * Process a cron queue.
- *
- * This is a wrapper around the cron queues "worker callback".
- *
- * @param UltimateCronJob $job
- *   The job being run.
- */
-function ultimate_cron_queue_cron($job) {
-  $settings = $job->getPluginSettings('settings');
-  $queue = DrupalQueue::get($settings['queue']['name']);
-  $function = $settings['queue']['worker callback'];
 
-  // Re-throttle.
-  $job->getPlugin('settings', 'queue')->throttle($job);
-
-  $end = microtime(TRUE) + $settings['queue']['time'];
-  $items = 0;
-  while (microtime(TRUE) < $end) {
-    $item = $queue->claimItem($settings['queue']['lease_time']);
-    if (!$item) {
-      if ($settings['queue']['empty_delay']) {
-        usleep($settings['queue']['empty_delay'] * 1000000);
-        continue;
-      }
-      else {
-        break;
-      }
-    }
-    try {
-      if ($settings['queue']['item_delay']) {
-        if ($items == 0) {
-          // Move the boundary if using a throttle, to avoid waiting for nothing.
-          $end -= $settings['queue']['item_delay'] * 1000000;
-        }
-        else {
-          // Sleep before retrieving.
-          usleep($settings['queue']['item_delay'] * 1000000);
-        }
-      }
-      $function($item->data);
-      $queue->deleteItem($item);
-      $items++;
-    }
-    catch (Exception $e) {
-      // Just continue ...
-      watchdog($job->hook['module'], "Queue item @item_id from queue @queue failed with message @message", array(
-        '@item_id' => $item->item_id,
-        '@queue' => $settings['queue']['name'],
-        '@message' => $e->getMessage()
-      ), WATCHDOG_ERROR);
-    }
-  }
-  watchdog($job->hook['module'], 'Processed @items items from queue @queue', array(
-    '@items' => $items,
-    '@queue' => $settings['queue']['name'],
-  ), WATCHDOG_INFO);
-
-  return;
-}
 
 /**
  * Implements hook_watchdog().
@@ -958,33 +867,6 @@ function _ultimate_cron_variable_save($name, $value) {
   global $conf;
   db_merge('variable')->key(array('name' => $name))->fields(array('value' => serialize($value)))->execute();
   $conf[$name] = $value;
-}
-
-/**
- * Get cron queues and static cache them.
- *
- * Works like module_invoke_all('cron_queue_info'), but adds
- * a 'module' to each item.
- *
- * @return array
- *   Cron queue definitions.
- */
-function _ultimate_cron_get_queues() {
-  static $queues = NULL;
-  if (!isset($queues)) {
-    $queues = array();
-    foreach (module_implements('cron_queue_info') as $module) {
-      $items = module_invoke($module, 'cron_queue_info');
-      if (is_array($items)) {
-        foreach ($items as &$item) {
-          $item['module'] = $module;
-        }
-        $queues += $items;
-      }
-    }
-    drupal_alter('cron_queue_info', $queues);
-  }
-  return $queues;
 }
 
 /**
@@ -1180,6 +1062,38 @@ function ultimate_cron_get_module_hooks($module) {
     }
   }
 
+  // Make sure the module is defined.
+  foreach ($items as &$item) {
+    $item += array(
+      'module' => $module,
+    );
+  }
+
+  return $items;
+}
+
+/**
+ * Get hooks defined in plugins.
+ */
+function ultimate_cron_get_plugin_hooks() {
+  $items = array();
+  // Invoke hook_cronapi() on the plugins.
+  $plugin_types = ctools_plugin_get_plugin_type_info();
+  foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+    $plugins = ultimate_cron_plugin_load_all($plugin_type);
+    foreach ($plugins as $plugin) {
+      $items += $plugin->cronapi();
+    }
+  }
+  return $items;
+}
+
+/**
+ * Prepare the hooks by adding default values.
+ * @param array &$hooks
+ *   The hooks to be prepared.
+ */
+function ultimate_cron_prepare_hooks(&$hooks) {
   // Add default settings.
   static $plugin_types;
   static $plugins;
@@ -1192,7 +1106,7 @@ function ultimate_cron_get_module_hooks($module) {
     }
   }
 
-  foreach ($items as $name => &$item) {
+  foreach ($hooks as $name => &$item) {
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
       $static = $info['defaults']['static'];
       $class = $static['class'];
@@ -1218,8 +1132,7 @@ function ultimate_cron_get_module_hooks($module) {
     $item += array(
       'title' => $name,
       'description' => isset($item['title']) ? $item['title'] : $name,
-      'module' => $module,
-      'file path' => drupal_get_path('module', isset($item['module']) ? $item['module'] : $module),
+      'file path' => drupal_get_path('module', $item['module']),
       'callback arguments' => array(),
       'callback' => $name,
       'enabled' => TRUE,
@@ -1227,8 +1140,6 @@ function ultimate_cron_get_module_hooks($module) {
       'api_version' => 'ultimate_cron-2',
     );
   }
-
-  return $items;
 }
 
 /**
@@ -1247,17 +1158,23 @@ function ultimate_cron_get_hooks($reset = FALSE) {
   }
 
   $cache = cache_get('ultimate_cron_hooks');
-  if ($cache && $cache->data) {
+  if (FALSE && $cache && $cache->data) {
     $cache = $cache->data;
     return $cache;
   }
 
   $hooks = array();
-  // Generate list of jobs.
+  // Generate list of jobs provided by modules.
   $modules = module_list();
   foreach ($modules as $module) {
     $hooks += ultimate_cron_get_module_hooks($module);
   }
+
+  // Generate list of jobs provided by plugins.
+  $hooks += ultimate_cron_get_plugin_hooks();
+
+  // Add default values to hooks.
+  ultimate_cron_prepare_hooks($hooks);
 
   // Allow other to manipulate the hook list.
   drupal_alter('cron', $hooks);
