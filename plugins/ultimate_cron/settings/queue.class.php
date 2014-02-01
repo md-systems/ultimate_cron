@@ -66,7 +66,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
             'worker callback' => $info['worker callback'],
           ),
         ),
-        'tags' => array('queue'),
+        'tags' => array('queue', 'core'),
         'module' => $info['module'],
       );
       if (isset($info['time'])) {

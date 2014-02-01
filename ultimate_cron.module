@@ -548,6 +548,9 @@ function ultimate_cron_hook_info() {
  * for maximum compatibility with core.
  */
 function ultimate_cron_init() {
+  $GLOBALS['ultimate_cron_original_session_saving'] = drupal_save_session();
+  $GLOBALS['ultimate_cron_original_user'] = $GLOBALS['user'];
+
   _ultimate_cron_variable_load('cron_last');
 }
 
@@ -683,17 +686,44 @@ function ultimate_cron_permission() {
  * Used for code injection in order to hijack cron runs.
  */
 function ultimate_cron_cron_queue_info() {
-  static $processed = FALSE;
-  if (!$processed) {
-    $processed = TRUE;
-    if (basename($_SERVER['PHP_SELF']) == 'cron.php') {
-      ultimate_cron_cron_run();
-      exit;
+  $debug = debug_backtrace();
+  if (!empty($debug[3]['function']) && $debug['3']['function'] == 'drupal_cron_run') {
+    if (!empty($debug[4])) {
+      // Looks like drupal_cron_run() was called unexpectedly.
+      try {
+        watchdog('ultimate_cron', 'drupal_cron_run() called unexpectedly by @file:@line function @function. Reverting to core cron!', array(
+          '@function' => $debug['4']['function'],
+          '@line' => $debug['3']['line'],
+          '@file' => $debug['3']['file'],
+        ), WATCHDOG_CRITICAL);
+        // @todo Lock and log jobs before returning control to core cron.
+        foreach (ultimate_cron_job_load_all() as $job) {
+          if (in_array('core', $job->hook['tags'])) {
+            $lock_id = $job->lock();
+            if (!$lock_id) {
+              throw new Exception(t('Could not acquire lock for @name', array(
+                '@name' => $job->name,
+              )));
+            }
+            $job->startLog($lock_id, 'Launched by Drupal core');
+          }
+        }
+      }
+      catch (Exception $e) {
+        // Restore the user.
+        $GLOBALS['user'] = $GLOBALS['ultimate_cron_original_user'];
+        drupal_save_session($GLOBALS['ultimate_cron_original_session_saving']);
+        throw $e;
+      }
+      return array();
     }
+
+    // Looks like drupal_cron_run() was called just the way we like it.
+    ultimate_cron_cron_run();
+    exit;
   }
   return array();
 }
-
 
 /**
  * Plugin clean up cron job.
@@ -1055,7 +1085,9 @@ function ultimate_cron_get_module_hooks($module) {
       'module' => $module,
       'title' => 'Default cron handler',
       'configure' => empty($info['configure']) ? NULL : $info['configure'],
+      'tags' => array(),
     );
+    $items["{$module}_cron"]['tags'][] = 'core';
   }
 
   foreach (ultimate_cron_easy_hooks() as $name => $easy_hook) {
