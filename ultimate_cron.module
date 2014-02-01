@@ -249,9 +249,9 @@ function ultimate_cron_plugin_load($type, $name) {
  * @return array
  *   The instances of the plugin type (singletons).
  */
-function ultimate_cron_plugin_load_all($type) {
+function ultimate_cron_plugin_load_all($type, $reset = FALSE) {
   $cache = &drupal_static('ultimate_cron_plugin_load_all', array());
-  if (isset($cache[$type])) {
+  if (!$reset && isset($cache[$type])) {
     return $cache[$type];
   }
   ctools_include('plugins');
@@ -589,6 +589,12 @@ function ultimate_cron_menu() {
     'file' => 'ultimate_cron.poorman.inc',
   );
 
+  // In case a plugin has been removed, we need to clear the plugin cache
+  // first, so cTools won't try to include non-existant files.
+  cache_clear_all('plugins:ultimate_cron:', 'cache', TRUE);
+  drupal_static_reset('ctools_plugins');
+  drupal_static_reset('ctools_plugin_setup');
+
   ctools_include('plugins');
   $plugin_types = ctools_plugin_get_plugin_type_info();
   $weight = 0;
@@ -611,7 +617,7 @@ function ultimate_cron_menu() {
       'weight' => -1 + $weight,
     );
     $weight++;
-    foreach (ultimate_cron_plugin_load_all($plugin_type) as $name => $plugin) {
+    foreach (ultimate_cron_plugin_load_all($plugin_type, TRUE) as $name => $plugin) {
       if (!$plugin->isValid()) {
         continue;
       }
