@@ -101,6 +101,23 @@ function ultimate_cron_exit($dest = NULL) {
 function ultimate_cron_launch_poorman() {
   ultimate_cron_poorman_page_flush();
 
+  $launchers = array();
+  foreach (ultimate_cron_job_load_all() as $job) {
+    $launcher = $job->getPlugin('launcher');
+    if (empty($launchers[$launcher->name])) {
+      $launchers[$launcher->name] = array(
+        'launcher' => $launcher,
+        'jobs' => array()
+      );
+    }
+    $launchers[$launcher->name]['jobs'] = $job;
+  }
+  foreach ($launchers as $launcher_jobs) {
+    $launcher['launcher']->launchPoorman($launcher['jobs']);
+  }
+
+  return;
+
   // If poorman cron is not running, launch the poormans thread.
   if (!UltimateCronLock::isLocked('ultimate_cron_poorman')) {
     if (lock_acquire('ultimate_cron_poorman_launch')) {
