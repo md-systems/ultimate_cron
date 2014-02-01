@@ -25,7 +25,7 @@ class UltimateCronPoormanSettings extends UltimateCronSettings {
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
     if (!$job) {
-      $launchers = ultimate_cron_load_plugin('launcher');
+      $launchers = ultimate_cron_plugin_load_all('launcher');
       $options = array();
       foreach ($launchers as $name => $launcher) {
         if (method_exists($launcher, 'launchPoorman')) {
