@@ -154,7 +154,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
    *
    * Clean up after our grouping.
    */
-  public function settingsFormSubmit(&$form, &$form_state) {
+  public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
     $values = &$form_state['values']['settings'][$this->type][$this->name];
     unset($values['timeouts']);
     unset($values['delays']);

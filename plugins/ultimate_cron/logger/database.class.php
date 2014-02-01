@@ -236,7 +236,7 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   /**
    * Submit handler.
    */
-  public function settingsFormSubmit($form, &$form_state, $job = NULL) {
+  public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
     if (!$job) {
       return;
     }

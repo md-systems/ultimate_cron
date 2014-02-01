@@ -74,7 +74,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   /**
    * Submit handler.
    */
-  public function settingsFormSubmit(&$form, &$form_state) {
+  public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
     if (!empty($values['rules'])) {
