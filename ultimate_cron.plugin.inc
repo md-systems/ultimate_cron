@@ -40,9 +40,9 @@ class UltimateCronPlugin {
   }
 
   /**
-   * Singleton factory.
+   * Singleton factoryLogEntry.
    */
-  public function factory($class, $name, $plugin) {
+  static public function factory($class, $name, $plugin) {
     if (empty($class::$instances[$plugin['plugin type']][$name])) {
       self::$instances[$plugin['plugin type']][$name] = new $class($name, $plugin);
     }
@@ -187,7 +187,7 @@ class UltimateCronPlugin {
   /**
    * A hook_cron_alter() for plugins.
    */
-  public function cron_alter($jobs) {
+  public function cron_alter(&$jobs) {
   }
 
   /**
@@ -954,7 +954,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    * @return UltimateCronLogEntry
    *   The log entry.
    */
-  public function factoryLogEntry($name) {
+  static public function factoryLogEntry($name) {
     return new $this->log_entry_class($name, $this);
   }
 

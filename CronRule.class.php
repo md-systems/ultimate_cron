@@ -36,7 +36,7 @@ class CronRule {
    * @return CronRule
    *   CronRule object.
    */
-  public function factory($rule, $time = NULL, $offset = 0) {
+  static public function factory($rule, $time = NULL, $offset = 0) {
     if (strpos($rule, '@') === FALSE) {
       $offset = 0;
     }
