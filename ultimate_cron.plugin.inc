@@ -681,7 +681,7 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
   /**
    * Job settings form validate handler.
    */
-  static public function jobSettingsFormValidate($form, &$form_state, $plugin_type, $job) {
+  static public function jobSettingsFormValidate($form, &$form_state, $plugin_type, $job = NULL) {
     $plugins = ultimate_cron_plugin_load_all($plugin_type);
     foreach ($plugins as $name => $plugin) {
       if ($plugin->isValid($job)) {
@@ -693,7 +693,7 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
   /**
    * Job settings form submit handler.
    */
-  static public function jobSettingsFormSubmit($form, &$form_state, $plugin_type, $job) {
+  static public function jobSettingsFormSubmit($form, &$form_state, $plugin_type, $job = NULL) {
     $plugins = ultimate_cron_plugin_load_all($plugin_type);
     foreach ($plugins as $name => $plugin) {
       if ($plugin->isValid($job)) {

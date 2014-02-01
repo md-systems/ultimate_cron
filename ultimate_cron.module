@@ -2,16 +2,6 @@
 /**
  * @file
  * Ultimate Cron. Extend cron functionality in Drupal.
- *
- * @todo Add log view (with graph).
- * @todo Refactor Cron % offset stuff. Too mixed up and ungrokable code-wise and 'delta' is not consistent.
- *
- * hook_cron_alter(&$hooks)
- * hook_cron_schedule_alter(&$hooks)
- * hook_cron_pre_execute($name, $hook)
- * hook_cron_pre_execute_FUNCTION($hook)
- * hook_cron_post_execute($name, $hook)
- * hook_cron_post_execute_FUNCTION($hook)
  */
 
 

@@ -81,7 +81,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
   /**
    * Settings form validator.
    */
-  public function settingsFormValidate($form, &$form_state, $job = NULL) {
+  public function settingsFormValidate(&$form, &$form_state, $job = NULL) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
