@@ -6,9 +6,6 @@
 
 
 include dirname(__FILE__) . '/ultimate_cron.poorman.inc';
-include dirname(__FILE__) . '/ultimate_cron.lock.inc';
-include dirname(__FILE__) . '/ultimate_cron.job.inc';
-include dirname(__FILE__) . '/ultimate_cron.plugin.inc';
 include dirname(__FILE__) . '/ultimate_cron.signal.inc';
 
 /**
