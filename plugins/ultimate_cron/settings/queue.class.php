@@ -66,7 +66,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
   /**
    * Settings form.
    */
-  public function settingsForm(&$form, &$form_state) {
+  public function settingsForm(&$form, &$form_state, $job = NULL) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
