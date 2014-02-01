@@ -10,7 +10,6 @@ include dirname(__FILE__) . '/ultimate_cron.lock.inc';
 include dirname(__FILE__) . '/ultimate_cron.job.inc';
 include dirname(__FILE__) . '/ultimate_cron.plugin.inc';
 include dirname(__FILE__) . '/ultimate_cron.signal.inc';
-include dirname(__FILE__) . '/ultimate_cron.background_process_legacy.inc';
 
 /**
  * Memory exhaust protection.
@@ -533,6 +532,17 @@ function ultimate_cron_job_get_status($name) {
 }
 
 // ---------- HOOKS ----------
+
+/**
+ * Implements hook_hook_info().
+ */
+function ultimate_cron_hook_info() {
+  $hooks = array();
+  $hooks['background_process_shutdown'] = array(
+    'group' => 'background_process_legacy',
+  );
+  return $hooks;
+}
 
 /**
  * Implements hook_init().
