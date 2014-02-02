@@ -131,7 +131,8 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
     $settings = $job->getSettings($this->type);
     $offset = $this->getOffset($job);
     $class = get_class($this);
-    return $class::shouldRun($settings['rules'], $log_entry->start_time, NULL, 86400 * 10 * 365, $offset);
+    $behind = $class::shouldRun($settings['rules'], $log_entry->start_time, time() - $settings['catch_up'], 86400 * 10 * 365, $offset);
+    return $behind ? $behind + $settings['catch_up'] : FALSE;
   }
 
   /**
