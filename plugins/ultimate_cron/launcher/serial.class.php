@@ -283,4 +283,19 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       }
     }
   }
+
+  /**
+   * Poormans cron launcher.
+   */
+  public function launchPoorman() {
+    $launcher_jobs = array();
+    foreach (ultimate_cron_job_load_all() as $job) {
+      $launcher = $job->getPlugin('launcher');
+      $launcher_jobs[$launcher->name]['launcher'] = $launcher;
+      $launcher_jobs[$launcher->name]['jobs'] = $job;
+    }
+    foreach ($launcher_jobs as $launcher_job) {
+      $launcher_job['launcher']->launchJobs($launcher_job['jobs']);
+    }
+  }
 }

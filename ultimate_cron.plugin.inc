@@ -912,23 +912,6 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
   }
 
   /**
-   * Default implementation of poormans cron launcher.
-   *
-   * Just launch the jobs. If a launcher needs to launch the jobs differently,
-   * it should override this method. See the serial launcher for an example.
-   *
-   * @param array $jobs
-   *   Array of UltimateCronJob to launch.
-   */
-  public function launchPoorman($jobs) {
-    $name = 'ultimate_cron_poorman_' . $this->name;
-    if (lock_acquire($name)) {
-      return $this->launchJobs($jobs);
-    }
-    lock_release($name);
-  }
-
-  /**
    * Format running state.
    */
   public function formatRunning($job) {

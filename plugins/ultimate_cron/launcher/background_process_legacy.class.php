@@ -345,6 +345,15 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     }
   }
 
+  public function launchPoorman() {
+    $name = 'ultimate_cron_poorman_' . $this->name;
+    if (lock_acquire($name)) {
+      error_log("Launching poormans cron");
+      // return $this->launchJobs($jobs);
+    }
+    lock_release($name);
+  }
+
   /**
    * Format running state.
    */

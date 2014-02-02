@@ -14,14 +14,36 @@
  *   The content of the output buffer.
  */
 function _ultimate_cron_poormans_page_flush($content) {
-  if (!empty($GLOBALS['poorman_active'])) {
+  if (empty($GLOBALS['ultimate_cron_page_flush'])) {
+    return $content;
+  }
+
+  // Check output buffer handlers to determine if we can safely
+  // set the content size in the http header.
+  $handlers = ob_list_handlers();
+
+  // The 'default output handler' can be safely ignored, it is known
+  // to be uncompressed and unmodified.
+  if ($handlers[0] == 'default output handler') {
+    array_shift($handlers);
+  }
+
+  // If another output buffer handler than ours is present, we cannot
+  // safely set the content length, since we do not know what will
+  // happen to the content afterwards.
+  if ($handlers[0] == '_ultimate_cron_poormans_page_flush') {
     $size = strlen($content);
     header("Content-Length: $size");
-    header("Connection: close");
   }
+
+  // In any case, we can always tell the client to close the connection.
+  header("Connection: close");
+
   return $content;
 }
-if (ultimate_cron_poorman_capable()) {
+
+// Output buffering messes up Drush ...
+if (!drupal_is_cli()) {
   ob_start('_ultimate_cron_poormans_page_flush');
 }
 
@@ -34,12 +56,19 @@ function ultimate_cron_poorman_capable() {
     return $capable;
   }
 
-  if (!drupal_is_cli() && $_SERVER['REQUEST_METHOD'] == 'GET') {
-    $capable = TRUE;
-  }
-  else {
+  if (drupal_is_cli()) {
     $capable = FALSE;
   }
+  elseif ($_SERVER['REQUEST_METHOD'] !== 'GET') {
+    $capable = FALSE;
+  }
+  elseif (basename($_SERVER['PHP_SELF']) == 'cron.php') {
+    $capable = FALSE;
+  }
+  else {
+    $capable = TRUE;
+  }
+
   return $capable;
 }
 
@@ -57,9 +86,27 @@ function ultimate_cron_exit($dest = NULL) {
     return;
   }
 
-  $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
-  if (!$settings['poorman']) {
+  // We're picky about when we run poormans cron, because
+  // we may want to flush the output buffer.
+  if (!ultimate_cron_poorman_capable()) {
     return;
+  }
+
+  $poorman = ultimate_cron_plugin_load('settings', 'poorman');
+  if (!$poorman) {
+    return;
+  }
+
+  $settings = $poorman->getDefaultSettings();
+  if (!$settings['launcher']) {
+    return;
+  }
+
+  $launcher = ultimate_cron_plugin_load('launcher', $settings['launcher']);
+  if (!$launcher) {
+    watchdog('ultimate_cron', 'Invalid poormans cron launcher: @name', array(
+      '@name' => $settings['launcher'],
+    ), WATCHDOG_ERROR);
   }
 
   // We're picky about when we run poormans cron, because
@@ -83,14 +130,13 @@ function ultimate_cron_exit($dest = NULL) {
     if (variable_get('cache', 0) && ($cache = drupal_page_set_cache())) {
       drupal_serve_page_from_cache($cache);
     }
-    else {
-      ob_flush();
-    }
+    ultimate_cron_poorman_page_flush();
 
     _registry_check_code(REGISTRY_WRITE_LOOKUP_CACHE);
     drupal_cache_system_paths();
     module_implements_write_cache();
-    ultimate_cron_launch_poorman();
+
+    $launcher->launchPoorman();
     exit;
   }
 }
