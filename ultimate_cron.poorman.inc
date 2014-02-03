@@ -175,6 +175,7 @@ function ultimate_cron_poorman_page_flush() {
  * Page callback for triggering poormans cron.
  */
 function ultimate_cron_poorman_page() {
+  drupal_page_is_cacheable(FALSE);
   drupal_exit();
 }
 
