@@ -276,54 +276,77 @@ class UltimateCronJob {
    * Invoke the jobs callback.
    */
   public function invoke() {
-    UltimateCronPlugin::hook_cron_pre_invoke($this);
-    module_invoke_all('cron_pre_invoke', $this);
-    switch ($this->hook['api_version']) {
-      case 'ultimate_cron-1':
-        // error_log("$this->name : INVOKE 1.x");
-        if (is_callable($this->hook['callback'])) {
+    // Prevent session information from being saved while cron is running.
+    $original_session_saving = drupal_save_session();
+    drupal_save_session(FALSE);
+
+    // Force the current user to anonymous to ensure consistent permissions on
+    // cron runs.
+    $original_user = $GLOBALS['user'];
+    $GLOBALS['user'] = drupal_anonymous_user();
+
+    try {
+      UltimateCronPlugin::hook_cron_pre_invoke($this);
+      module_invoke_all('cron_pre_invoke', $this);
+      switch ($this->hook['api_version']) {
+        case 'ultimate_cron-1':
+          // error_log("$this->name : INVOKE 1.x");
+          if (is_callable($this->hook['callback'])) {
+            $result = call_user_func_array($this->hook['callback'], array(
+              $this->name, $this->hook
+            ));
+            break;
+          }
+          else {
+            $result = module_invoke($this->hook['module'], 'cronapi', 'execute', $this->name, $this->hook);
+            break;
+          }
+
+        case 'ultimate_cron-2':
+          // error_log("$this->name : INVOKE 2.x");
+          if (isset($this->hook['file'])) {
+            require_once $this->hook['file path'] . '/' . $this->hook['file'];
+          }
           $result = call_user_func_array($this->hook['callback'], array(
-            $this->name, $this->hook
+            $this, $this->hook['callback arguments']
           ));
           break;
-        }
-        else {
-          $result = module_invoke($this->hook['module'], 'cronapi', 'execute', $this->name, $this->hook);
-          break;
-        }
 
-      case 'ultimate_cron-2':
-        // error_log("$this->name : INVOKE 2.x");
-        if (isset($this->hook['file'])) {
-          require_once $this->hook['file path'] . '/' . $this->hook['file'];
-        }
-        $result = call_user_func_array($this->hook['callback'], array(
-          $this, $this->hook['callback arguments']
-        ));
-        break;
+        case 'elysia_cron-2':
+          if (isset($this->hook['file'])) {
+            require_once $this->hook['file path'] . '/' . $this->hook['file'];
+          }
+          // error_log("$this->name : INVOKE ELYSIA CRON 2.x");
+          if (is_callable($this->hook['callback'])) {
+            $arguments = !empty($this->hook['arguments']) ? $this->hook['arguments'] : array();
+            $result = call_user_func_array($this->hook['callback'], $arguments);
+            break;
+          }
+          else {
+            $result = module_invoke($this->hook['module'], 'cronapi', 'execute', $this->name);
+            break;
+          }
 
-      case 'elysia_cron-2':
-        if (isset($this->hook['file'])) {
-          require_once $this->hook['file path'] . '/' . $this->hook['file'];
-        }
-        // error_log("$this->name : INVOKE ELYSIA CRON 2.x");
-        if (is_callable($this->hook['callback'])) {
-          $arguments = !empty($this->hook['arguments']) ? $this->hook['arguments'] : array();
-          $result = call_user_func_array($this->hook['callback'], $arguments);
-          break;
-        }
-        else {
-          $result = module_invoke($this->hook['module'], 'cronapi', 'execute', $this->name);
-          break;
-        }
-
-      default:
-        // error_log("$this->name : COULD NOT INVOKE JOB");
-        throw new Exception(t('Could not invoke cron job @name. Wrong API version (@api_version)', array(
-          '@name' => $this->name,
-          '@api_version' => $this->hook['api_version'],
-        )));
+        default:
+          // error_log("$this->name : COULD NOT INVOKE JOB");
+          throw new Exception(t('Could not invoke cron job @name. Wrong API version (@api_version)', array(
+            '@name' => $this->name,
+            '@api_version' => $this->hook['api_version'],
+          )));
+      }
     }
+    catch (Exception $e) {
+      // Restore the user.
+      $GLOBALS['user'] = $original_user;
+      drupal_save_session($original_session_saving);
+      UltimateCronPlugin::hook_cron_post_invoke($this);
+      module_invoke_all('cron_post_invoke', $this);
+      throw $e;
+    }
+
+    // Restore the user.
+    $GLOBALS['user'] = $original_user;
+    drupal_save_session($original_session_saving);
     UltimateCronPlugin::hook_cron_post_invoke($this);
     module_invoke_all('cron_post_invoke', $this);
     return $result;
