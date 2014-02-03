@@ -51,6 +51,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       'daemonize' => FALSE,
       'daemonize_interval' => 10,
       'daemonize_delay' => 1,
+      'poorman_service_group' => variable_get('background_process_default_service_group', 'default'),
     ) + parent::defaultSettings();
   }
 
@@ -103,10 +104,22 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       '#type' => 'select',
       '#options' => $options,
       '#default_value' => $values['service_group'],
-      '#description' => t('Service group to use for this job.'),
+      '#description' => $job ? t('Service group to use for this job.') : t('Service group to use for jobs.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
+
+    if (!$job) {
+      $elements['poorman_service_group'] = array(
+        '#title' => t("Poormans Cron service group"),
+        '#type' => 'select',
+        '#options' => $options,
+        '#default_value' => $values['poorman_service_group'],
+        '#description' => t('Service group to use for the poormans cron launcher.'),
+        '#fallback' => TRUE,
+        '#required' => TRUE,
+      );
+    }
 
     $elements['daemonize'] = array(
       '#title' => t('Daemonize'),
@@ -256,7 +269,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       return FALSE;
     }
 
-    $settings = $job->getSettings();
+    $settings = $job->getSettings($this->type);
 
     $handle = 'uc-' . $job->name;
     $process = new BackgroundProcess($handle);
@@ -264,8 +277,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
 
     // Always run cron job as anonymous user.
     $process->uid = 0;
-    $process->service_group = $settings['launcher']['background_process_legacy']['service_group'];
-
+    $process->service_group = $settings['service_group'];
     $service_host = $process->determineServiceHost();
 
     if ($this->scheduledLaunch) {
@@ -350,9 +362,12 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * Poorman launcher.
    */
   public function launchPoorman() {
+    $settings = $this->getDefaultSettings();
     if ($lock_id = UltimateCronLock::lock('ultimate_cron_poorman_bgpl', 120)) {
+      $process = new BackgroundProcess();
+      $process->service_group = $settings['poorman_service_group'];
+      $process->start(array(get_class($this), 'poormanLauncher'), array($lock_id));
       UltimateCronLock::persist($lock_id);
-      background_process_start(array(get_class($this), 'poormanLauncher'), $lock_id);
     }
   }
 
@@ -390,11 +405,9 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       $launchers[$launcher->name] = $launcher->name;
     }
     foreach ($launchers as $name) {
-      background_process_start_locked(
-        '_ultimate_cron_poorman_' . $name,
-        'ultimate_cron_run_launchers',
-        array($name)
-      );
+      $process = new BackgroundProcess('_ultimate_cron_poorman_' . $name);
+      $process->service_group = $settings['poorman_service_group'];
+      $process->start('ultimate_cron_run_launchers', array(array($name)));
     }
 
     // Bail out if someone stole our lock.
@@ -425,7 +438,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     }
 
     $settings = $poorman->getDefaultSettings();
-    if (!$settings['launcher'] || $settings['launcher'] !== $this->name) {
+    if (!$settings['launcher'] || $settings['launcher'] !== 'background_process_legacy') {
       return;
     }
 
