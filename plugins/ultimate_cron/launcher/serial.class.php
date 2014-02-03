@@ -30,7 +30,16 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
-    $elements['lock_timeout'] = array(
+    $elements['timeouts'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Timeouts'),
+    );
+    $elements['launcher'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Launching options'),
+    );
+
+    $elements['timeouts']['lock_timeout'] = array(
       '#title' => t("Job lock timeout"),
       '#type' => 'textfield',
       '#default_value' => $values['lock_timeout'],
@@ -41,7 +50,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
 
     if (!$job) {
       $max_threads = $values['max_threads'];
-      $elements['max_execution_time'] = array(
+      $elements['timeouts']['max_execution_time'] = array(
         '#title' => t("Maximum execution time"),
         '#type' => 'textfield',
         '#default_value' => $values['max_execution_time'],
@@ -49,7 +58,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
         '#fallback' => TRUE,
         '#required' => TRUE,
       );
-      $elements['max_threads'] = array(
+      $elements['launcher']['max_threads'] = array(
         '#title' => t("Maximum number of launcher threads"),
         '#type' => 'textfield',
         '#default_value' => $max_threads,
@@ -57,13 +66,15 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
         '#fallback' => TRUE,
         '#required' => TRUE,
         '#element_validate' => array('element_validate_number'),
+        '#weight' => 1,
       );
-      $elements['poorman_keepalive'] = array(
+      $elements['launcher']['poorman_keepalive'] = array(
         '#title' => t("Poormans cron keepalive"),
         '#type' => 'checkbox',
         '#default_value' => $values['poorman_keepalive'],
         '#description' => t('Retrigger poormans cron after it has finished. Requires $base_url to be accessible from the webserver.'),
         '#fallback' => TRUE,
+        '#weight' => 3,
       );
     }
     else {
@@ -75,7 +86,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     for ($i = 1; $i <= $max_threads; $i++) {
       $options[$i] = $i;
     }
-    $elements['thread'] = array(
+    $elements['launcher']['thread'] = array(
       '#title' => t("Run in thread"),
       '#type' => 'select',
       '#default_value' => $values['thread'],
@@ -83,6 +94,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       '#description' => t('Which thread to run in when invoking with ?thread=N'),
       '#fallback' => TRUE,
       '#required' => TRUE,
+      '#weight' => 2,
     );
   }
 
@@ -100,6 +112,15 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
         )));
       }
     }
+  }
+
+  /**
+   * Settings form submit handler.
+   */
+  public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
+    $values = &$form_state['values']['settings'][$this->type][$this->name];
+    unset($values['timeouts']);
+    unset($values['launcher']);
   }
 
   /**
@@ -355,6 +376,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
         sleep($cron_next - $time);
       }
 
+      UltimateCronLock::unLock($lock_id);
       ultimate_cron_poorman_trigger();
     }
   }
