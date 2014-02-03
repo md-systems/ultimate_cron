@@ -67,7 +67,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       $operation += array('sort' => array(isset($default_sort[$name]) ? $default_sort[$name] : 0));
       $operation['sort'][] = $weight++;
     }
-    uasort($allowed_operations, array(get_class($this), 'multi_column_sort'));
+    uasort($allowed_operations, '_ultimate_cron_multi_column_sort');
     return $allowed_operations;
   }
 
@@ -574,7 +574,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     }
 
     // Now actually sort.
-    uasort($this->rows, array(get_class($this), 'multi_column_sort'));
+    uasort($this->rows, '_ultimate_cron_multi_column_sort');
 
     if ($form_state['values']['sort'] == 'desc') {
       $this->rows = array_reverse($this->rows);
@@ -582,18 +582,5 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     foreach ($this->rows as &$row) {
       unset($row['sort']);
     }
-  }
-
-  /**
-   * Sort callback for multiple column sort.
-   */
-  static public function multi_column_sort($a, $b) {
-    foreach ($a['sort'] as $i => $sort) {
-      if ($a['sort'][$i] == $b['sort'][$i]) {
-        continue;
-      }
-      return $a['sort'][$i] < $b['sort'][$i] ? -1 : 1;
-    }
-    return 0;
   }
 }

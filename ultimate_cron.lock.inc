@@ -118,6 +118,29 @@ class UltimateCronLock {
   }
 
   /**
+   * Relock.
+   *
+   * @param string $lock_id
+   *   The lock id to relock.
+   * @param float $timeout
+   *   The timeout in seconds for the lock.
+   *
+   * @return boolean
+   *   TRUE if relock was successful.
+   */
+  static public function reLock($lock_id, $timeout = 30.0) {
+    // Ensure that the timeout is at least 1 ms.
+    $timeout = max($timeout, 0.001);
+    $expire = microtime(TRUE) + $timeout;
+    return (bool) db_update('ultimate_cron_lock')
+      ->fields(array(
+        'expire' => $expire,
+      ))
+      ->condition('lid', $lock_id)
+      ->condition('current', 0)
+      ->execute();
+  }
+  /**
    * Check if lock is taken.
    *
    * @param string $name

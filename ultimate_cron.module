@@ -857,9 +857,12 @@ function ultimate_cron_cron_run() {
  *   variables array, so variable_get() may retrieve the correct data
  *   afterwards.
  */
-function _ultimate_cron_variable_load($name) {
+function _ultimate_cron_variable_load($name, $default = NULL) {
   if ($value = db_query("SELECT value FROM {variable} WHERE name = :name", array(':name' => $name))->fetchField()) {
     $value = unserialize($value);
+  }
+  else {
+    $value = $default;
   }
   global $conf;
   $conf[$name] = $value;
@@ -1311,42 +1314,40 @@ function ultimate_cron_run_scheduled_page() {
  */
 function ultimate_cron_run_scheduled($set_message = TRUE) {
   if (!variable_get('maintenance_mode', 0)) {
-    $launchers = array();
-    foreach (ultimate_cron_job_load_all() as $job) {
-      $launchers[$job->getPlugin('launcher')->name] = TRUE;
-    }
-    if (empty($launchers)) {
-      ultimate_cron_watchdog_message('ultimate_cron', 'No launchers to invoke?', array(), WATCHDOG_ERROR, 'error', $set_message);
-      return;
-    }
-    $settings = ultimate_cron_plugin_load('settings', 'general')->getDefaultSettings();
-    $dispatch = $set_message || count($launchers) > 1;
-
-    foreach (array_keys($launchers) as $launcher) {
-      $plugin = ultimate_cron_plugin_load('launcher', $launcher);
-      if (!$plugin) {
-        ultimate_cron_watchdog_message('ultimate_cron', 'Launcher @name not found!', array(
-          '@name' => $launcher,
-        ), WATCHDOG_ERROR, 'error', $set_message);
-        return;
-      }
-
-      if ($settings['poorman'] && $dispatch) {
-        ultimate_cron_poorman_launcher($plugin->name);
-      }
-      else {
-        ultimate_cron_run_launcher($plugin);
-      }
-
-      ultimate_cron_watchdog_message('ultimate_cron', 'Launcher @title invoked', array(
-        '@title' => $plugin->title,
-      ), WATCHDOG_INFO, 'status', $set_message);
-    }
+    ultimate_cron_run_launchers();
   }
   else {
     ultimate_cron_watchdog_message('ultimate_cron', 'Cannot launch scheduled jobs while in maintenance mode!', array(), WATCHDOG_ERROR, 'error', $set_message);
   }
   return;
+}
+
+/**
+ * Run all launchers.
+ */
+function ultimate_cron_run_launchers($launchers = NULL) {
+  error_log("Launching: " . join(", ", $launchers));
+  _ultimate_cron_variable_save('cron_last', time());
+
+  $launcher_jobs = array();
+  foreach (ultimate_cron_job_load_all() as $job) {
+    $launcher = $job->getPlugin('launcher');
+    if (!isset($launchers) || in_array($launcher->name, $launchers)) {
+      $launcher_jobs[$launcher->name]['launcher'] = $launcher;
+      $launcher_jobs[$launcher->name]['sort'] = array($launcher->weight);
+      $launcher_jobs[$launcher->name]['jobs'][$job->name] = $job;
+      $launcher_jobs[$launcher->name]['jobs'][$job->name]->sort = array($job->loadLatestLogEntry()->start_time);
+    }
+  }
+
+  uasort($launcher_jobs, '_ultimate_cron_multi_column_sort');
+
+  foreach ($launcher_jobs as $name => $launcher_job) {
+    error_log("Launcher: $name");
+    uasort($launcher_job['jobs'], '_ultimate_cron_multi_column_sort');
+    $launcher_job['launcher']->launchJobs($launcher_job['jobs']);
+  }
+  error_log("FINISHED LAUNCHING!");
 }
 
 /**
@@ -1399,6 +1400,21 @@ function ultimate_cron_watchdog_message($type, $msg, $args, $severity, $status, 
  */
 function _ultimate_cron_sort_jobs_by_start_time($a, $b) {
   return $a->log_entry->start_time == $b->log_entry->start_time ? 0 : ($a->log_entry->start_time > $b->log_entry->start_time ? 1 : -1);
+}
+
+/**
+ * Sort callback for multiple column sort.
+ */
+function _ultimate_cron_multi_column_sort($a, $b) {
+  $a = (array) $a;
+  $b = (array) $b;
+  foreach ($a['sort'] as $i => $sort) {
+    if ($a['sort'][$i] == $b['sort'][$i]) {
+      continue;
+    }
+    return $a['sort'][$i] < $b['sort'][$i] ? -1 : 1;
+  }
+  return 0;
 }
 
 /**

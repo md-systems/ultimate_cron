@@ -18,6 +18,7 @@ class UltimateCronPlugin {
   public $settings = array();
   static public $multiple = FALSE;
   static public $instances = array();
+  public $weight = 0;
 
   /**
    * Constructor.
@@ -53,6 +54,7 @@ class UltimateCronPlugin {
    * Invoke hook_cron_alter() on plugins.
    */
   final static public function hook_cron_alter(&$jobs) {
+    ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
@@ -68,6 +70,7 @@ class UltimateCronPlugin {
    * Invoke hook_cron_pre_schedule() on plugins.
    */
   final static public function hook_cron_pre_schedule($job) {
+    ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
@@ -83,6 +86,7 @@ class UltimateCronPlugin {
    * Invoke hook_cron_post_schedule() on plugins.
    */
   final static public function hook_cron_post_schedule($job) {
+    ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
@@ -98,6 +102,7 @@ class UltimateCronPlugin {
    * Invoke hook_cron_pre_launch() on plugins.
    */
   final static public function hook_cron_pre_launch($job) {
+    ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
@@ -113,6 +118,7 @@ class UltimateCronPlugin {
    * Invoke hook_cron_post_launch() on plugins.
    */
   final static public function hook_cron_post_launch($job) {
+    ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
@@ -128,6 +134,7 @@ class UltimateCronPlugin {
    * Invoke hook_cron_pre_run() on plugins.
    */
   final static public function hook_cron_pre_run($job) {
+    ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
@@ -143,6 +150,7 @@ class UltimateCronPlugin {
    * Invoke hook_cron_post_run() on plugins.
    */
   final static public function hook_cron_post_run($job) {
+    ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
@@ -158,6 +166,7 @@ class UltimateCronPlugin {
    * Invoke hook_cron_pre_invoke() on plugins.
    */
   final static public function hook_cron_pre_invoke($job) {
+    ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
@@ -173,6 +182,7 @@ class UltimateCronPlugin {
    * Invoke hook_cron_post_invoke() on plugins.
    */
   final static public function hook_cron_post_invoke($job) {
+    ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);

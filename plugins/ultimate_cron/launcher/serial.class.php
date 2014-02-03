@@ -197,6 +197,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     $delay = $timeout * 1000000;
     $sleep = 25000;
 
+    error_log(print_r($settings, TRUE));
     do {
       for ($thread = 1; $thread <= $settings['max_threads']; $thread++) {
         if ($thread == $this->currentThread) {
@@ -215,6 +216,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
           }
         }
         if ($delay > 0) {
+          error_log("Sleeping: $sleep");
           usleep($sleep);
           // After each sleep, increase the value of $sleep until it reaches
           // 500ms, to reduce the potential for a lock stampede.
@@ -222,7 +224,8 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
           $sleep = min(500000, $sleep + 25000, $delay);
         }
       }
-    } while ($delay > 0);
+      error_log("Delay: $delay");
+    } while (FALSE && $delay > 0);
     return array(FALSE, FALSE);
   }
 
@@ -230,6 +233,10 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
    * Launch manager.
    */
   public function launchJobs($jobs) {
+    #error_log('Serial launcher');
+    #error_log(print_r(array_keys($jobs), TRUE));
+    #return;
+
     $settings = $this->getDefaultSettings();
 
     // Set proper max execution time.
@@ -247,14 +254,16 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
         return;
       }
 
-      $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
       $timeout = 3;
+      error_log("Locating free thread");
       list($thread, $lock_id) = $this->findFreeThread(TRUE, $lock_timeout, $timeout);
+      error_log("Found thread: $thread");
     }
     else {
       $timeout = 3;
+      error_log("Locating free thread");
       list($thread, $lock_id) = $this->findFreeThread(TRUE, $lock_timeout, $timeout);
-      $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
+      error_log("Found thread: $thread");
     }
     $this->currentThread = $thread;
 
@@ -269,10 +278,17 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
 
     watchdog('serial_launcher', "Cron thread %thread started", array('%thread' => $thread), WATCHDOG_INFO);
 
+    $this->runThread($lock_id, $thread, $jobs);
+    UltimateCronLock::unlock($lock_id);
+  }
+
+  public function runThread($lock_id, $thread, $jobs) {
+    $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
     foreach ($jobs as $job) {
       $settings = $job->getSettings('launcher');
       $proper_thread = ($settings['thread'] == 'any') || ($settings['thread'] == $thread);
-      if ($job->isScheduled() && $proper_thread) {
+      if ($proper_thread && $job->isScheduled()) {
+        error_log("Serial running: $job->name");
         $job->launch();
         // Be friendly, and check if we still own the lock.
         // If we don't, bail out, since someone else is handling
@@ -288,14 +304,16 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
    * Poormans cron launcher.
    */
   public function launchPoorman() {
-    $launcher_jobs = array();
-    foreach (ultimate_cron_job_load_all() as $job) {
-      $launcher = $job->getPlugin('launcher');
-      $launcher_jobs[$launcher->name]['launcher'] = $launcher;
-      $launcher_jobs[$launcher->name]['jobs'] = $job;
+    // Is it time to run cron?
+    $cron_last = variable_get('cron_last', 0);
+    $cron_next = floor(($cron_last + 60) / 60) * 60;
+    $time = time();
+    if ($time < $cron_next) {
+      return;
     }
-    foreach ($launcher_jobs as $launcher_job) {
-      $launcher_job['launcher']->launchJobs($launcher_job['jobs']);
-    }
+    error_log("Launching!");
+    unset($_GET['thread']);
+    ultimate_cron_poorman_page_flush();
+    ultimate_cron_run_launchers();
   }
 }

@@ -20,7 +20,8 @@ function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL)
   // We only handle the legacy callback here.
   if (
     !is_array($process->callback) ||
-    $process->callback[0] !== 'UltimateCronBackgroundProcessLegacyLauncher'
+    $process->callback[0] !== 'UltimateCronBackgroundProcessLegacyLauncher' ||
+    $process->callback[1] !== 'job_callback'
   ) {
     return;
   }
@@ -31,6 +32,11 @@ function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL)
   // If someone has set the dont log signal, it means that they
   // are handling the shutdown of the log.
   $job = ultimate_cron_job_load($name);
+  if (!$job) {
+    error_log("Job: $name not found!");
+    return;
+  }
+
   if ($job->getSignal('background_process_legacy_dont_log')) {
     // Resend within this request, just in case.
     $job->sendSignal('background_process_legacy_dont_log');

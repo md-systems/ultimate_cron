@@ -9,6 +9,7 @@
  */
 class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   public $scheduledLaunch = FALSE;
+  public $weight = -10;
 
   /**
    * Custom action for plugins.
@@ -310,6 +311,10 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * Launch manager.
    */
   public function launchJobs($jobs) {
+    #error_log('Background Process legacy launcher');
+    #error_log(print_r(array_keys($jobs), TRUE));
+    #return;
+
     $this->scheduledLaunch = TRUE;
     $settings = $this->getDefaultSettings();
 
@@ -330,28 +335,72 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
           '@threads' => $threads,
         ), WATCHDOG_DEBUG);
         do {
+          error_log("Congestion sleeping...");
           sleep(1);
         } while (microtime(TRUE) < $expire && $this->numberOfProcessesRunning() >= $settings['max_threads']);
       }
 
       // Bail out if we expired.
       if (microtime(TRUE) >= $expire) {
+        error_log("Limit reached!");
         watchdog('bg_process_legacy', 'Background Process launcher exceed time limit of 45 seconds.', array(), WATCHDOG_NOTICE);
         return;
       }
 
       // Everything's good. Launch job!
+      error_log("BGPL launching: $job->name");
       $job->launch();
     }
   }
 
   public function launchPoorman() {
-    $name = 'ultimate_cron_poorman_' . $this->name;
-    if (lock_acquire($name)) {
-      error_log("Launching poormans cron");
-      // return $this->launchJobs($jobs);
+    background_process_start_locked('_ultimate_cron_poorman', array(get_class($this), 'poormanLauncher'));
+  }
+
+  static public function poormanLauncher() {
+    // Wait until it's our turn (0 seconds at next minute).
+    $cron_last = variable_get('cron_last', 0);
+    $cron_next = floor(($cron_last + 60) / 60) * 60;
+    $time = time();
+    if ($time < $cron_next) {
+      $sleep = $cron_next - $time;
+      // sleep($sleep);
+      while ($sleep--) {
+        error_log("SLEEPING1: $sleep");
+        sleep(1);
+      }
     }
-    lock_release($name);
+
+    // It's our turn!
+    error_log("Launching!");
+
+    $launchers = array();
+    foreach (ultimate_cron_job_load_all() as $job) {
+      $launcher = $job->getPlugin('launcher');
+      $launchers[$launcher->name] = $launcher->name;
+    }
+    foreach ($launchers as $name) {
+      background_process_start_locked(
+        '_ultimate_cron_poorman_' . $name,
+        'ultimate_cron_run_launchers',
+        array($name)
+      );
+    }
+
+    // Wait until it's our turn (0 seconds at next minute).
+    $cron_last = _ultimate_cron_variable_load('cron_last', 0);
+    $cron_next = floor(($cron_last + 60) / 60) * 60;
+    $time = time();
+    if ($time < $cron_next) {
+      $sleep = $cron_next - $time;
+      // sleep($sleep);
+      while ($sleep--) {
+        error_log("SLEEPING2: $sleep");
+        sleep(1);
+      }
+    }
+
+    background_process_keepalive();
   }
 
   /**
