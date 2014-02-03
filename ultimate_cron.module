@@ -701,7 +701,8 @@ function ultimate_cron_cron_queue_info() {
           '@line' => $debug['3']['line'],
           '@file' => $debug['3']['file'],
         ), WATCHDOG_CRITICAL);
-        // @todo Lock and log jobs before returning control to core cron.
+
+        // Lock and log jobs before returning control to core cron.
         foreach (ultimate_cron_job_load_all() as $job) {
           if (in_array('core', $job->hook['tags'])) {
             $lock_id = $job->lock();
