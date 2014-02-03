@@ -355,7 +355,7 @@ class UltimateCronPlugin {
       if (empty($child) || empty($elements[$child]) || is_numeric($child)) {
         continue;
       }
-      if (empty($element['#tree'])) {
+      if (empty($elements[$child]['#tree'])) {
         $param_values = &$values;
       }
       else {
@@ -700,7 +700,7 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
    */
   static public function jobSettingsFormValidate($form, &$form_state, $plugin_type, $job = NULL) {
     $plugins = ultimate_cron_plugin_load_all($plugin_type);
-    foreach ($plugins as $name => $plugin) {
+    foreach ($plugins as $plugin) {
       if ($plugin->isValid($job)) {
         $plugin->settingsFormValidate($form, $form_state, $job);
       }
@@ -799,7 +799,14 @@ abstract class UltimateCronScheduler extends UltimateCronPlugin {
  *   launchJobs($jobs)
  *     - Launches the jobs provided to it. A default implementation of this
  *       exists, but can be overridden. It is assumed that this function
- *       checks the jobs schedule before launching.
+ *       checks the jobs schedule before launching and that it also handles
+ *       locking wrt concurrency for the launcher itself.
+ *
+ *   launchPoorman()
+ *     - Launches all scheduled jobs via the proper launcher for each jobs.
+ *       This method only needs to be implemented if the launcher wishes to
+ *       provide a poormans cron launching mechanism. It is assumed that
+ *       the poormans cron launcher handles locking wrt concurrency, etc.
  */
 abstract class UltimateCronLauncher extends UltimateCronPlugin {
 
@@ -989,8 +996,6 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    *   The log entry created.
    */
   public function create($name, $lock_id, $init_message = '') {
-    global $user;
-
     $log_entry = new $this->log_entry_class($name, $this);
     $log_entry->lid = $lock_id;
     $log_entry->start_time = microtime(TRUE);
@@ -1052,7 +1057,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    */
   static public function catchMessagesShutdownWrapper($class) {
     if ($class::$log_entries) {
-      foreach ($class::$log_entries as $lid => $log_entry) {
+      foreach ($class::$log_entries as $log_entry) {
         $log_entry->logger->catchMessagesShutdown($log_entry);
       }
     }
