@@ -773,8 +773,6 @@ function ultimate_cron_cronapi() {
   return $items;
 }
 
-
-
 /**
  * Implements hook_watchdog().
  *
@@ -1138,6 +1136,7 @@ function ultimate_cron_get_plugin_hooks() {
 
 /**
  * Prepare the hooks by adding default values.
+ *
  * @param array &$hooks
  *   The hooks to be prepared.
  */
@@ -1326,7 +1325,6 @@ function ultimate_cron_run_scheduled($set_message = TRUE) {
  * Run all launchers.
  */
 function ultimate_cron_run_launchers($launchers = NULL) {
-  error_log("Launching: " . join(", ", $launchers));
   _ultimate_cron_variable_save('cron_last', time());
 
   $launcher_jobs = array();
@@ -1343,11 +1341,9 @@ function ultimate_cron_run_launchers($launchers = NULL) {
   uasort($launcher_jobs, '_ultimate_cron_multi_column_sort');
 
   foreach ($launcher_jobs as $name => $launcher_job) {
-    error_log("Launcher: $name");
     uasort($launcher_job['jobs'], '_ultimate_cron_multi_column_sort');
     $launcher_job['launcher']->launchJobs($launcher_job['jobs']);
   }
-  error_log("FINISHED LAUNCHING!");
 }
 
 /**
@@ -1383,15 +1379,15 @@ function ultimate_cron_run_launchers($launchers = NULL) {
  *   - 'status'
  *   - 'warning'
  *   - 'error'
- *  @param boolean $set_message
- *    Use drupal_set_message() instead of watchdog logging.
+ * @param boolean $set_message
+ *   Use drupal_set_message() instead of watchdog logging.
  */
-function ultimate_cron_watchdog_message($type, $msg, $args, $severity, $status, $set_message) {
+function ultimate_cron_watchdog_message($type, $message, $variables, $severity, $status, $set_message) {
   if ($set_message) {
-    drupal_set_message(t($msg, $args), $status);
+    drupal_set_message(t($message, $variables), $status);
   }
   else {
-    watchdog($type, $msg, $args, $severity);
+    watchdog($type, $message, $variables, $severity);
   }
 }
 

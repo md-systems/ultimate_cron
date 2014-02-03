@@ -42,10 +42,6 @@ function _ultimate_cron_poorman_page_flush($content) {
 
   // If there are any unknown handlers left, we cannot safely set the
   // Content-Length.
-  foreach ($handlers as $handler) {
-    error_log("HANDLER LEFT: $handler");
-  }
-
   if (empty($handlers)) {
     $size = strlen($content);
     header("Content-Length: $size");
@@ -161,15 +157,6 @@ function ultimate_cron_exit($dest = NULL) {
  */
 function ultimate_cron_poorman_page_flush() {
   @ignore_user_abort();
-
-  if (module_exists('devel') && variable_get('devel_query_display')) {
-    if (
-      !empty($_SERVER['HTTP_USER_AGENT']) &&
-      $_SERVER['HTTP_USER_AGENT'] !== 'Ultimate Cron'
-    ) {
-      return;
-    }
-  }
 
   $GLOBALS['ultimate_cron_page_flush'] = TRUE;
   while (ob_get_level() > 0) {

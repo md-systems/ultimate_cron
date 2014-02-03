@@ -19,6 +19,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       'max_threads' => 1,
       'thread' => 'any',
       'lock_timeout' => 3600,
+      'poorman_keepalive' => FALSE,
     ) + parent::defaultSettings();
   }
 
@@ -56,6 +57,13 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
         '#fallback' => TRUE,
         '#required' => TRUE,
         '#element_validate' => array('element_validate_number'),
+      );
+      $elements['poorman_keepalive'] = array(
+        '#title' => t("Poormans cron keepalive"),
+        '#type' => 'checkbox',
+        '#default_value' => $values['poorman_keepalive'],
+        '#description' => t('Retrigger poormans cron after it has finished. Requires $base_url to be accessible from the webserver.'),
+        '#fallback' => TRUE,
       );
     }
     else {
@@ -197,26 +205,22 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     $delay = $timeout * 1000000;
     $sleep = 25000;
 
-    error_log(print_r($settings, TRUE));
     do {
       for ($thread = 1; $thread <= $settings['max_threads']; $thread++) {
-        if ($thread == $this->currentThread) {
-          continue;
-        }
-
-        $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
-        if (!UltimateCronLock::isLocked($lock_name)) {
-          if ($lock) {
-            if ($lock_id = UltimateCronLock::lock($lock_name, $lock_timeout)) {
-              return array($thread, $lock_id);
+        if ($thread != $this->currentThread) {
+          $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
+          if (!UltimateCronLock::isLocked($lock_name)) {
+            if ($lock) {
+              if ($lock_id = UltimateCronLock::lock($lock_name, $lock_timeout)) {
+                return array($thread, $lock_id);
+              }
             }
-          }
-          else {
-            return array($thread, FALSE);
+            else {
+              return array($thread, FALSE);
+            }
           }
         }
         if ($delay > 0) {
-          error_log("Sleeping: $sleep");
           usleep($sleep);
           // After each sleep, increase the value of $sleep until it reaches
           // 500ms, to reduce the potential for a lock stampede.
@@ -224,8 +228,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
           $sleep = min(500000, $sleep + 25000, $delay);
         }
       }
-      error_log("Delay: $delay");
-    } while (FALSE && $delay > 0);
+    } while ($delay > 0);
     return array(FALSE, FALSE);
   }
 
@@ -233,10 +236,6 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
    * Launch manager.
    */
   public function launchJobs($jobs) {
-    #error_log('Serial launcher');
-    #error_log(print_r(array_keys($jobs), TRUE));
-    #return;
-
     $settings = $this->getDefaultSettings();
 
     // Set proper max execution time.
@@ -255,15 +254,11 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       }
 
       $timeout = 3;
-      error_log("Locating free thread");
       list($thread, $lock_id) = $this->findFreeThread(TRUE, $lock_timeout, $timeout);
-      error_log("Found thread: $thread");
     }
     else {
       $timeout = 3;
-      error_log("Locating free thread");
       list($thread, $lock_id) = $this->findFreeThread(TRUE, $lock_timeout, $timeout);
-      error_log("Found thread: $thread");
     }
     $this->currentThread = $thread;
 
@@ -282,13 +277,22 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     UltimateCronLock::unlock($lock_id);
   }
 
+  /**
+   * Run jobs in thread.
+   *
+   * @param string $lock_id
+   *   The lock id.
+   * @param string $thread
+   *   The tread number.
+   * @param array $jobs
+   *   The UltimateCronJobs to run.
+   */
   public function runThread($lock_id, $thread, $jobs) {
     $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
     foreach ($jobs as $job) {
       $settings = $job->getSettings('launcher');
       $proper_thread = ($settings['thread'] == 'any') || ($settings['thread'] == $thread);
       if ($proper_thread && $job->isScheduled()) {
-        error_log("Serial running: $job->name");
         $job->launch();
         // Be friendly, and check if we still own the lock.
         // If we don't, bail out, since someone else is handling
@@ -304,16 +308,54 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
    * Poormans cron launcher.
    */
   public function launchPoorman() {
+    $settings = $this->getDefaultSettings();
     // Is it time to run cron?
     $cron_last = variable_get('cron_last', 0);
     $cron_next = floor(($cron_last + 60) / 60) * 60;
     $time = time();
     if ($time < $cron_next) {
+      if ($settings['poorman_keepalive'] && $lock_id = UltimateCronLock::lock('ultimate_cron_poorman_serial', 60)) {
+        ultimate_cron_poorman_page_flush();
+        $sleep = $cron_next - $time;
+        sleep($sleep);
+        /*
+        while ($sleep--) {
+          error_log("SLEEPING3: $sleep");
+          sleep(1);
+        }
+        */
+        ultimate_cron_poorman_trigger();
+        UltimateCronLock::unLock($lock_id);
+      }
       return;
     }
-    error_log("Launching!");
     unset($_GET['thread']);
     ultimate_cron_poorman_page_flush();
     ultimate_cron_run_launchers();
+
+    // Check poorman settings. If launcher has changed, we don't want
+    // to keepalive.
+    $poorman = ultimate_cron_plugin_load('settings', 'poorman');
+    if (!$poorman) {
+      return;
+    }
+
+    $settings = $poorman->getDefaultSettings();
+    if (!$settings['launcher'] || $settings['launcher'] !== $this->name) {
+      return;
+    }
+
+    $settings = $this->getDefaultSettings();
+    if ($settings['poorman_keepalive']) {
+      // Is it time to run cron? If not wait before re-launching.
+      $cron_last = variable_get('cron_last', 0);
+      $cron_next = floor(($cron_last + 60) / 60) * 60;
+      $time = time();
+      if ($time < $cron_next) {
+        sleep($cron_next - $time);
+      }
+
+      ultimate_cron_poorman_trigger();
+    }
   }
 }

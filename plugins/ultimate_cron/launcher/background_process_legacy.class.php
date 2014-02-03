@@ -311,10 +311,6 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * Launch manager.
    */
   public function launchJobs($jobs) {
-    #error_log('Background Process legacy launcher');
-    #error_log(print_r(array_keys($jobs), TRUE));
-    #return;
-
     $this->scheduledLaunch = TRUE;
     $settings = $this->getDefaultSettings();
 
@@ -335,45 +331,59 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
           '@threads' => $threads,
         ), WATCHDOG_DEBUG);
         do {
-          error_log("Congestion sleeping...");
           sleep(1);
         } while (microtime(TRUE) < $expire && $this->numberOfProcessesRunning() >= $settings['max_threads']);
       }
 
       // Bail out if we expired.
       if (microtime(TRUE) >= $expire) {
-        error_log("Limit reached!");
         watchdog('bg_process_legacy', 'Background Process launcher exceed time limit of 45 seconds.', array(), WATCHDOG_NOTICE);
         return;
       }
 
       // Everything's good. Launch job!
-      error_log("BGPL launching: $job->name");
       $job->launch();
     }
   }
 
+  /**
+   * Poorman launcher.
+   */
   public function launchPoorman() {
-    background_process_start_locked('_ultimate_cron_poorman', array(get_class($this), 'poormanLauncher'));
+    if ($lock_id = UltimateCronLock::lock('ultimate_cron_poorman_bgpl', 120)) {
+      UltimateCronLock::persist($lock_id);
+      background_process_start(array(get_class($this), 'poormanLauncher'), $lock_id);
+    }
   }
 
-  static public function poormanLauncher() {
+  /**
+   * Poorman launcher background process callback.
+   *
+   * @param string $lock_id
+   *   The lock id used for this process.
+   */
+  static public function poormanLauncher($lock_id) {
+    // Bail out if someone stole our lock.
+    if (!UltimateCronLock::reLock($lock_id, 90)) {
+      return;
+    }
+
     // Wait until it's our turn (0 seconds at next minute).
     $cron_last = variable_get('cron_last', 0);
     $cron_next = floor(($cron_last + 60) / 60) * 60;
     $time = time();
     if ($time < $cron_next) {
       $sleep = $cron_next - $time;
-      // sleep($sleep);
+      sleep($sleep);
+      /*
       while ($sleep--) {
         error_log("SLEEPING1: $sleep");
         sleep(1);
       }
+      */
     }
 
     // It's our turn!
-    error_log("Launching!");
-
     $launchers = array();
     foreach (ultimate_cron_job_load_all() as $job) {
       $launcher = $job->getPlugin('launcher');
@@ -387,17 +397,36 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       );
     }
 
+    // Bail out if someone stole our lock.
+    if (!UltimateCronLock::reLock($lock_id, 90)) {
+      return;
+    }
+
     // Wait until it's our turn (0 seconds at next minute).
     $cron_last = _ultimate_cron_variable_load('cron_last', 0);
     $cron_next = floor(($cron_last + 60) / 60) * 60;
     $time = time();
     if ($time < $cron_next) {
       $sleep = $cron_next - $time;
-      // sleep($sleep);
+      sleep($sleep);
+      /*
       while ($sleep--) {
         error_log("SLEEPING2: $sleep");
         sleep(1);
       }
+      */
+    }
+
+    // Check poorman settings. If launcher has changed, we don't want
+    // to keepalive.
+    $poorman = ultimate_cron_plugin_load('settings', 'poorman');
+    if (!$poorman) {
+      return;
+    }
+
+    $settings = $poorman->getDefaultSettings();
+    if (!$settings['launcher'] || $settings['launcher'] !== $this->name) {
+      return;
     }
 
     background_process_keepalive();

@@ -33,7 +33,6 @@ function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL)
   // are handling the shutdown of the log.
   $job = ultimate_cron_job_load($name);
   if (!$job) {
-    error_log("Job: $name not found!");
     return;
   }
 
