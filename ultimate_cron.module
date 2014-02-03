@@ -548,8 +548,13 @@ function ultimate_cron_hook_info() {
  * for maximum compatibility with core.
  */
 function ultimate_cron_init() {
-  $GLOBALS['ultimate_cron_original_session_saving'] = drupal_save_session();
-  $GLOBALS['ultimate_cron_original_user'] = $GLOBALS['user'];
+  if (!variable_get('ultimate_cron_bypass_transactional_safe_connection')) {
+    $info = Database::getConnectionInfo('default');
+    Database::addConnectionInfo('default', 'ultimate_cron', $info['default']);
+
+    $GLOBALS['ultimate_cron_original_session_saving'] = drupal_save_session();
+    $GLOBALS['ultimate_cron_original_user'] = $GLOBALS['user'];
+  }
 
   _ultimate_cron_variable_load('cron_last');
 }

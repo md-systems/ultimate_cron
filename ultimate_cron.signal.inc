@@ -16,7 +16,7 @@
  *   The signal if any.
  */
 function ultimate_cron_peek_signal($name, $signal) {
-  return db_select('ultimate_cron_signal', 's')
+  return db_select('ultimate_cron_signal', 's', array('target' => 'ultimate_cron'))
     ->fields('s', array('job_name'))
     ->condition('job_name', $name)
     ->condition('signal_name', $signal)
@@ -38,7 +38,7 @@ function ultimate_cron_peek_signal($name, $signal) {
  *   cannot be claimed again.
  */
 function ultimate_cron_get_signal($name, $signal) {
-  $claimed = db_update('ultimate_cron_signal')
+  $claimed = db_update('ultimate_cron_signal', array('target' => 'ultimate_cron'))
     ->fields(array('claimed' => 1))
     ->condition('job_name', $name)
     ->condition('signal_name', $signal)
@@ -67,7 +67,7 @@ function ultimate_cron_get_signal($name, $signal) {
  *   TRUE if the signal was set.
  */
 function ultimate_cron_set_signal($name, $signal) {
-  return db_merge('ultimate_cron_signal')
+  return db_merge('ultimate_cron_signal', array('target' => 'ultimate_cron'))
     ->key(array(
       'job_name' => $name,
       'signal_name' => $signal,
@@ -85,7 +85,7 @@ function ultimate_cron_set_signal($name, $signal) {
  *   The name of the signal.
  */
 function ultimate_cron_clear_signal($name, $signal) {
-  db_delete('ultimate_cron_signal')
+  db_delete('ultimate_cron_signal', array('target' => 'ultimate_cron'))
     ->condition('job_name', $name)
     ->condition('signal_name', $signal)
     ->execute();
@@ -98,7 +98,7 @@ function ultimate_cron_clear_signal($name, $signal) {
  *   The name of the job.
  */
 function ultimate_cron_clear_signals($name) {
-  db_delete('ultimate_cron_signal')
+  db_delete('ultimate_cron_signal', array('target' => 'ultimate_cron'))
     ->condition('job_name', $name)
     ->execute();
 }

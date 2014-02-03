@@ -65,7 +65,7 @@ class UltimateCronLock {
       $expire = microtime(TRUE) + $timeout;
 
       // Now we try to acquire the lock.
-      $lock_id = db_insert('ultimate_cron_lock')
+      $lock_id = db_insert('ultimate_cron_lock', array('target' => 'ultimate_cron'))
         ->fields(array(
           'name' => $name,
           'current' => 0,
@@ -93,7 +93,7 @@ class UltimateCronLock {
   static public function expire($name) {
     if ($lock_id = self::isLocked($name, TRUE)) {
       $now = microtime(TRUE);
-      db_update('ultimate_cron_lock')
+      db_update('ultimate_cron_lock', array('target' => 'ultimate_cron'))
         ->expression('current', 'lid')
         ->condition('lid', $lock_id)
         ->condition('expire', $now, '<=')
@@ -108,7 +108,7 @@ class UltimateCronLock {
    *   The lock id to release.
    */
   static public function unlock($lock_id) {
-    $unlocked = db_update('ultimate_cron_lock')
+    $unlocked = db_update('ultimate_cron_lock', array('target' => 'ultimate_cron'))
       ->expression('current', 'lid')
       ->condition('lid', $lock_id)
       ->condition('current', 0)
@@ -132,7 +132,7 @@ class UltimateCronLock {
     // Ensure that the timeout is at least 1 ms.
     $timeout = max($timeout, 0.001);
     $expire = microtime(TRUE) + $timeout;
-    return (bool) db_update('ultimate_cron_lock')
+    return (bool) db_update('ultimate_cron_lock', array('target' => 'ultimate_cron'))
       ->fields(array(
         'expire' => $expire,
       ))
@@ -154,7 +154,7 @@ class UltimateCronLock {
    */
   static public function isLocked($name, $ignore_expiration = FALSE) {
     $now = microtime(TRUE);
-    $result = db_select('ultimate_cron_lock', 'l')
+    $result = db_select('ultimate_cron_lock', 'l', array('target' => 'ultimate_cron'))
       ->fields('l', array('lid', 'expire'))
       ->condition('name', $name)
       ->condition('current', 0)
@@ -174,7 +174,7 @@ class UltimateCronLock {
    */
   static public function isLockedMultiple($names) {
     $now = microtime(TRUE);
-    $result = db_select('ultimate_cron_lock', 'l')
+    $result = db_select('ultimate_cron_lock', 'l', array('target' => 'ultimate_cron'))
       ->fields('l', array('lid', 'name', 'expire'))
       ->condition('name', $names, 'IN')
       ->condition('current', 0)
@@ -199,13 +199,13 @@ class UltimateCronLock {
     $now = microtime(TRUE);
 
     $now = microtime(TRUE);
-    db_update('ultimate_cron_lock')
+    db_update('ultimate_cron_lock', array('target' => 'ultimate_cron'))
       ->expression('current', 'lid')
       ->condition('expire', $now, '<=')
       ->execute();
 
     do {
-      $lids = db_select('ultimate_cron_lock', 'l')
+      $lids = db_select('ultimate_cron_lock', 'l', array('target' => 'ultimate_cron'))
         ->fields('l', array('lid'))
         ->where('l.current = l.lid')
         // ->condition('expire', $now, '<=')
@@ -214,7 +214,7 @@ class UltimateCronLock {
         ->fetchAll(PDO::FETCH_COLUMN);
       if ($lids) {
         $count += count($lids);
-        db_delete('ultimate_cron_lock')
+        db_delete('ultimate_cron_lock', array('target' => 'ultimate_cron'))
           ->condition('lid', $lids, 'IN')
           ->execute();
       }

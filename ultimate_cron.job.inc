@@ -589,10 +589,15 @@ class UltimateCronJob {
     foreach ($jobs as $job) {
       $names[] = 'uc-progress:' . $job->name;
     }
-    $values = _ultimate_cron_variable_load_multiple($names, FALSE);
+    $values = db_select('variable', 'v', array('target' => 'ultimate_cron'))
+      ->fields('v', array('name', 'value'))
+      ->condition('v.name', $names, 'IN')
+      ->execute()
+      ->fetchAllAssoc('name', PDO::FETCH_OBJ);
+
     $result = array();
     foreach ($jobs as $job) {
-      $result[$job->name] = isset($values['uc-progress:' . $job->name]) ? $values['uc-progress:' . $job->name] : FALSE;
+      $result[$job->name] = isset($values['uc-progress:' . $job->name]) ? unserialize($values['uc-progress:' . $job->name]->value) : FALSE;
     }
     return $result;
   }
@@ -605,7 +610,13 @@ class UltimateCronJob {
    */
   public function getProgress() {
     $name = 'uc-progress:' . $this->name;
-    return _ultimate_cron_variable_load($name);
+    $value = db_select('variable', 'v', array('target' => 'ultimate_cron'))
+      ->fields('v', array('value'))
+      ->condition('v.name', $name)
+      ->execute()
+      ->fetchField();
+    $value = $value ? unserialize($value) : FALSE;
+    return $value;
   }
 
   /**
@@ -617,7 +628,10 @@ class UltimateCronJob {
   public function setProgress($progress) {
     if (microtime(TRUE) >= $this->progressUpdated + 1) {
       $name = 'uc-progress:' . $this->name;
-      _ultimate_cron_variable_save($name, $progress);
+      db_merge('variable', array('target' => 'ultimate_cron'))
+        ->key(array('name' => $name))
+        ->fields(array('value' => serialize($progress)))
+        ->execute();
       $this->progressUpdated = microtime(TRUE);
       $this->sendMessage('setProgress', array(
         'progress' => $progress,
