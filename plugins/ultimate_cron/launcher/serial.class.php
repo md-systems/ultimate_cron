@@ -40,6 +40,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     );
 
     $elements['timeouts']['lock_timeout'] = array(
+      '#parents' => array('settings', $this->type, $this->name, 'lock_timeout'),
       '#title' => t("Job lock timeout"),
       '#type' => 'textfield',
       '#default_value' => $values['lock_timeout'],
@@ -51,6 +52,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     if (!$job) {
       $max_threads = $values['max_threads'];
       $elements['timeouts']['max_execution_time'] = array(
+        '#parents' => array('settings', $this->type, $this->name, 'max_execution_time'),
         '#title' => t("Maximum execution time"),
         '#type' => 'textfield',
         '#default_value' => $values['max_execution_time'],
@@ -59,6 +61,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
         '#required' => TRUE,
       );
       $elements['launcher']['max_threads'] = array(
+        '#parents' => array('settings', $this->type, $this->name, 'max_threads'),
         '#title' => t("Maximum number of launcher threads"),
         '#type' => 'textfield',
         '#default_value' => $max_threads,
@@ -69,6 +72,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
         '#weight' => 1,
       );
       $elements['launcher']['poorman_keepalive'] = array(
+        '#parents' => array('settings', $this->type, $this->name, 'poorman_keepalive'),
         '#title' => t("Poormans cron keepalive"),
         '#type' => 'checkbox',
         '#default_value' => $values['poorman_keepalive'],
@@ -87,6 +91,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       $options[$i] = $i;
     }
     $elements['launcher']['thread'] = array(
+      '#parents' => array('settings', $this->type, $this->name, 'thread'),
       '#title' => t("Run in thread"),
       '#type' => 'select',
       '#default_value' => $values['thread'],
@@ -104,11 +109,10 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
   public function settingsFormValidate(&$form, &$form_state, $job = NULL) {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
-
     if (!$job) {
       if (intval($values['max_threads']) <= 0) {
         form_set_error("settings[$this->type][$this->name", t('%title must be greater than 0', array(
-          '%title' => $elements['max_threads']['#title']
+          '%title' => $elements['launcher']['max_threads']['#title']
         )));
       }
     }
@@ -119,8 +123,6 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
    */
   public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
     $values = &$form_state['values']['settings'][$this->type][$this->name];
-    unset($values['timeouts']);
-    unset($values['launcher']);
   }
 
   /**

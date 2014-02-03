@@ -199,7 +199,7 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
       '#default_value' => $values['expire'],
       '#fallback' => TRUE,
       '#required' => TRUE,
-    ) + $states['expire'];;
+    ) + $states['expire'];
 
     $elements['method_retain'] = array(
       '#type' => 'fieldset',
@@ -213,7 +213,7 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
       '#default_value' => $values['retain'],
       '#fallback' => TRUE,
       '#required' => TRUE,
-    ) + $states['retain'];;
+    ) + $states['retain'];
 
     if ($job) {
       if ($defaults['method'] == ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE) {
@@ -237,25 +237,27 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
    * Submit handler.
    */
   public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
+    $values = &$form_state['values']['settings'][$this->type][$this->name];
+    $defaults = &$form_state['default_values']['settings'][$this->type][$this->name];
     if (!$job) {
       return;
     }
 
-    $method = $form_state['values']['settings'][$this->type][$this->name]['method'] ? $form_state['values']['settings'][$this->type][$this->name]['method'] : $form_state['default_values']['settings'][$this->type][$this->name]['method'];
+    $method = $values['method'] ? $values['method'] : $defaults['method'];
 
     // Cleanup form (can this be done elsewhere?)
     switch ($method) {
       case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_DISABLED:
-        unset($form_state['values']['settings'][$this->type][$this->name]['expire']);
-        unset($form_state['values']['settings'][$this->type][$this->name]['retain']);
+        unset($values['expire']);
+        unset($values['retain']);
         break;
 
       case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE:
-        unset($form_state['values']['settings'][$this->type][$this->name]['retain']);
+        unset($values['retain']);
         break;
 
       case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN:
-        unset($form_state['values']['settings'][$this->type][$this->name]['expire']);
+        unset($values['expire']);
         break;
     }
   }
