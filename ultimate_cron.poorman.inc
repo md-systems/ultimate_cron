@@ -120,36 +120,32 @@ function ultimate_cron_exit($dest = NULL) {
     ), WATCHDOG_ERROR);
   }
 
-  // We're picky about when we run poormans cron, because
-  // we may want to flush the output buffer.
-  if (ultimate_cron_poorman_capable()) {
-    // Poormans cron needs to be the last that runs.
-    // Run remaining exit hooks, and shutdown like core does.
-    $modules = module_implements('exit');
+  // Poormans cron needs to be the last that runs.
+  // Run remaining exit hooks, and shutdown like core does.
+  $modules = module_implements('exit');
 
-    do {
-      $module = array_shift($modules);
-    } while ($modules && ($module !== 'ultimate_cron'));
+  do {
+    $module = array_shift($modules);
+  } while ($modules && ($module !== 'ultimate_cron'));
 
-    foreach ($modules as $module) {
-      module_invoke($module, 'exit', $dest);
-    }
-
-    // Commit the user session, if needed.
-    drupal_session_commit();
-
-    if (variable_get('cache', 0) && ($cache = drupal_page_set_cache())) {
-      drupal_serve_page_from_cache($cache);
-    }
-    // ultimate_cron_poorman_page_flush();
-
-    _registry_check_code(REGISTRY_WRITE_LOOKUP_CACHE);
-    drupal_cache_system_paths();
-    module_implements_write_cache();
-
-    $launcher->launchPoorman();
-    exit;
+  foreach ($modules as $module) {
+    module_invoke($module, 'exit', $dest);
   }
+
+  // Commit the user session, if needed.
+  drupal_session_commit();
+
+  if (variable_get('cache', 0) && ($cache = drupal_page_set_cache())) {
+    drupal_serve_page_from_cache($cache);
+  }
+  // ultimate_cron_poorman_page_flush();
+
+  _registry_check_code(REGISTRY_WRITE_LOOKUP_CACHE);
+  drupal_cache_system_paths();
+  module_implements_write_cache();
+
+  $launcher->launchPoorman();
+  exit;
 }
 
 /**
