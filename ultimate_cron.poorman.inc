@@ -54,7 +54,7 @@ function _ultimate_cron_poorman_page_flush($content) {
 }
 
 // Output buffering messes up Drush ...
-if (!ultimate_cron_poorman_capable()) {
+if (ultimate_cron_poorman_capable()) {
   ob_start('_ultimate_cron_poorman_page_flush');
 }
 
