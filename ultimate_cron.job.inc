@@ -218,6 +218,9 @@ class UltimateCronJob {
     return $settings;
   }
 
+  /**
+   * Log kill signal recieved.
+   */
   public function kill() {
     watchdog('ultimate_cron', 'kill signal recieved', array(), WATCHDOG_WARNING);
   }
@@ -592,7 +595,8 @@ class UltimateCronJob {
     foreach ($jobs as $job) {
       $names[] = 'uc-progress:' . $job->name;
     }
-    $values = db_select('variable', 'v', array('target' => 'ultimate_cron'))
+    $target = _ultimate_cron_get_transactional_safe_connection();
+    $values = db_select('variable', 'v', array('target' => $target))
       ->fields('v', array('name', 'value'))
       ->condition('v.name', $names, 'IN')
       ->execute()
@@ -613,7 +617,8 @@ class UltimateCronJob {
    */
   public function getProgress() {
     $name = 'uc-progress:' . $this->name;
-    $value = db_select('variable', 'v', array('target' => 'ultimate_cron'))
+    $target = _ultimate_cron_get_transactional_safe_connection();
+    $value = db_select('variable', 'v', array('target' => $target))
       ->fields('v', array('value'))
       ->condition('v.name', $name)
       ->execute()
@@ -631,7 +636,8 @@ class UltimateCronJob {
   public function setProgress($progress) {
     if (microtime(TRUE) >= $this->progressUpdated + 1) {
       $name = 'uc-progress:' . $this->name;
-      db_merge('variable', array('target' => 'ultimate_cron'))
+      $target = _ultimate_cron_get_transactional_safe_connection();
+      db_merge('variable', array('target' => $target))
         ->key(array('name' => $name))
         ->fields(array('value' => serialize($progress)))
         ->execute();

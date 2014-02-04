@@ -1422,6 +1422,16 @@ function _ultimate_cron_multi_column_sort($a, $b) {
 }
 
 /**
+ * Get transactional safe connection.
+ *
+ * @return string
+ *   Connection target.
+ */
+function _ultimate_cron_get_transactional_safe_connection() {
+  return Database::getConnection()->inTransaction() ? 'ultimate_cron' : 'default';
+}
+
+/**
  * Stripped debug backtrace.
  *
  * For debugging purposes of course ...
