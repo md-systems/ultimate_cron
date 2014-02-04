@@ -8,7 +8,7 @@
  * Crontab scheduler.
  */
 class UltimateCronCrontabScheduler extends UltimateCronScheduler {
-  private $offsets = array();
+  private $skews = array();
 
   /**
    * Default settings.
@@ -37,7 +37,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
 
     include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
     foreach ($settings['rules'] as $rule) {
-      $cron = CronRule::factory($rule, $_SERVER['REQUEST_TIME'], $this->getOffset($job));
+      $cron = CronRule::factory($rule, $_SERVER['REQUEST_TIME'], $this->getSkew($job));
       $parsed[] = $cron->parseRule();
     }
     return implode("\n", $parsed);
@@ -60,6 +60,15 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
       '#fallback' => TRUE,
       '#required' => TRUE,
       '#element_validate' => array('ultimate_cron_plugin_crontab_element_validate_rule'),
+    );
+    $elements['rules_help'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Rules help'),
+      '#collapsible' => TRUE,
+      '#collapsed' => TRUE,
+    );
+    $elements['rules_help']['info'] = array(
+      '#markup' => file_get_contents(drupal_get_path('module', 'ultimate_cron') . '/help/rules.html'),
     );
     $elements['catch_up'] = array(
       '#title' => t("Catch up"),
@@ -89,19 +98,19 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   public function isScheduled($job) {
     $settings = $job->getSettings($this->type);
     $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
-    $offset = $this->getOffset($job);
+    $skew = $this->getSkew($job);
     $class = get_class($this);
-    return $class::shouldRun($settings['rules'], $log_entry->start_time, NULL, $settings['catch_up'], $offset) ? TRUE : FALSE;
+    return $class::shouldRun($settings['rules'], $log_entry->start_time, NULL, $settings['catch_up'], $skew) ? TRUE : FALSE;
   }
 
   /**
    * Check crontab rules against times.
    */
-  static public function shouldRun($rules, $job_last_ran, $now = NULL, $catch_up = 0, $offset = 0) {
+  static public function shouldRun($rules, $job_last_ran, $now = NULL, $catch_up = 0, $skew = 0) {
     include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
     $now = is_null($now) ? $_SERVER['REQUEST_TIME'] : $now;
     foreach ($rules as $rule) {
-      $cron = CronRule::factory($rule, $now, $offset);
+      $cron = CronRule::factory($rule, $now, $skew);
       $cron_last_ran = $cron->getLastRan();
 
       if ($job_last_ran < $cron_last_ran && $cron_last_ran <= $now) {
@@ -129,16 +138,16 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
     }
 
     $settings = $job->getSettings($this->type);
-    $offset = $this->getOffset($job);
+    $skew = $this->getSkew($job);
     $class = get_class($this);
-    $behind = $class::shouldRun($settings['rules'], $log_entry->start_time, time() - $settings['catch_up'], 86400 * 10 * 365, $offset);
+    $behind = $class::shouldRun($settings['rules'], $log_entry->start_time, time() - $settings['catch_up'], 86400 * 10 * 365, $skew);
     return $behind ? $behind + $settings['catch_up'] : FALSE;
   }
 
   /**
-   * Get a "unique" offset for a job.
+   * Get a "unique" skew for a job.
    */
-  protected function getOffset($job) {
-    return isset($this->offsets[$job->name]) ? $this->offsets[$job->name] : $this->offsets[$job->name] = hexdec(substr(sha1($job->name), -2));
+  protected function getSkew($job) {
+    return isset($this->skews[$job->name]) ? $this->skews[$job->name] : $this->skews[$job->name] = hexdec(substr(sha1($job->name), -2));
   }
 }

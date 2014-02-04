@@ -26,11 +26,13 @@ need not match the current day).</p>
 <li>The asterisk ('*') operator specifies all possible values for a field. For example, an asterisk in the hour time field would be equivalent to 'every hour' (subject to matching other specified fields).</li>
 <li>The slash ('/') operator (called "step") can be used to skip a given number of values. For example, "*/3" in the hour time field is equivalent to "0,3,6,9,12,15,18,21".</li>
 <li>The plus ('+') operator (called "offset") can be used as an offset to a given range. For example, "*/10+2" in the hour minute field is equivalent to "2,12,22,32,42,52".</li>
+<li>The at ('@') operator (called "skew") can be used as an auto calculated value for a given range. The value is calculated per job and is fixed per job. For example, if one job has the skew "2", the rule "*/10+@" in the hour minute field is equivalent to "2,12,22,32,42,52".</li>
 </ul>
 
 <h3>Examples</h3>
 <pre>
  */15 * * * : Execute job every 15 minutes
+ */15+@ * * * : Execute job every 15 minutes, but at a different offset for each job
  0 2,14 * * *: Execute job every day at 2:00 and 14:00
  0 2 * * 1-5: Execute job at 2:00 of every working day
  0 12 1 */2 1: Execute job every 2 month, at 12:00 of first day of the month OR at every monday.

@@ -8,7 +8,7 @@ class CronRule {
 
   public $rule = NULL;
   public $time = NULL;
-  public $offset = 0;
+  public $skew = 0;
 
   public $allow_shorthand = FALSE;
   private static $ranges = array(
@@ -30,24 +30,24 @@ class CronRule {
    *   The crontab rule to use.
    * @param integer $time
    *   The time to test against.
-   * @param integer $offset
-   *   Offset for @ flag.
+   * @param integer $skew
+   *   Skew for @ flag.
    *
    * @return CronRule
    *   CronRule object.
    */
-  static public function factory($rule, $time = NULL, $offset = 0) {
+  static public function factory($rule, $time = NULL, $skew = 0) {
     if (strpos($rule, '@') === FALSE) {
-      $offset = 0;
+      $skew = 0;
     }
 
     $time = isset($time) ? $time : time();
 
-    $key = "$rule:$time:$offset";
+    $key = "$rule:$time:$skew";
     if (isset(self::$instances[$key])) {
       return self::$instances[$key];
     }
-    self::$instances[$key] = new CronRule($rule, $time, $offset);
+    self::$instances[$key] = new CronRule($rule, $time, $skew);
     return self::$instances[$key];
   }
 
@@ -58,13 +58,13 @@ class CronRule {
    *   The crontab rule to use.
    * @param integer $time
    *   The time to test against.
-   * @param integer $offset
-   *   Offset for @ flag.
+   * @param integer $skew
+   *   Skew for @ flag.
    */
-  public function __construct($rule, $time, $offset) {
+  public function __construct($rule, $time, $skew) {
     $this->rule = $rule;
     $this->time = $time;
-    $this->offset = $offset;
+    $this->skew = $skew;
   }
 
   /**
@@ -115,7 +115,7 @@ class CronRule {
     $this->type = $type;
     $max = implode('-', self::$ranges[$type]);
     $rule = str_replace("*", $max, $rule);
-    $rule = str_replace("@", $this->offset % (self::$ranges[$type][1] + 1), $rule);
+    $rule = str_replace("@", $this->skew % (self::$ranges[$type][1] + 1), $rule);
     $this->parsed_rule[$type] = $rule;
     $rule = preg_replace_callback('!(\d+)(?:-(\d+))?((/(\d+))?(\+(\d+))?)?!', array($this, 'expandInterval'), $rule);
     if (!preg_match('/([^0-9\,])/', $rule)) {
