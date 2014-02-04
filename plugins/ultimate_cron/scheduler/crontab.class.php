@@ -24,8 +24,8 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
    * Label for schedule.
    */
   public function formatLabel($job) {
-    $settings = $job->getSettings();
-    return implode(', ', $settings[$this->type][$this->name]['rules']);
+    $settings = $job->getSettings($this->type);
+    return implode('<br/>', $settings['rules']);
   }
 
   /**
@@ -36,11 +36,11 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
     $parsed = array();
 
     include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
-    foreach ($settings['rules'] as $rule); {
+    foreach ($settings['rules'] as $rule) {
       $cron = CronRule::factory($rule, $_SERVER['REQUEST_TIME'], $this->getOffset($job));
       $parsed[] = $cron->parseRule();
     }
-    return implode(', ', $parsed);
+    return implode("\n", $parsed);
   }
 
   /**
