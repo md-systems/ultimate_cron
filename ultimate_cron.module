@@ -702,17 +702,41 @@ function ultimate_cron_cron_queue_info() {
           '@file' => $debug['3']['file'],
         ), WATCHDOG_CRITICAL);
 
-        // Lock and log jobs before returning control to core cron.
+        // Normally core cron just runs all the jobs regardless of schedule
+        // and locks. Jobs handled by core will be run this way, but other
+        // jobs known to Ultimate Cron will check schedule and lock before
+        // running. This might change in the future, so that Ultimate Cron
+        // jobs are also run without checking schedule.
+        //
+        // Split up jobs between core and non-core, and run the non-core jobs
+        // first.
         foreach (ultimate_cron_job_load_all() as $job) {
           if (in_array('core', $job->hook['tags'])) {
-            $lock_id = $job->lock();
-            if (!$lock_id) {
-              throw new Exception(t('Could not acquire lock for @name', array(
-                '@name' => $job->name,
-              )));
-            }
-            $job->startLog($lock_id, 'Launched by Drupal core');
+            $core_jobs[] = $job;
           }
+          else {
+            if (!variable_get('ultimate_cron_check_schedule_on_core_cron', TRUE) || $job->schedule()) {
+              if ($lock_id = $job->lock()) {
+                $log_entry = $job->startLog($lock_id, 'Launched by Drupal core');
+                $job->run();
+                $log_entry->finish();
+                $job->unlock();
+              }
+            }
+          }
+        }
+
+        // Before passing control back to core, make sure that we can get a
+        // lock on the jobs. If we can't, we don't allow core to run the
+        // jobs.
+        foreach ($core_jobs as $job) {
+          $lock_id = $job->lock();
+          if (!$lock_id) {
+            throw new Exception(t('Could not acquire lock for @name', array(
+              '@name' => $job->name,
+            )));
+          }
+          $job->startLog($lock_id, 'Launched by Drupal core');
         }
       }
       catch (Exception $e) {
