@@ -715,7 +715,7 @@ function ultimate_cron_cron_queue_info() {
             $core_jobs[] = $job;
           }
           else {
-            if (!variable_get('ultimate_cron_check_schedule_on_core_cron', TRUE) || $job->schedule()) {
+            if (!variable_get('ultimate_cron_check_schedule_on_core_cron', TRUE) || $job->isScheduled()) {
               if ($lock_id = $job->lock()) {
                 $log_entry = $job->startLog($lock_id, 'Launched by Drupal core');
                 $job->run();
@@ -727,8 +727,8 @@ function ultimate_cron_cron_queue_info() {
         }
 
         // Before passing control back to core, make sure that we can get a
-        // lock on the jobs. If we can't, we don't allow core to run the
-        // jobs.
+        // lock on the jobs. If we can't, we don't allow core to run any
+        // jobs, since we can't inform core which jobs are safe to run.
         foreach ($core_jobs as $job) {
           $lock_id = $job->lock();
           if (!$lock_id) {

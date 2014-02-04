@@ -71,6 +71,9 @@ function ultimate_cron_drush_command() {
     'arguments' => array(
       'name' => 'Job to run',
     ),
+    'options' => array(
+      'force' => 'Only effective when cron-run is run without any arguments. This options skip the schedule check for each job. Locks are still respected.',
+    ),
     'examples' => array(
       'drush cron-run node_cron' => 'Run the node_cron job',
     ),
@@ -132,6 +135,9 @@ function ultimate_cron_drush_command_alter(&$command) {
     $command['commandfile'] = 'ultimate_cron';
     $command['path'] = drupal_get_path('module', 'ultimate_cron');
     $command['callback'] = 'drush_ultimate_cron_cron_run';
+    if (!variable_get('ultimate_cron_check_schedule_on_core_cron', TRUE)) {
+      drush_set_option('force', TRUE);
+    }
   }
 }
 
@@ -393,6 +399,9 @@ function drush_ultimate_cron_cron_job_set($name = NULL, $settings = NULL) {
  */
 function drush_ultimate_cron_cron_run($name = NULL) {
   if (!$name) {
+    if (drush_get_option('force')) {
+      $GLOBALS['ultimate_cron_drush_bypass_schedule'] = TRUE;
+    }
     ultimate_cron_run_scheduled(FALSE);
   }
   else {

@@ -85,14 +85,14 @@ class UltimateCronPlugin {
   /**
    * Invoke hook_cron_post_schedule() on plugins.
    */
-  final static public function hook_cron_post_schedule($job) {
+  final static public function hook_cron_post_schedule($job, &$result) {
     ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
         if ($plugin->isValid($job)) {
-          $plugin->cron_post_schedule($job);
+          $plugin->cron_post_schedule($job, $result);
         }
       }
     }
@@ -216,7 +216,7 @@ class UltimateCronPlugin {
   /**
    * A hook_cron_post_schedule() for plugins.
    */
-  public function cron_post_schedule($job) {
+  public function cron_post_schedule($job, &$result) {
   }
 
   /**
