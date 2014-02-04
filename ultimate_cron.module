@@ -235,7 +235,7 @@ function ultimate_cron_plugin_load($type, $name) {
   $cache = &drupal_static('ultimate_cron_plugin_load_all', array());
   if (!isset($cache[$type][$name])) {
     ultimate_cron_plugin_load_all($type);
-    $cache[$type][$name] = $cache[$type][$name] ? $cache[$type][$name] : FALSE;
+    $cache[$type][$name] = isset($cache[$type][$name]) ? $cache[$type][$name] : FALSE;
   }
   return $cache[$type][$name];
 }
