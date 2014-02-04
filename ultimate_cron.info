@@ -5,6 +5,7 @@ core = 7.x
 dependencies[] = ctools
 
 files[] = tests/rules.test
+files[] = CronRule.class.php
 files[] = ultimate_cron.lock.inc
 files[] = ultimate_cron.job.inc
 files[] = ultimate_cron.plugin.inc

@@ -35,7 +35,6 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
     $settings = $job->getSettings($this->type);
     $parsed = array();
 
-    include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
     foreach ($settings['rules'] as $rule) {
       $cron = CronRule::factory($rule, time(), $this->getSkew($job));
       $parsed[] = $cron->parseRule();
@@ -106,16 +105,15 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
   /**
    * Check crontab rules against times.
    */
-  static public function shouldRun($rules, $job_last_ran, $now = NULL, $catch_up = 0, $skew = 0) {
-    include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
-    $now = is_null($now) ? time() : $now;
+  static public function shouldRun($rules, $job_last_ran, $time = NULL, $catch_up = 0, $skew = 0) {
+    $time = is_null($time) ? time() : $time;
     foreach ($rules as $rule) {
-      $cron = CronRule::factory($rule, $now, $skew);
+      $cron = CronRule::factory($rule, $time, $skew);
       $cron_last_ran = $cron->getLastRan();
 
-      if ($job_last_ran < $cron_last_ran && $cron_last_ran <= $now) {
-        if ($now <= $cron_last_ran + $catch_up) {
-          return $now - $job_last_ran;
+      if ($job_last_ran < $cron_last_ran && $cron_last_ran <= $time) {
+        if ($time <= $cron_last_ran + $catch_up) {
+          return $time - $job_last_ran;
         }
       }
     }
@@ -139,9 +137,21 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
 
     $settings = $job->getSettings($this->type);
     $skew = $this->getSkew($job);
-    $class = get_class($this);
-    $behind = $class::shouldRun($settings['rules'], $log_entry->start_time, time() - $settings['catch_up'], 86400 * 10 * 365, $skew);
-    return $behind ? $behind + $settings['catch_up'] : FALSE;
+
+    $job_last_ran = $log_entry->start_time;
+    $time = time();
+    $cron_last_ran = $job_last_ran;
+    while ($time > $job_last_ran) {
+      foreach ($settings['rules'] as $rule) {
+        $next_schedule = $cron_last_ran;
+        $cron = CronRule::factory($rule, $time, $skew);
+        $cron_last_ran = $cron->getLastRan();
+        $time = $time > $cron_last_ran - 1 ? $cron_last_ran - 1 : $time;
+      }
+    }
+    $behind = time() - $next_schedule;
+
+    return $behind > $settings['catch_up'] ? $behind: FALSE;
   }
 
   /**

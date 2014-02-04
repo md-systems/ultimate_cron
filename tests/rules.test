@@ -9,6 +9,7 @@ class UltimateCronRulesUnitTestCase extends DrupalUnitTestCase {
   function setUp() {
     parent::setUp('ultimate_cron');
     module_load_include('module', 'ultimate_cron');
+    include_once drupal_get_path('module', 'ultimate_cron') . '/ultimate_cron.plugin.inc';
     include_once drupal_get_path('module', 'ultimate_cron') . '/plugins/ultimate_cron/scheduler/crontab.class.php';
   }
 
@@ -22,7 +23,6 @@ class UltimateCronRulesUnitTestCase extends DrupalUnitTestCase {
 
   private function getIntervals($rule) {
     // Generate result message
-    require_once dirname(__FILE__) . '/../CronRule.class.php';
     $message = array();
     $cron = CronRule::factory($rule, $_SERVER['REQUEST_TIME']);
     return $cron->getIntervals();
@@ -34,7 +34,6 @@ class UltimateCronRulesUnitTestCase extends DrupalUnitTestCase {
     $options['catch_up'] = isset($options['catch_up']) ? $options['catch_up'] : 86400 * 365; // @todo Adapting Elysia Cron test cases with a catchup of 1 year
 
     // Generate result message
-    require_once dirname(__FILE__) . '/../CronRule.class.php';
     $message = array();
     foreach ($options['rules'] as $rule) {
       $cron = CronRule::factory($rule, strtotime($options['now']));
