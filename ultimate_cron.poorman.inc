@@ -183,17 +183,22 @@ function ultimate_cron_poorman_page() {
  * Send the actual HTTP request for launching threads.
  */
 function ultimate_cron_poorman_trigger() {
-  $url = url('admin/config/system/cron/poorman', array(
+  $url_options = variable_get('ultimate_cron_poorman_url_options', array());
+  $http_options = variable_get('ultimate_cron_poorman_http_options', array());
+
+  $url_options = array(
     'query' => array('timestamp' => time()),
     'absolute' => TRUE,
-  ));
-  $options = array(
+  ) + $url_options;
+
+  $http_options = array(
     'headers' => array(
       'User-Agent' => 'Ultimate Cron',
     ),
-  );
+  ) + $http_options;
 
-  $response = drupal_http_request($url, $options);
+  $url = url('admin/config/system/cron/poorman', $url_options);
+  $response = drupal_http_request($url, $http_options);
   if (!empty($response->error)) {
     watchdog('ultimate_cron', 'Could not trigger poorman at @url. Error: @error', array(
       '@url' => $url,
