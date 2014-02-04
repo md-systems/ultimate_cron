@@ -25,7 +25,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
    */
   public function formatLabel($job) {
     $settings = $job->getSettings($this->type);
-    return implode('<br/>', $settings['rules']);
+    return implode("\n", $settings['rules']);
   }
 
   /**

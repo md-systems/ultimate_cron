@@ -480,6 +480,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     // Schedule settings.
     $label = $item->getPlugin('scheduler')->formatLabel($item);
+    $label = str_replace("\n", '<br/>', $label);
     if ($behind = $item->isBehindSchedule()) {
       $this->jobs_behind++;
       $label = "<em>$label</em><br/>" . format_interval($behind) . ' ' . t('behind schedule');
