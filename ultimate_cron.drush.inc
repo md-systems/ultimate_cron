@@ -123,6 +123,19 @@ function ultimate_cron_drush_command() {
 }
 
 /**
+ * Implements hook_drush_command_alter().
+ */
+function ultimate_cron_drush_command_alter(&$command) {
+  // Let's hijack the core cron command.
+  if ($command['command'] == 'core-cron') {
+    $command['command-hook'] = 'cron-run';
+    $command['commandfile'] = 'ultimate_cron';
+    $command['path'] = drupal_get_path('module', 'ultimate_cron');
+    $command['callback'] = 'drush_ultimate_cron_cron_run';
+  }
+}
+
+/**
  * Implements hook_drush_help().
  */
 function ultimate_cron_drush_help($section) {
