@@ -317,15 +317,21 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       ));
     }
 
-    $job->log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
-    $recheck = $job->log_entry->start_time;
+    // We know that the latest log entry has been used for determining the schedule.
+    // Load the latest log entry and store the timestamp of it for later use.
+    if ($job->recheck) {
+      $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
+      $recheck = $log_entry->start_time;
+    }
+    else {
+      $recheck = FALSE;
+    }
 
     $log_entry = $job->startLog($lock_id, $init_message);
 
     // We want to finish the log in the sub-request.
     $log_entry->unCatchMessages();
 
-    error_log("$job->name - before execute: $recheck");
     if (!$process->execute(array(get_class($this), 'job_callback'), array($job->name, $lock_id, $recheck))) {
       watchdog('bgpl_launcher', 'Could execute background process dispatch for handle @handle', array(
         '@handle' => $handle,
@@ -378,7 +384,6 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       // Everything's good. Launch job!
       $job_settings = $job->getSettings($this->type);
       $job->recheck = $job_settings['recheck'];
-      error_log("$job->name - recheck before launch: $job->recheck");
       $job->launch();
     }
   }
@@ -423,6 +428,15 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       */
     }
 
+    // Check poorman settings. If launcher has changed, we don't want
+    // to keepalive.
+    $poorman = ultimate_cron_plugin_load('settings', 'poorman');
+    if (!$poorman) {
+      return;
+    }
+
+    $settings = $poorman->getDefaultSettings();
+
     // It's our turn!
     $launchers = array();
     foreach (ultimate_cron_job_load_all() as $job) {
@@ -455,14 +469,6 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       */
     }
 
-    // Check poorman settings. If launcher has changed, we don't want
-    // to keepalive.
-    $poorman = ultimate_cron_plugin_load('settings', 'poorman');
-    if (!$poorman) {
-      return;
-    }
-
-    $settings = $poorman->getDefaultSettings();
     if (!$settings['launcher'] || $settings['launcher'] !== 'background_process_legacy') {
       return;
     }
@@ -510,18 +516,22 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
 
     $log_entry = $job->resumeLog($lock_id);
 
+    // If set, $recheck contains the timestamp of the last schedule check.
     if ($recheck) {
-      error_log("recheck is $recheck");
+      // Simulate schedule check by setting a mock log entry object with the
+      // recheck timestamp.
       $job->log_entry = $job->getPlugin('logger')->factoryLogEntry($job->name);
       $job->log_entry->start_time = $recheck;
-      error_log("$name - sleeping");
-      sleep(10);
-      error_log("$name - rechecking");
+
+      // Now we can check the scheduler.
       if (!$job->getPlugin('scheduler')->isScheduled($job)) {
-        error_log("recheck failed");
         watchdog('bgpl_launcher', 'Recheck failed at @time', array(
           '@time' => format_date(time(), 'custom', 'Y-m-d H:i:s'),
         ), WATCHDOG_ERROR);
+        $job->sendSignal('background_process_legacy_dont_log');
+        $log_entry->finish();
+        $job->unlock($lock_id);
+        return;
       }
       unset($job->log_entry);
     }
@@ -533,7 +543,6 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
         $keepalive = TRUE;
         $expire = microtime(TRUE) + (float) $settings['daemonize_interval'];
         do {
-          $job->recheck = $recheck;
           $job->run();
           if ($settings['daemonize_delay']) {
             usleep(((float) $settings['daemonize_delay']) * 1000000);

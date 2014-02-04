@@ -47,12 +47,13 @@ function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL)
   // Rewrite message to conform with Ultimate Cron style, if this is
   // a manual unlock.
   global $user;
-  if ($msg == t('Manually unlocked by !name', array('!name' => $user->name))) {
-    $username = $user->uid ? $user->name : t('anonymous');
+  $username = !empty($user->uid) ? $user->name : '';
+  if ($msg == t('Manually unlocked by !name', array('!name' => $username))) {
+    $username = !empty($user->uid) ? $user->name : t('anonymous');
     $msg = t('@name manually unlocked by user @username (@uid)', array(
       '@name' => $name,
       '@username' => $username,
-      '@uid' => $user->uid,
+      '@uid' => !empty($user->uid) ? $user->uid : 0,
     ));
   }
 
