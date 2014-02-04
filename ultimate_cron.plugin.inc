@@ -345,33 +345,61 @@ class UltimateCronPlugin {
   }
 
   /**
+   * Modified version drupal_array_get_nested_value().
+   *
+   * Removes the specified parents leaf from the array.
+   *
+   * @param array $array
+   *   Nested associative array.
+   * @param array $parents
+   *   Array of key names forming a "path" where the leaf will be removed
+   *   from $array.
+   */
+  function drupal_array_remove_nested_value(array &$array, array $parents) {
+    $ref = &$array;
+    $last_parent = array_pop($parents);
+    foreach ($parents as $parent) {
+      if (is_array($ref) && array_key_exists($parent, $ref)) {
+        $ref = &$ref[$parent];
+      }
+      else {
+        return;
+      }
+    }
+    unset($ref[$last_parent]);
+  }
+
+  /**
    * Clean form of empty fallback values.
    */
-  public function cleanForm($elements, &$values) {
+  public function cleanForm($elements, &$values, $parents) {
     if (empty($elements)) {
       return;
     }
+
     foreach (element_children($elements) as $child) {
       if (empty($child) || empty($elements[$child]) || is_numeric($child)) {
         continue;
       }
-      if (empty($elements[$child]['#tree'])) {
-        $param_values = &$values;
-      }
-      else {
-        $param_values = &$values[$child];
-      }
-      $this->cleanForm($elements[$child], $param_values);
+      // Process children.
+      $this->cleanForm($elements[$child], $values, $parents);
+
+      // Determine relative parents.
+      $rel_parents = array_diff($elements[$child]['#parents'], $parents);
+      $key_exists = NULL;
+      $value = drupal_array_get_nested_value($values, $rel_parents, $key_exists);
+
+      // Unset when applicable.
       if (!empty($elements[$child]['#markup'])) {
-        unset($values[$child]);
+        self::drupal_array_remove_nested_value($values, $rel_parents);
       }
       elseif (
-        isset($values[$child]) &&
-        !$values[$child] &&
+        $key_exists &&
+        empty($value) &&
         !empty($elements[$child]['#fallback']) &&
-        $values[$child] !== '0'
+        $value !== '0'
       ) {
-        unset($values[$child]);
+        self::drupal_array_remove_nested_value($values, $rel_parents);
       }
     }
   }
@@ -532,7 +560,7 @@ class UltimateCronPlugin {
     // Weed out blank values that have fallbacks.
     $elements = &$form['settings'][$plugin_type][$name];
     $values = &$form_state['values']['settings'][$plugin_type][$name];;
-    $plugin->cleanForm($elements, $values);
+    $plugin->cleanForm($elements, $values, array('settings', $plugin_type, $name));
   }
 
   /**
@@ -719,7 +747,7 @@ class UltimateCronPluginMultiple extends UltimateCronPlugin {
         // Weed out blank values that have fallbacks.
         $elements = &$form['settings'][$plugin_type][$name];
         $values = &$form_state['values']['settings'][$plugin_type][$name];
-        $plugin->cleanForm($elements, $values);
+        $plugin->cleanForm($elements, $values, array('settings', $plugin_type, $name));
       }
       else {
         unset($form_state['values']['settings'][$plugin_type][$name]);
