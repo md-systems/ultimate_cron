@@ -283,15 +283,6 @@ class UltimateCronJob {
    * Invoke the jobs callback.
    */
   public function invoke() {
-    // Prevent session information from being saved while cron is running.
-    $original_session_saving = drupal_save_session();
-    drupal_save_session(FALSE);
-
-    // Force the current user to anonymous to ensure consistent permissions on
-    // cron runs.
-    $original_user = $GLOBALS['user'];
-    $GLOBALS['user'] = drupal_anonymous_user();
-
     try {
       UltimateCronPlugin::hook_cron_pre_invoke($this);
       module_invoke_all('cron_pre_invoke', $this);
@@ -343,17 +334,11 @@ class UltimateCronJob {
       }
     }
     catch (Exception $e) {
-      // Restore the user.
-      $GLOBALS['user'] = $original_user;
-      drupal_save_session($original_session_saving);
       UltimateCronPlugin::hook_cron_post_invoke($this);
       module_invoke_all('cron_post_invoke', $this);
       throw $e;
     }
 
-    // Restore the user.
-    $GLOBALS['user'] = $original_user;
-    drupal_save_session($original_session_saving);
     UltimateCronPlugin::hook_cron_post_invoke($this);
     module_invoke_all('cron_post_invoke', $this);
     return $result;

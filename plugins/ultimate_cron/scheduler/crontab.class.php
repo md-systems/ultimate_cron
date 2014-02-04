@@ -37,7 +37,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
 
     include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
     foreach ($settings['rules'] as $rule) {
-      $cron = CronRule::factory($rule, $_SERVER['REQUEST_TIME'], $this->getSkew($job));
+      $cron = CronRule::factory($rule, time(), $this->getSkew($job));
       $parsed[] = $cron->parseRule();
     }
     return implode("\n", $parsed);
@@ -108,7 +108,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
    */
   static public function shouldRun($rules, $job_last_ran, $now = NULL, $catch_up = 0, $skew = 0) {
     include_once drupal_get_path('module', 'ultimate_cron') . '/CronRule.class.php';
-    $now = is_null($now) ? $_SERVER['REQUEST_TIME'] : $now;
+    $now = is_null($now) ? time() : $now;
     foreach ($rules as $rule) {
       $cron = CronRule::factory($rule, $now, $skew);
       $cron_last_ran = $cron->getLastRan();

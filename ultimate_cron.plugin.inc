@@ -911,6 +911,15 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    *   The job to run.
    */
   public function run($job) {
+    // Prevent session information from being saved while cron is running.
+    $original_session_saving = drupal_save_session();
+    drupal_save_session(FALSE);
+
+    // Force the current user to anonymous to ensure consistent permissions on
+    // cron runs.
+    $original_user = $GLOBALS['user'];
+    $GLOBALS['user'] = drupal_anonymous_user();
+
     $php_self = NULL;
     try {
       // Signal to whomever might be listening, that we're cron!
@@ -934,6 +943,9 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
         '@error' => $e->getMessage(),
       ), WATCHDOG_ERROR);
     }
+    // Restore the user.
+    $GLOBALS['user'] = $original_user;
+    drupal_save_session($original_session_saving);
   }
 
   /**
@@ -1000,7 +1012,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    * @return UltimateCronLogEntry
    *   The log entry.
    */
-  static public function factoryLogEntry($name) {
+  public function factoryLogEntry($name) {
     return new $this->log_entry_class($name, $this);
   }
 
