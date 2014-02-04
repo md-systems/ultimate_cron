@@ -45,14 +45,13 @@ function ultimate_cron_get_signal($name, $signal) {
     ->condition('claimed', 0)
     ->execute();
   if ($claimed) {
-    db_delete('ultimate_cron_signal')
+    db_delete('ultimate_cron_signal', array('target' => 'ultimate_cron'))
       ->condition('job_name', $name)
       ->condition('signal_name', $signal)
       ->condition('claimed', 1)
       ->execute();
-    return TRUE;
   }
-  return FALSE;
+  return $claimed;
 }
 
 /**

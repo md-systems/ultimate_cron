@@ -218,6 +218,10 @@ class UltimateCronJob {
     return $settings;
   }
 
+  public function kill() {
+    watchdog('ultimate_cron', 'kill signal recieved', array(), WATCHDOG_WARNING);
+  }
+
   /**
    * Enable a job.
    */
@@ -461,7 +465,6 @@ class UltimateCronJob {
     self::$currentJob = NULL;
     UltimateCronPlugin::hook_cron_post_run($this);
     module_invoke_all('cron_post_run', $this);
-    $this->clearSignals();
     $this->setProgress(FALSE);
     return $result;
   }

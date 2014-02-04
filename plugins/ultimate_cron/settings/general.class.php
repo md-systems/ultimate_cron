@@ -9,6 +9,31 @@
  */
 class UltimateCronGeneralSettings extends UltimateCronSettings {
   /**
+   * Custom action for plugins.
+   */
+  public function custom_page($js, $input, $item, $action) {
+    switch ($action) {
+      case 'kill':
+        $item->sendSignal('kill', TRUE);
+        return;
+    }
+  }
+
+  /**
+   * Use ajax for run, since we're launching in the background.
+   */
+  public function build_operations_alter($job, &$allowed_operations) {
+    if (empty($allowed_operations['run'])) {
+      if (in_array('killable', $job->hook['tags']) && !$job->peekSignal('kill')) {
+        $allowed_operations['kill'] = array(
+          'title' => t('Kill'),
+          'href' => 'admin/config/system/cron/jobs/list/' . $job->name . '/custom/' . $this->type . '/' . $this->name . '/kill',
+        );
+      }
+    }
+  }
+
+  /**
    * Default settings.
    */
   public function defaultSettings() {

@@ -18,6 +18,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     switch ($action) {
       case 'end_daemonize':
         $item->sendSignal('end_daemonize', TRUE);
+        $item->sendSignal('kill', TRUE);
         return;
     }
   }
@@ -26,12 +27,16 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * Use ajax for run, since we're launching in the background.
    */
   public function build_operations_alter($job, &$allowed_operations) {
+    if (!empty($allowed_operations['kill'])) {
+      $allowed_operations['kill']['attributes'] = array('class' => array('use-ajax'));
+    }
     if (!empty($allowed_operations['run'])) {
       $allowed_operations['run']['attributes'] = array('class' => array('use-ajax'));
     }
     else {
       $settings = $job->getSettings('launcher');
       if ($settings['daemonize'] && !$job->peekSignal('end_daemonize')) {
+        unset($allowed_operations['kill']);
         $allowed_operations['end_daemonize'] = array(
           'title' => t('Kill daemon'),
           'href' => 'admin/config/system/cron/jobs/list/' . $job->name . '/custom/' . $this->type . '/' . $this->name . '/end_daemonize',
@@ -492,15 +497,15 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
         $keepalive = TRUE;
         $expire = microtime(TRUE) + (float) $settings['daemonize_interval'];
         do {
+          $job->run();
+          if ($settings['daemonize_delay']) {
+            usleep(((float) $settings['daemonize_delay']) * 1000000);
+          }
+
           if ($job->getSignal('end_daemonize')) {
             watchdog('ultimate_cron', 'end daemonize signal recieved', array(), WATCHDOG_WARNING);
             $keepalive = FALSE;
             break;
-          }
-
-          $job->run();
-          if ($settings['daemonize_delay']) {
-            usleep(((float) $settings['daemonize_delay']) * 1000000);
           }
         } while (microtime(TRUE) < $expire);
 
