@@ -10,8 +10,9 @@
 </pre>
 <p>Each of the patterns from the first five fields may be either * (an asterisk),
 which matches all legal values, or a list of elements separated by commas (see below).</p>
-<p>For "day of the week" (field 5), 0 is considered Sunday, 6 is Saturday
-(7 is an illegal value)</p>
+<p>For "day of the week" (field 5), 0 is considered Sunday, 6 is Saturday and 7 is also
+considered Sunday. Literal names (e.g. mon, tue, wed, etc.) are also accepted.</p>
+<p>Literal names are also accepted for months (e.g. jan, feb, mar, etc.).
 <p>A job is executed when the time/date specification fields all match the current
 time and date. There is one exception: if both "day of month" and "day of week"
 are restricted (not "*"), then either the "day of month" field (3) or the "day of week"
