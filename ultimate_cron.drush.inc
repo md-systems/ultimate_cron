@@ -135,7 +135,7 @@ function ultimate_cron_drush_command_alter(&$command) {
     $command['commandfile'] = 'ultimate_cron';
     $command['path'] = drupal_get_path('module', 'ultimate_cron');
     $command['callback'] = 'drush_ultimate_cron_cron_run';
-    if (!variable_get('ultimate_cron_check_schedule_on_core_cron', TRUE)) {
+    if (!variable_get('ultimate_cron_check_schedule_on_core_cron', FALSE)) {
       drush_set_option('force', TRUE);
     }
   }

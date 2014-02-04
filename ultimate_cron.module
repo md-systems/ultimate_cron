@@ -715,7 +715,7 @@ function ultimate_cron_cron_queue_info() {
             $core_jobs[] = $job;
           }
           else {
-            if (!variable_get('ultimate_cron_check_schedule_on_core_cron', TRUE) || $job->isScheduled()) {
+            if (!variable_get('ultimate_cron_check_schedule_on_core_cron', FALSE) || $job->isScheduled()) {
               if ($lock_id = $job->lock()) {
                 $log_entry = $job->startLog($lock_id, 'Launched by Drupal core');
                 $job->run();
