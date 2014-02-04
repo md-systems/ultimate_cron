@@ -151,7 +151,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
     }
     $behind = time() - $next_schedule;
 
-    return $behind > $settings['catch_up'] ? $behind: FALSE;
+    return $next_schedule > $job_last_ran && $behind > $settings['catch_up'] ? $behind: FALSE;
   }
 
   /**
