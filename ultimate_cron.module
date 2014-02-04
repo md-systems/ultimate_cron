@@ -1373,7 +1373,6 @@ function ultimate_cron_run_launchers($launchers = NULL) {
   uasort($launcher_jobs, '_ultimate_cron_multi_column_sort');
 
   foreach ($launcher_jobs as $name => $launcher_job) {
-    print "$name: " . join(', ', array_keys($launcher_job['jobs'])) . "\n";
     uasort($launcher_job['jobs'], '_ultimate_cron_multi_column_sort');
     $launcher_job['launcher']->launchJobs($launcher_job['jobs']);
   }
