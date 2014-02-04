@@ -339,12 +339,6 @@ class UltimateCronPlugin {
   }
 
   /**
-   * Default cleanup method plugins.
-   */
-  public function cleanup() {
-  }
-
-  /**
    * Modified version drupal_array_get_nested_value().
    *
    * Removes the specified parents leaf from the array.

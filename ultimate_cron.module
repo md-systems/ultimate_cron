@@ -762,17 +762,19 @@ function ultimate_cron_cronapi() {
   $plugin_types = ctools_plugin_get_plugin_type_info();
   foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
     foreach (ultimate_cron_plugin_load_all($plugin_type) as $name => $plugin) {
-      $items["ultimate_cron_plugin_{$plugin_type}_{$name}_cleanup"] = array(
-        'title' => t('Ultimate Cron @type @title cleanup', array(
-          '@type' => $info['defaults']['static']['title singular proper'],
-          '@title' => $plugin->title,
-        )),
-        'callback' => 'ultimate_cron_plugin_cleanup',
-        'callback arguments' => array(
-          'type' => $plugin_type,
-          'name' => $name,
-        ),
-      );
+      if (method_exists($plugin, 'cleanup')) {
+        $items["ultimate_cron_plugin_{$plugin_type}_{$name}_cleanup"] = array(
+          'title' => t('Ultimate Cron @type @title cleanup', array(
+            '@type' => $info['defaults']['static']['title singular proper'],
+            '@title' => $plugin->title,
+          )),
+          'callback' => 'ultimate_cron_plugin_cleanup',
+          'callback arguments' => array(
+            'type' => $plugin_type,
+            'name' => $name,
+          ),
+        );
+      }
     }
   }
 

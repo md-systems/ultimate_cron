@@ -317,14 +317,6 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   }
 
   /**
-   * Launcher cleanup.
-   *
-   * Nothing to do here. Background Process will handle its own cleanup.
-   */
-  public function cleanup() {
-  }
-
-  /**
    * Launch manager.
    */
   public function launchJobs($jobs) {

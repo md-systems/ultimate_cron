@@ -18,13 +18,6 @@ class UltimateCronCacheLogger extends UltimateCronLogger {
   }
 
   /**
-   * Cleanup logs.
-   */
-  public function cleanup() {
-  }
-
-
-  /**
    * Load log entry.
    */
   public function load($name, $lock_id = NULL) {
