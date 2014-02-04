@@ -208,7 +208,6 @@ class UltimateCronLock {
       $lids = db_select('ultimate_cron_lock', 'l', array('target' => 'ultimate_cron'))
         ->fields('l', array('lid'))
         ->where('l.current = l.lid')
-        // ->condition('expire', $now, '<=')
         ->range(0, 100)
         ->execute()
         ->fetchAll(PDO::FETCH_COLUMN);
@@ -217,6 +216,11 @@ class UltimateCronLock {
         db_delete('ultimate_cron_lock', array('target' => 'ultimate_cron'))
           ->condition('lid', $lids, 'IN')
           ->execute();
+      }
+      if ($job = UltimateCronJob::$currentJob) {
+        if ($job->getSignal('kill')) {
+          return $job->kill();
+        }
       }
     } while ($lids);
     watchdog('ultimate_cron_lock', 'Cleaned up @count expired locks', array(
