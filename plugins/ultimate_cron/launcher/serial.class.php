@@ -119,13 +119,6 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
   }
 
   /**
-   * Settings form submit handler.
-   */
-  public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
-    $values = &$form_state['values']['settings'][$this->type][$this->name];
-  }
-
-  /**
    * Lock job.
    */
   public function lock($job) {

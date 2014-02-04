@@ -205,6 +205,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '#title' => t('Timeouts'),
     );
     $elements['timeouts']['lease_time'] = array(
+      '#parents' => array('settings', $this->type, $this->name, 'lease_time'),
       '#title' => t("Queue lease time"),
       '#type' => 'textfield',
       '#default_value' => $values['lease_time'],
@@ -213,6 +214,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '#required' => TRUE,
     );
     $elements['timeouts']['time'] = array(
+      '#parents' => array('settings', $this->type, $this->name, 'time'),
       '#title' => t('Time'),
       '#type' => 'textfield',
       '#default_value' => $values['time'],
@@ -226,6 +228,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '#title' => t('Delays'),
     );
     $elements['delays']['empty_delay'] = array(
+      '#parents' => array('settings', $this->type, $this->name, 'empty_delay'),
       '#title' => t("Empty delay"),
       '#type' => 'textfield',
       '#default_value' => $values['empty_delay'],
@@ -234,6 +237,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '#required' => TRUE,
     );
     $elements['delays']['item_delay'] = array(
+      '#parents' => array('settings', $this->type, $this->name, 'item_delay'),
       '#title' => t("Item delay"),
       '#type' => 'textfield',
       '#default_value' => $values['item_delay'],
@@ -256,6 +260,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       ),
     );
     $elements['throttling']['threads'] = array(
+      '#parents' => array('settings', $this->type, $this->name, 'threads'),
       '#title' => t('Threads'),
       '#type' => 'textfield',
       '#default_value' => $values['threads'],
@@ -267,6 +272,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '#required' => TRUE,
     );
     $elements['throttling']['threshold'] = array(
+      '#parents' => array('settings', $this->type, $this->name, 'threshold'),
       '#title' => t('Threshold'),
       '#type' => 'textfield',
       '#default_value' => $values['threshold'],
@@ -277,18 +283,6 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
-  }
-
-  /**
-   * Submit handler.
-   *
-   * Clean up after our grouping.
-   */
-  public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
-    $values = &$form_state['values']['settings'][$this->type][$this->name];
-    unset($values['timeouts']);
-    unset($values['delays']);
-    unset($values['throttling']);
   }
 
   /**
