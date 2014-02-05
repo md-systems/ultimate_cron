@@ -566,6 +566,17 @@ class UltimateCronJob {
     return $info && !empty($info['description']) ? $info['description'] : '';
   }
 
+
+  /**
+   * Get job progress.
+   *
+   * @return float
+   *   The progress of this job.
+   */
+  public function getProgress() {
+    return $this->getPlugin('launcher')->getProgress($this);
+  }
+
   /**
    * Get multiple job progresses.
    *
@@ -575,41 +586,16 @@ class UltimateCronJob {
    * @return array
    *   Progress of jobs, keyed by job name.
    */
-  static public function getProgresses($jobs) {
-    $names = array();
+  static public function getProgressMultiple($jobs) {
+    $launchers = array();
     foreach ($jobs as $job) {
-      $names[] = 'uc-progress:' . $job->name;
+      $launchers[$job->getPlugin('launcher')->name][$job->name] = $job;
     }
-    $target = _ultimate_cron_get_transactional_safe_connection();
-    $values = db_select('variable', 'v', array('target' => $target))
-      ->fields('v', array('name', 'value'))
-      ->condition('v.name', $names, 'IN')
-      ->execute()
-      ->fetchAllAssoc('name', PDO::FETCH_OBJ);
-
-    $result = array();
-    foreach ($jobs as $job) {
-      $result[$job->name] = isset($values['uc-progress:' . $job->name]) ? unserialize($values['uc-progress:' . $job->name]->value) : FALSE;
+    $progresses = array();
+    foreach ($launchers as $launcher => $jobs) {
+      $progresses += ultimate_cron_plugin_load('launcher', $launcher)->getProgressMultiple($jobs);
     }
-    return $result;
-  }
-
-  /**
-   * Get job progress.
-   *
-   * @return float
-   *   The progress of this job.
-   */
-  public function getProgress() {
-    $name = 'uc-progress:' . $this->name;
-    $target = _ultimate_cron_get_transactional_safe_connection();
-    $value = db_select('variable', 'v', array('target' => $target))
-      ->fields('v', array('value'))
-      ->condition('v.name', $name)
-      ->execute()
-      ->fetchField();
-    $value = $value ? unserialize($value) : FALSE;
-    return $value;
+    return $progresses;
   }
 
   /**
@@ -619,18 +605,13 @@ class UltimateCronJob {
    *   The progress (0 - 1).
    */
   public function setProgress($progress) {
-    if (microtime(TRUE) >= $this->progressUpdated + 1) {
-      $name = 'uc-progress:' . $this->name;
-      $target = _ultimate_cron_get_transactional_safe_connection();
-      db_merge('variable', array('target' => $target))
-        ->key(array('name' => $name))
-        ->fields(array('value' => serialize($progress)))
-        ->execute();
-      $this->progressUpdated = microtime(TRUE);
+    if ($this->getPlugin('launcher')->setProgress($this, $progress)) {
       $this->sendMessage('setProgress', array(
         'progress' => $progress,
       ));
+      return TRUE;
     }
+    return FALSE;
   }
 
   /**
@@ -647,8 +628,7 @@ class UltimateCronJob {
     if (!isset($progress)) {
       $progress = isset($this->progress) ? $this->progress : $this->getProgress();
     }
-    $progress = is_numeric($progress) ? sprintf("(%d%%)", round($progress * 100)) : '';
-    return $progress;
+    return $this->getPlugin('launcher')->formatProgress($this, $progress);
   }
 
 

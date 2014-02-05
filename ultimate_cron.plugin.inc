@@ -982,6 +982,58 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
     return array($status, $title);
   }
 
+  /**
+   * Default implementation of formatProgress().
+   *
+   * @param UltimateCronJob $job
+   *   Job to format progress for.
+   *
+   * @return string
+   *   Formatted progress.
+  */
+  public function formatProgress($job, $progress) {
+    $progress = is_numeric($progress) ? sprintf("(%d%%)", round($progress * 100)) : '';
+    return $progress;
+  }
+
+  /**
+   * Default implementation of getProgress().
+   *
+   * @param UltimateCronJob $job
+   *   Job to get progress for.
+   *
+   * @return float
+   *   Progress for the job.
+  */
+  public function getProgress($job) {
+    return UltimateCronProgress::factory($job->name)->getProgress();
+  }
+
+  /**
+   * Default implementation of getProgressMultiple().
+   *
+   * @param UltimateCronJob $jobs
+   *   Jobs to get progresses for, keyed by job name.
+   *
+   * @return array
+   *   Progresses, keyed by job name.
+  */
+  public function getProgressMultiple($jobs) {
+    return UltimateCronProgress::getProgressMultiple(array_keys($jobs));
+  }
+
+  /**
+   * Default implementation of setProgress().
+   *
+   * @param UltimateCronJob $job
+   *   Job to set progress for.
+   * @param float $progress
+   *   Progress (0-1).
+   */
+  public function setProgress($job, $progress) {
+    return UltimateCronProgress::factory($job->name)->setProgress($progress);
+  }
+
 }
 
 /**
