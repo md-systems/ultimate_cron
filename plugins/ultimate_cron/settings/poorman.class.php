@@ -37,7 +37,7 @@ class UltimateCronPoormanSettings extends UltimateCronSettings {
         '#title' => t('Launcher'),
         '#options' => $options,
         '#default_value' => $values['launcher'],
-        '#description' => t('Select the launcher to use for handling poormans cron'),
+        '#description' => t('Select the launcher to use for handling poormans cron.'),
         '#fallback' => TRUE,
       );
     }

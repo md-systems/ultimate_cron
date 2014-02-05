@@ -68,7 +68,7 @@ class UltimateCronCacheLogger extends UltimateCronLogger {
     $elements['timeout'] = array(
       '#type' => 'textfield',
       '#title' => t('Cache timeout'),
-      '#description' => t('Seconds before cache entry expires (0 = never, -1 = on next general cache wipe.'),
+      '#description' => t('Seconds before cache entry expires (0 = never, -1 = on next general cache wipe).'),
       '#default_value' => $values['timeout'],
       '#fallback' => TRUE,
       '#required' => TRUE,

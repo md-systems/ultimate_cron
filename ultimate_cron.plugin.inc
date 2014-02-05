@@ -530,7 +530,7 @@ class UltimateCronPlugin {
         $form_state['default_values']['settings'][$plugin_type][$current_plugin->name],
         FALSE
       );
-      $form['settings'][$plugin_type][$current_plugin->name]['#description'] .= ' ' . $default_settings_link;
+      $form['settings'][$plugin_type][$current_plugin->name]['#description'] .= ' ' . $default_settings_link . '.';
     }
   }
 
@@ -623,7 +623,7 @@ class UltimateCronPlugin {
             ) + $element['#options'];
           }
           elseif ($defaults[$child] !== '') {
-            $element['#description'] .= ' ' . t('(Blank = @default)', array('@default' => $this->settingsLabel($child, $defaults[$child])));
+            $element['#description'] .= ' ' . t('(Blank = @default).', array('@default' => $this->settingsLabel($child, $defaults[$child])));
           }
           unset($element['#required']);
         }

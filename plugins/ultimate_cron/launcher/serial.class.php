@@ -96,7 +96,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       '#type' => 'select',
       '#default_value' => $values['thread'],
       '#options' => $options,
-      '#description' => t('Which thread to run in when invoking with ?thread=N'),
+      '#description' => t('Which thread to run in when invoking with ?thread=N.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
       '#weight' => 2,
