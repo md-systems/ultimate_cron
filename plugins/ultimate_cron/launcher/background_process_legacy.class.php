@@ -319,7 +319,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
 
     // We know that the latest log entry has been used for determining the schedule.
     // Load the latest log entry and store the timestamp of it for later use.
-    if ($job->recheck) {
+    if (!empty($job->recheck)) {
       $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
       $recheck = $log_entry->start_time;
     }
