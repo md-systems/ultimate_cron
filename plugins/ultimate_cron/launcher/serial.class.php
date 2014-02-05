@@ -362,13 +362,14 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     }
 
     $settings = $this->getDefaultSettings();
-    if ($settings['poorman_keepalive']) {
+    if ($settings['poorman_keepalive'] && $lock_id = UltimateCronLock::lock('ultimate_cron_poorman_serial', 60)) {
       // Is it time to run cron? If not wait before re-launching.
       $cron_last = variable_get('cron_last', 0);
       $cron_next = floor(($cron_last + 60) / 60) * 60;
       $time = time();
       if ($time < $cron_next) {
-        sleep($cron_next - $time);
+        $sleep = $cron_next - $time;
+        sleep($sleep);
       }
 
       UltimateCronLock::unLock($lock_id);
