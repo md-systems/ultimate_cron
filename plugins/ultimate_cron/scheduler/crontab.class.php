@@ -140,7 +140,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
 
     $job_last_ran = $log_entry->start_time;
     $time = time();
-    $cron_last_ran = $job_last_ran;
+    $next_schedule = $cron_last_ran = $job_last_ran;
     while ($time > $job_last_ran) {
       foreach ($settings['rules'] as $rule) {
         $next_schedule = $cron_last_ran;
