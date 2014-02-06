@@ -425,7 +425,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
         error_log("SLEEPING1: $sleep");
         sleep(1);
       }
-      */
+      /**/
     }
 
     // Get settings, so we can determine the poormans cron service group.
@@ -435,12 +435,17 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     }
     $settings = $plugin->getDefaultSettings();
 
+    // In case launchers fail, we don't want to relaunch this process
+    // immediately.
+    _ultimate_cron_variable_save('cron_last', time());
+
     // It's our turn!
     $launchers = array();
     foreach (ultimate_cron_job_load_all() as $job) {
       $launcher = $job->getPlugin('launcher');
       $launchers[$launcher->name] = $launcher->name;
     }
+
     foreach ($launchers as $name) {
       $process = new BackgroundProcess('_ultimate_cron_poorman_' . $name);
       $process->service_group = $settings['poorman_service_group'];
@@ -464,7 +469,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
         error_log("SLEEPING2: $sleep");
         sleep(1);
       }
-      */
+      /**/
     }
 
     // Check poorman settings. If launcher has changed, we don't want

@@ -19,8 +19,8 @@ class CronRule {
     'weekdays' => array(0, 6),
   );
 
-  private $parsed_rule = array();
   private $type = NULL;
+  static private $cache = array();
   static private $instances = array();
 
   /**
@@ -101,6 +101,24 @@ class CronRule {
   }
 
   /**
+   * Prepare part
+   *
+   * @param string $part
+   *   The part.
+   * @param string $type
+   *   Type of part.
+   *
+   * @return string
+   *   The prepared part.
+   */
+  public function preparePart($part, $type) {
+    $max = implode('-', self::$ranges[$type]);
+    $part = str_replace("*", $max, $part);
+    $part = str_replace("@", $this->skew % (self::$ranges[$type][1] + 1), $part);
+    return $part;
+  }
+
+  /**
    * Expand range from cronrule part.
    *
    * @param string $rule
@@ -111,21 +129,17 @@ class CronRule {
    * @return array
    *   Valid values for this range.
    */
-  public function expandRange($rule, $type) {
+  public function expandRange($part, $type) {
     $this->type = $type;
-    $max = implode('-', self::$ranges[$type]);
-    $rule = str_replace("*", $max, $rule);
-    $rule = str_replace("@", $this->skew % (self::$ranges[$type][1] + 1), $rule);
-    $this->parsed_rule[$type] = $rule;
-    $rule = preg_replace_callback('!(\d+)(?:-(\d+))?((/(\d+))?(\+(\d+))?)?!', array($this, 'expandInterval'), $rule);
-    if (!preg_match('/([^0-9\,])/', $rule)) {
-      $rule = explode(',', $rule);
-      rsort($rule);
+    $part = preg_replace_callback('!(\d+)(?:-(\d+))?((/(\d+))?(\+(\d+))?)?!', array($this, 'expandInterval'), $part);
+    if (!preg_match('/([^0-9\,])/', $part)) {
+      $part = explode(',', $part);
+      rsort($part);
     }
     else {
-      $rule = array();
+      $part = array();
     }
-    return $rule;
+    return $part;
   }
 
   /**
@@ -143,6 +157,14 @@ class CronRule {
     $days = array('sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat');
     $parts[4] = strtr(strtolower($parts[4]), array_flip($days));
     $parts[4] = str_replace('7', '0', $parts[4]);
+
+    $i = 0;
+    foreach (self::$ranges as $type => $range) {
+      $part =& $parts[$i++];
+      $max = implode('-', $range);
+      $part = str_replace("*", $max, $part);
+      $part = str_replace("@", $this->skew % ($range[1] + 1), $part);
+    }
   }
 
   /**
@@ -157,48 +179,50 @@ class CronRule {
   /**
    * Generate regex rules.
    *
-   * @param string $rule
-   *   Cronrule, e.g: 1,2,3,4-43/5 * * * 2,5.
-   *
    * @return array
    *   Date and time regular expression for mathing rule.
    */
-  public function getIntervals($rule = NULL) {
-    $parts = preg_split('/\s+/', isset($rule) ? $rule : $this->rule);
+  public function getIntervals() {
+    if (isset(self::$cache['intervals'][$this->rule][$this->skew])) {
+      return self::$cache['intervals'][$this->rule][$this->skew];
+    }
+
+    $parts = preg_split('/\s+/', $this->rule);
     if ($this->allow_shorthand) {
       // Allow short rules by appending wildcards?
       $parts += array('*', '*', '*', '*', '*');
       $parts = array_slice($parts, 0, 5);
     }
     if (count($parts) != 5) {
-      return FALSE;
+      return self::$cache['intervals'][$this->rule][$this->skew] = FALSE;
     }
     $this->preProcessRule($parts);
     $intervals = array();
+    $intervals['parts'] = $parts;
     $intervals['minutes']  = $this->expandRange($parts[0], 'minutes');
     if (empty($intervals['minutes'])) {
-      return FALSE;
+      return self::$cache['intervals'][$this->rule][$this->skew] = FALSE;
     }
     $intervals['hours']    = $this->expandRange($parts[1], 'hours');
     if (empty($intervals['hours'])) {
-      return FALSE;
+      return self::$cache['intervals'][$this->rule][$this->skew] = FALSE;
     }
     $intervals['days']     = $this->expandRange($parts[2], 'days');
     if (empty($intervals['days'])) {
-      return FALSE;
+      return self::$cache['intervals'][$this->rule][$this->skew] = FALSE;
     }
     $intervals['months']   = $this->expandRange($parts[3], 'months');
     if (empty($intervals['months'])) {
-      return FALSE;
+      return self::$cache['intervals'][$this->rule][$this->skew] = FALSE;
     }
     $intervals['weekdays'] = $this->expandRange($parts[4], 'weekdays');
     if (empty($intervals['weekdays'])) {
-      return FALSE;
+      return self::$cache['intervals'][$this->rule][$this->skew] = FALSE;
     }
     $intervals['weekdays'] = array_flip($intervals['weekdays']);
     $this->postProcessRule($intervals);
 
-    return $intervals;
+    return self::$cache['intervals'][$this->rule][$this->skew] = $intervals;
   }
 
   /**
@@ -211,11 +235,7 @@ class CronRule {
    *   Crontab rule.
    */
   public function rebuildRule($intervals) {
-    $parts = array();
-    foreach ($intervals as $type => $interval) {
-      $parts[] = $this->parsed_rule[$type];
-    }
-    return implode(' ', $parts);
+    return implode(' ', $intervals['parts']);
   }
 
   /**
