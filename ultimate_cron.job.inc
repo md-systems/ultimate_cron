@@ -555,16 +555,24 @@ class UltimateCronJob {
    * Get module name for this job.
    */
   public function getModuleName() {
-    $info = system_get_info('module', $this->hook['module']);
-    return $info && !empty($info['name']) ? $info['name'] : $this->hook['module'];
+    static $names = array();
+    if (!isset($names[$this->hook['module']])) {
+      $info = system_get_info('module', $this->hook['module']);
+      $names[$this->hook['module']] = $info && !empty($info['name']) ? $info['name'] : $this->hook['module'];
+    }
+    return $names[$this->hook['module']];
   }
 
   /**
    * Get module description for this job.
    */
   public function getModuleDescription() {
-    $info = system_get_info('module', $this->hook['module']);
-    return $info && !empty($info['description']) ? $info['description'] : '';
+    static $descs = array();
+    if (!isset($descs[$this->hook['module']])) {
+      $info = system_get_info('module', $this->hook['module']);
+      $descs[$this->hook['module']] = $info && !empty($info['description']) ? $info['description'] : '';
+    }
+    return $descs[$this->hook['module']];
   }
 
   /**
