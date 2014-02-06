@@ -20,7 +20,7 @@ class UltimateCronCacheLogger extends UltimateCronLogger {
   /**
    * Load log entry.
    */
-  public function load($name, $lock_id = NULL) {
+  public function load($name, $lock_id = NULL, $log_types = array(ULTIMATE_CRON_LOG_TYPE_NORMAL)) {
     $log_entry = new $this->log_entry_class($name, $this);
 
     $job = ultimate_cron_job_load($name);
@@ -45,7 +45,7 @@ class UltimateCronCacheLogger extends UltimateCronLogger {
   /**
    * Get log entries.
    */
-  public function getLogEntries($name) {
+  public function getLogEntries($name, $log_types, $limit = 10) {
     $log_entry = $this->load($name);
     return $log_entry->lid ? array($log_entry) : array();
   }

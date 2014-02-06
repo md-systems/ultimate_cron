@@ -15,8 +15,8 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   /**
    * Constructor.
    */
-  public function __construct($name, $plugin) {
-    parent::__construct($name, $plugin);
+  public function __construct($name, $plugin, $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL) {
+    parent::__construct($name, $plugin, $log_type);
     $this->options['method'] = array(
       ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_DISABLED => t('Disabled'),
       ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE => t('Remove logs older than a specified age'),
@@ -265,7 +265,7 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   /**
    * Load log entry.
    */
-  public function load($name, $lock_id = NULL) {
+  public function load($name, $lock_id = NULL, $log_types = array(ULTIMATE_CRON_LOG_TYPE_NORMAL)) {
     if ($lock_id) {
       $log_entry = db_select('ultimate_cron_log', 'l')
         ->fields('l')
@@ -277,6 +277,7 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
       $log_entry = db_select('ultimate_cron_log', 'l')
         ->fields('l')
         ->condition('l.name', $name)
+        ->condition('l.log_type', $log_types, 'IN')
         ->orderBy('l.start_time', 'DESC')
         ->orderBy('l.end_time', 'DESC')
         ->range(0, 1)
@@ -295,9 +296,9 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   /**
    * Load latest log entry.
    */
-  public function loadLatestLogEntries($jobs) {
+  public function loadLatestLogEntries($jobs, $log_types) {
     if (Database::getConnection()->databaseType() !== 'mysql') {
-      return parent::loadLatestLogEntries($jobs);
+      return parent::loadLatestLogEntries($jobs, $log_types);
     }
 
     $result = db_query("SELECT l.*
@@ -307,12 +308,13 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
         SELECT l4.lid
         FROM {ultimate_cron_log} l4
         WHERE l4.name = l3.name
+        AND l4.log_type IN (:log_types)
         ORDER BY l4.name desc, l4.start_time DESC
         LIMIT 1
       ) AS lid FROM {ultimate_cron_log} l3
       GROUP BY l3.name
     ) l2 on l2.lid = l.lid
-    WHERE l.name IN (:jobs)", array(':jobs' => array_keys($jobs)));
+    WHERE l.name IN (:jobs)", array(':jobs' => array_keys($jobs), ':log_types' => $log_types));
 
     $log_entries = array();
     while ($object = $result->fetchObject()) {
@@ -331,11 +333,12 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
   /**
    * Get log entries.
    */
-  public function getLogEntries($name, $limit = 10) {
+  public function getLogEntries($name, $log_types, $limit = 10) {
     $result = db_select('ultimate_cron_log', 'l')
       ->fields('l')
       ->extend('PagerDefault')
       ->condition('l.name', $name)
+      ->condition('l.log_type', $log_types, 'IN')
       ->limit($limit)
       ->orderBy('l.start_time', 'DESC')
       ->execute();
@@ -366,6 +369,7 @@ class UltimateCronDatabaseLogEntry extends UltimateCronLogEntry {
         ->fields(array(
           'lid' => $this->lid,
           'name' => $this->name,
+          'log_type' => $this->log_type,
           'start_time' => $this->start_time,
           'end_time' => $this->end_time,
           'uid' => $this->uid,
@@ -380,6 +384,7 @@ class UltimateCronDatabaseLogEntry extends UltimateCronLogEntry {
       $updated = db_update('ultimate_cron_log')
         ->fields(array(
           'name' => $this->name,
+          'log_type' => $this->log_type,
           'start_time' => $this->start_time,
           'end_time' => $this->end_time,
           'init_message' => $this->init_message,

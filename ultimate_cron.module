@@ -4,9 +4,19 @@
  * Ultimate Cron. Extend cron functionality in Drupal.
  */
 
-
 include dirname(__FILE__) . '/ultimate_cron.poorman.inc';
 include dirname(__FILE__) . '/ultimate_cron.signal.inc';
+
+define('ULTIMATE_CRON_LOG_TYPE_NORMAL', 0);
+define('ULTIMATE_CRON_LOG_TYPE_ADMIN', 1);
+define('ULTIMATE_CRON_LOG_TYPE_ALL', -1);
+
+/**
+ * Pseudo define.
+ */
+function _ultimate_cron_define_log_type_all() {
+  return array(ULTIMATE_CRON_LOG_TYPE_NORMAL, ULTIMATE_CRON_LOG_TYPE_ADMIN);
+}
 
 /**
  * Memory exhaust protection.
@@ -433,7 +443,7 @@ function ultimate_cron_job_set_status($object, $status) {
     $job = ultimate_cron_job_load($name);
   }
 
-  $log = $job->startLog(uniqid($job->name, TRUE), 'modification');
+  $log = $job->startLog(uniqid($job->name, TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
   $log->log($job->name, 'Job @status by ' . $log->formatUser(), array(
     '@status' => $status ? t('disabled') : t('enabled'),
   ), WATCHDOG_INFO);
@@ -475,7 +485,7 @@ function ultimate_cron_job_save(&$object) {
   }
   $result = drupal_write_record($table, $object, $update);
 
-  $log = $object->startLog(uniqid($object->name, TRUE), 'modification');
+  $log = $object->startLog(uniqid($object->name, TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
   $log->log($object->name, 'Job modified by ' . $log->formatUser(), array(), WATCHDOG_INFO);
   $log->finish();
 
@@ -510,7 +520,7 @@ function ultimate_cron_job_delete($object) {
     ->condition($export['key'], $object->{$export['key']})
     ->execute();
 
-  $log = $object->startLog(uniqid($object->name, TRUE), 'modification');
+  $log = $object->startLog(uniqid($object->name, TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
   $log->log($object->name, 'Job reverted by ' . $log->formatUser(), array(), WATCHDOG_INFO);
   $log->finish();
 }

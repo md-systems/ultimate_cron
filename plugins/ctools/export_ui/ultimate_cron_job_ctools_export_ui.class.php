@@ -197,7 +197,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
       $progress = '';
       if ($log_entry->lid && $item->lock_id && $log_entry->lid === $item->lock_id) {
-        $progress = $item->formatProgress();
+        $progress = ' ' . $item->formatProgress();
       }
 
       $rows[$log_entry->lid]['data'][] = array(

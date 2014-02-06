@@ -87,6 +87,13 @@ function ultimate_cron_schema() {
         'length' => 255,
         'not null' => TRUE,
       ),
+      'log_type' => array(
+        'description' => 'Log type',
+        'type' => 'int',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
       'start_time' => array(
         'description' => 'Timestamp of execution start',
         'type' => 'float',
@@ -132,6 +139,7 @@ function ultimate_cron_schema() {
         'name',
         'start_time',
         'end_time',
+        'log_type',
       ),
     ),
   );
@@ -852,4 +860,24 @@ function ultimate_cron_update_7200() {
   $general = ultimate_cron_plugin_load('settings', 'general');
   $general->settings['poorman'] = variable_get('ultimate_cron_poorman', FALSE);
   $general->setSettings();
+}
+
+/**
+ * Add log type field to log.
+ */
+function ultimate_cron_update_7201() {
+  db_add_field('ultimate_cron_log', 'log_type', array(
+    'description' => 'Log type',
+    'type' => 'int',
+    'size' => 'normal',
+    'not null' => TRUE,
+    'default' => 0,
+  ));
+  db_drop_index('ultimate_cron_log', 'idx_last');
+  db_add_index('ultimate_cron_log', 'idx_last', array(
+    'name',
+    'start_time',
+    'end_time',
+    'log_type',
+  ));
 }

@@ -1101,8 +1101,8 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    * @return UltimateCronLogEntry
    *   The log entry created.
    */
-  public function create($name, $lock_id, $init_message = '') {
-    $log_entry = new $this->log_entry_class($name, $this);
+  public function create($name, $lock_id, $init_message = '', $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL) {
+    $log_entry = new $this->log_entry_class($name, $this, $log_type);
     $log_entry->lid = $lock_id;
     $log_entry->start_time = microtime(TRUE);
     $log_entry->init_message = $init_message;
@@ -1227,10 +1227,10 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    * This is the fallback method. Loggers should implement an optimized
    * version if possible.
    */
-  public function loadLatestLogEntries($jobs) {
+  public function loadLatestLogEntries($jobs, $log_types) {
     $logs = array();
     foreach ($jobs as $job) {
-      $logs[$job->name] = $job->loadLatestLogEntry();
+      $logs[$job->name] = $job->loadLatestLogEntry($log_types);
     }
     return $logs;
   }
@@ -1246,7 +1246,22 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
    * @return UltimateCronLogEntry
    *   Log entry
    */
-  abstract public function load($name, $lock_id = NULL);
+  abstract public function load($name, $lock_id = NULL, $log_types = array(ULTIMATE_CRON_LOG_TYPE_NORMAL));
+
+  /**
+   * Get page with log entries for a job.
+   *
+   * @param string $name
+   *   Name of job.
+   * @param array $log_types
+   *   Log types to get.
+   * @param integer $limit
+   *   (optional) Number of log entries per page.
+   *
+   * @return array
+   *   Log entries.
+   */
+  abstract public function getLogEntries($name, $log_types, $limit = 10);
 }
 
 /**
@@ -1265,6 +1280,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
 abstract class UltimateCronLogEntry {
   public $lid = NULL;
   public $name = '';
+  public $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL;
   public $uid = 0;
   public $start_time = 0;
   public $end_time = 0;
@@ -1276,7 +1292,7 @@ abstract class UltimateCronLogEntry {
   public $log_entry_size = 1048576;
 
   public $log_entry_fields = array(
-    'lid', 'uid', 'start_time', 'end_time', 'init_message', 'message', 'severity',
+    'lid', 'uid', 'log_type', 'start_time', 'end_time', 'init_message', 'message', 'severity',
   );
 
   public $logger;
@@ -1291,9 +1307,10 @@ abstract class UltimateCronLogEntry {
    * @param UltimateCronLogger $logger
    *   A logger object.
    */
-  public function __construct($name, $logger) {
+  public function __construct($name, $logger, $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL) {
     $this->name = $name;
     $this->logger = $logger;
+    $this->log_type = $log_type;
     global $user;
     $this->uid = $user->uid;
   }

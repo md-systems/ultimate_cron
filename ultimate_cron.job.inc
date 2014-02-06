@@ -466,8 +466,9 @@ class UltimateCronJob {
    * @return array
    *   Array of UltimateCronLogEntry objects.
    */
-  public function getLogEntries($limit = 10) {
-    return $this->getPlugin('logger')->getLogEntries($this->name, $limit);
+  public function getLogEntries($log_types = ULTIMATE_CRON_LOG_TYPE_ALL, $limit = 10) {
+    $log_types = $log_types == ULTIMATE_CRON_LOG_TYPE_ALL ? _ultimate_cron_define_log_type_all() : $log_types;
+    return $this->getPlugin('logger')->getLogEntries($this->name, $log_types, $limit);
   }
 
   /**
@@ -489,8 +490,8 @@ class UltimateCronJob {
    * @return UltimateCronLogEntry
    *   The latest log entry for this job.
    */
-  public function loadLatestLogEntry() {
-    return $this->getPlugin('logger')->load($this->name);
+  public function loadLatestLogEntry($log_types = array(ULTIMATE_CRON_LOG_TYPE_NORMAL)) {
+    return $this->getPlugin('logger')->load($this->name, $log_types);
   }
 
   /**
@@ -502,14 +503,14 @@ class UltimateCronJob {
    * @return array
    *   Array of UltimateCronLogEntry objects.
    */
-  static public function loadLatestLogEntries($jobs) {
+  static public function loadLatestLogEntries($jobs, $log_types = array(ULTIMATE_CRON_LOG_TYPE_NORMAL)) {
     $loggers = array();
     foreach ($jobs as $job) {
       $loggers[$job->getPlugin('logger')->name][$job->name] = $job;
     }
     $log_entries = array();
     foreach ($loggers as $logger => $jobs) {
-      $log_entries += ultimate_cron_plugin_load('logger', $logger)->loadLatestLogEntries($jobs);
+      $log_entries += ultimate_cron_plugin_load('logger', $logger)->loadLatestLogEntries($jobs, $log_types);
     }
     return $log_entries;
   }
@@ -526,9 +527,9 @@ class UltimateCronJob {
    * @return UltimateCronLogger
    *   The log object.
    */
-  public function startLog($lock_id, $init_message = '') {
+  public function startLog($lock_id, $init_message = '', $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL) {
     $logger = $this->getPlugin('logger');
-    $log_entry = $logger->create($this->name, $lock_id, $init_message);
+    $log_entry = $logger->create($this->name, $lock_id, $init_message, $log_type);
     $logger->catchMessages($log_entry);
     return $log_entry;
   }
