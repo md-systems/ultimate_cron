@@ -547,7 +547,6 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    */
   public function setProgress($job, $progress) {
     $handle = 'uc-' . $job->name;
-    error_log("setProgress: $handle - $progress");
     return progress_set_progress($handle, '', $progress);
   }
 
