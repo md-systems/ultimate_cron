@@ -43,7 +43,7 @@ class UltimateCronRulesUnitTestCase extends DrupalUnitTestCase {
         $parsed_rule .= "$key: " . implode(',', $value) . "\n";
       }
       #$parsed_rule = str_replace(" ", "\n", $cron->rebuildRule($cron->getIntervals()));
-      $last_scheduled = $cron->getLastRan();
+      $last_scheduled = $cron->getLastSchedule();
       $message[] = "<span title=\"$parsed_rule\">$rule</span> @ " . date('Y-m-d H:i:s', $last_scheduled);
     }
     $message[] = 'now      @ ' . $options['now'];

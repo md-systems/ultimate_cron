@@ -250,12 +250,12 @@ class CronRule {
   }
 
   /**
-   * Get last execution time of rule in UNIX timestamp format.
+   * Get last schedule time of rule in UNIX timestamp format.
    *
    * @return integer
-   *   UNIX timestamp of last execution time
+   *   UNIX timestamp of last schedule time.
    */
-  public function getLastRan() {
+  public function getLastSchedule() {
     if (isset($this->last_ran)) {
       return $this->last_ran;
     }
@@ -281,8 +281,9 @@ class CronRule {
     // If both weekday and days are restricted, then use either or
     // otherwise, use and ... when using or, we have to try out all the days in the month
     // and not just to the ones restricted.
-    $check_both = (count($intervals['days']) != 31 && count($intervals['weekdays']) != 7) ? FALSE : TRUE;
-    $days = $check_both ? $intervals['days'] : range(31, 1);
+    $check_weekday = count($intervals['weekdays']) != 7;
+    $check_both = $check_weekday && (count($intervals['days']) != 31);
+    $days = $check_both ? range(31, 1) : $intervals['days'];
 
     // Find last date and time this rule was run.
     for ($year = $start_year; $year > $end_year; $year--) {
@@ -306,18 +307,20 @@ class CronRule {
           }
 
           // Check days and weekdays using and/or logic.
-          $date_array = getdate(mktime(0, 0, 0, $month, $day, $year));
-          if ($check_both) {
-            if (!isset($intervals['weekdays'][$date_array['wday']])) {
-              continue;
+          if ($check_weekday) {
+            $date_array = getdate(mktime(0, 0, 0, $month, $day, $year));
+            if ($check_both) {
+              if (
+                !in_array($day, $intervals['days']) &&
+                !isset($intervals['weekdays'][$date_array['wday']])
+              ) {
+                continue;
+              }
             }
-          }
-          else {
-            if (
-              !in_array($day, $intervals['days']) &&
-              !isset($intervals['weekdays'][$date_array['wday']])
-            ) {
-              continue;
+            else {
+              if (!isset($intervals['weekdays'][$date_array['wday']])) {
+                continue;
+              }
             }
           }
 
@@ -356,9 +359,91 @@ class CronRule {
   }
 
   /**
+   * Get next schedule time of rule in UNIX timestamp format.
+   *
+   * @return integer
+   *   UNIX timestamp of next schedule time.
+   */
+  public function getNextSchedule() {
+    $intervals = $this->getIntervals();
+    $last_schedule = $this->getLastSchedule();
+
+    $next['minutes'] = (int) date('i', $last_schedule);
+    $next['hours'] = date('G', $last_schedule);
+    $next['days'] = date('j', $last_schedule);
+    $next['months'] = date('n', $last_schedule);
+    $year = date('Y', $last_schedule);
+
+    $check_weekday = count($intervals['weekdays']) != 7;
+    $check_both = $check_weekday && (count($intervals['days']) != 31) ? TRUE : FALSE;
+    $days = $intervals['days'];
+    $intervals['days'] = $check_both ? range(31, 1) : $intervals['days'];
+
+    foreach (self::$ranges as $type => $range) {
+      $idx[$type] = reset(array_keys($intervals[$type], $next[$type]));
+    }
+
+    reset(self::$ranges);
+    while (list($type, $range) = each(self::$ranges)) {
+      $idx[$type]--;
+      if ($idx[$type] < 0) {
+        $idx[$type] = reset(array_keys($intervals[$type], end($intervals[$type])));
+        if ($type == 'months') {
+          $year--;
+          reset(self::$ranges);
+        }
+        continue;
+      }
+
+      if ($type == 'days' && $check_weekday) {
+        // Check days and weekdays using and/or logic.
+        $date_array = getdate(mktime(
+          $intervals['hours'][$idx['hours']],
+          $intervals['minutes'][$idx['minutes']],
+          0,
+          $intervals['months'][$idx['months']],
+          $intervals['days'][$idx['days']],
+          $year
+        ));
+        if ($check_both) {
+          if (
+            !in_array($intervals['days'][$idx['days']], $days) &&
+            !isset($intervals['weekdays'][$date_array['wday']])
+          ) {
+            reset(self::$ranges);
+            each(self::$ranges);
+            each(self::$ranges);
+            continue;
+          }
+        }
+        else {
+          if (!isset($intervals['weekdays'][$date_array['wday']])) {
+            reset(self::$ranges);
+            each(self::$ranges);
+            each(self::$ranges);
+            continue;
+          }
+        }
+      }
+
+      break;
+    }
+
+    $next_schedule = mktime(
+      $intervals['hours'][$idx['hours']],
+      $intervals['minutes'][$idx['minutes']],
+      0,
+      $intervals['months'][$idx['months']],
+      $intervals['days'][$idx['days']],
+      $year
+    );
+    return $next_schedule;
+  }
+
+  /**
    * Check if a rule is valid.
    */
   public function isValid() {
-    return $this->getLastRan() === FALSE ? FALSE : TRUE;
+    return $this->getLastSchedule() === FALSE ? FALSE : TRUE;
   }
 }

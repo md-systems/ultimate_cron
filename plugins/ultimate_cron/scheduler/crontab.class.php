@@ -109,7 +109,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
     $time = is_null($time) ? time() : $time;
     foreach ($rules as $rule) {
       $cron = CronRule::factory($rule, $time, $skew);
-      $cron_last_ran = $cron->getLastRan();
+      $cron_last_ran = $cron->getLastSchedule();
 
       if ($job_last_ran < $cron_last_ran && $cron_last_ran <= $time) {
         if ($time <= $cron_last_ran + $catch_up) {
@@ -145,7 +145,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
       foreach ($settings['rules'] as $rule) {
         $next_schedule = $cron_last_ran;
         $cron = CronRule::factory($rule, $time, $skew);
-        $cron_last_ran = $cron->getLastRan();
+        $cron_last_ran = $cron->getLastSchedule();
         $time = $time > $cron_last_ran - 1 ? $cron_last_ran - 1 : $time;
         if ($time <= $job_last_ran) {
           break;
