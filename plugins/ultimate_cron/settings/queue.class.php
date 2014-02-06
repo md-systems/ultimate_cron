@@ -184,7 +184,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
   public function defaultSettings() {
     return array(
       'lease_time' => 30,
-      'empty_delay' => 1,
+      'empty_delay' => 0,
       'item_delay' => 0,
       'throttle' => FALSE,
       'threads' => 4,
@@ -232,7 +232,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '#title' => t("Empty delay"),
       '#type' => 'textfield',
       '#default_value' => $values['empty_delay'],
-      '#description' => t('Seconds to delay processing of queue if queue is empty.'),
+      '#description' => t('Seconds to delay processing of queue if queue is empty (0 = end job).'),
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
