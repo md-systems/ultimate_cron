@@ -428,14 +428,12 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       */
     }
 
-    // Check poorman settings. If launcher has changed, we don't want
-    // to keepalive.
-    $poorman = ultimate_cron_plugin_load('settings', 'poorman');
-    if (!$poorman) {
-      return;
+    // Get settings, so we can determine the poormans cron service group.
+    $plugin = ultimate_cron_plugin_load('launcher', 'background_process_legacy');
+    if (!$plugin) {
+      throw new Exception(t('Failed to load launcher plugin?!?!?!?!'));
     }
-
-    $settings = $poorman->getDefaultSettings();
+    $settings = $plugin->getDefaultSettings();
 
     // It's our turn!
     $launchers = array();
@@ -469,6 +467,13 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       */
     }
 
+    // Check poorman settings. If launcher has changed, we don't want
+    // to keepalive.
+    $poorman = ultimate_cron_plugin_load('settings', 'poorman');
+    if (!$poorman) {
+      return;
+    }
+    $settings = $poorman->getDefaultSettings();
     if (!$settings['launcher'] || $settings['launcher'] !== 'background_process_legacy') {
       return;
     }
