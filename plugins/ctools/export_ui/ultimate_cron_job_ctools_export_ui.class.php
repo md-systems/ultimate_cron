@@ -197,8 +197,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
       $progress = '';
       if ($log_entry->lid && $item->lock_id && $log_entry->lid === $item->lock_id) {
-        $progress = $item->getProgress();
-        $progress = is_numeric($progress) ? sprintf(" (%d%%)", round($progress * 100)) : '';
+        $progress = $item->formatProgress();
       }
 
       $rows[$log_entry->lid]['data'][] = array(
@@ -423,6 +422,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     // Started and duration.
     $item->lock_id = isset($item->lock_id) ? $item->lock_id : $item->isLocked();
     $item->log_entry = isset($item->log_entry) ? $item->log_entry : $item->loadLatestLogEntry();
+    $item->progress = isset($item->progress) ? $item->progress : $item->getProgress();
     if ($item->log_entry->lid && $item->lock_id && $item->log_entry->lid !== $item->lock_id) {
       $item->log_entry = $item->loadLogEntry($item->lock_id);
     }
@@ -497,11 +497,9 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       'title' => strip_tags($item->log_entry->formatInitMessage()),
     );
 
-    $progress = isset($item->progress) ? $item->progress : $item->getProgress();
-    $progress = is_numeric($progress) ? sprintf(" (%d%%)", round($progress * 100)) : '';
-
+    $progress = $item->lock_id ? $item->formatProgress() : '';
     $this->rows[$name]['data'][] = array(
-      'data' => '<span class="duration-time" data-src="' . $item->log_entry->getDuration() . '">' . $item->log_entry->formatDuration() . '</span> <span class="duration-progress">' . $item->formatProgress() . '</span>',
+      'data' => '<span class="duration-time" data-src="' . $item->log_entry->getDuration() . '">' . $item->log_entry->formatDuration() . '</span> <span class="duration-progress">' . $progress . '</span>',
       'class' => array('ctools-export-ui-duration'),
       'title' => $item->log_entry->formatEndTime(),
     );

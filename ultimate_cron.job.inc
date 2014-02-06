@@ -445,7 +445,7 @@ class UltimateCronJob {
    */
   public function run() {
     $this->clearSignals();
-    $this->setProgress(FALSE);
+    $this->initializeProgress();
     UltimateCronPlugin::hook_cron_pre_run($this);
     module_invoke_all('cron_pre_run', $this);
     self::$currentJob = $this;
@@ -453,7 +453,7 @@ class UltimateCronJob {
     self::$currentJob = NULL;
     UltimateCronPlugin::hook_cron_post_run($this);
     module_invoke_all('cron_post_run', $this);
-    $this->setProgress(FALSE);
+    $this->finishProgress();
     return $result;
   }
 
@@ -566,6 +566,19 @@ class UltimateCronJob {
     return $info && !empty($info['description']) ? $info['description'] : '';
   }
 
+  /**
+   * Initialize progress.
+   */
+  public function initializeProgress() {
+    return $this->getPlugin('launcher')->initializeProgress($this);
+  }
+
+  /**
+   * Finish progress.
+   */
+  public function finishProgress() {
+    return $this->getPlugin('launcher')->finishProgress($this);
+  }
 
   /**
    * Get job progress.

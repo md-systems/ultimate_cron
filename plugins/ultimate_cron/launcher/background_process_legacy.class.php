@@ -477,6 +477,81 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   }
 
   /**
+   * Background process version of initializeProgress().
+   *
+   * @param UltimateCronJob $job
+   *   Job to initialize progress for.
+   */
+  public function initializeProgress($job) {
+    // Progress is initialized by Background Process.
+  }
+
+  /**
+   * Background process version of finishProgress().
+   *
+   * @param UltimateCronJob $job
+   *   Job to finish progress for.
+   */
+  public function finishProgress($job) {
+    // Progress is finished by Background Process.
+  }
+
+  /**
+   * Implementation of getProgress().
+   *
+   * @param UltimateCronJob $job
+   *   Job to get progress for.
+   *
+   * @return float
+   *   Progress for the job.
+   */
+  public function getProgress($job) {
+    $handle = 'uc-' . $job->name;
+    $progress = progress_get_progress($handle);
+    return $progress ? $progress->progress : FALSE;
+  }
+
+  /**
+   * Implementation of getProgressMultiple().
+   *
+   * @param UltimateCronJob $jobs
+   *   Jobs to get progresses for, keyed by job name.
+   *
+   * @return array
+   *   Progresses, keyed by job name.
+   */
+  public function getProgressMultiple($jobs) {
+    $names = array();
+    foreach ($jobs as $job) {
+      $names[] = 'uc-' . $job->name;
+    }
+    $result = db_select('progress', 'p')
+      ->fields('p', array('name', 'progress'))
+      ->condition('name', $names, 'IN')
+      ->execute()
+      ->fetchAllAssoc('name');
+    $progresses = array();
+    foreach ($jobs as $job) {
+      $progresses[$job->name] = isset($result['uc-' . $job->name]) ? $result['uc-' . $job->name]->progress : FALSE;
+    }
+    return $progresses;
+  }
+
+  /**
+   * Implementation of setProgress().
+   *
+   * @param UltimateCronJob $job
+   *   Job to set progress for.
+   * @param float $progress
+   *   Progress (0-1).
+   */
+  public function setProgress($job, $progress) {
+    $handle = 'uc-' . $job->name;
+    error_log("setProgress: $handle - $progress");
+    return progress_set_progress($handle, '', $progress);
+  }
+
+  /**
    * Format running state.
    */
   public function formatRunning($job) {

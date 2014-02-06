@@ -218,49 +218,49 @@ function drush_ultimate_cron_cron_list() {
       $legend .= 'D';
     }
 
-    $lock_id = $lock_ids[$job->name];
-    $log_entry = $log_entries[$job->name];
-    $progress = $progresses[$job->name];
+    $job->lock_id = $lock_ids[$job->name];
+    $job->log_entry = $log_entries[$job->name];
+    $job->progress = $progresses[$job->name];
 
-    if ($log_entry->lid && $lock_id && $log_entry->lid !== $lock_id) {
-      $log_entry = $job->loadLogEntry($lock_id);
+    if ($job->log_entry->lid && $job->lock_id && $job->log_entry->lid !== $job->lock_id) {
+      $job->log_entry = $job->loadLogEntry($lock_id);
     }
 
     if ($behind = $job->isBehindSchedule()) {
       $legend .= 'B';
     }
 
-    if ($lock_id && $log_entry->lid == $lock_id) {
+    if ($job->lock_id && $job->log_entry->lid == $job->lock_id) {
       $legend .= 'R';
       list($null, $status) = $job->getPlugin('launcher')->formatRunning($job);
     }
-    elseif ($log_entry->start_time && !$log_entry->end_time) {
+    elseif ($job->log_entry->start_time && !$job->log_entry->end_time) {
       list($null, $status) = $job->getPlugin('launcher')->formatUnfinished($job);
     }
     else {
-      list($null, $status) = $log_entry->formatSeverity();
+      list($null, $status) = $job->log_entry->formatSeverity();
     }
     if ($statuses && !in_array($status, $statuses)) {
       continue;
     }
 
-    $progress = is_numeric($progress) ? sprintf(" (%d%%)", round($progress * 100)) : '';
+    $progress = $job->lock_id ? $job->formatProgress() : '';
 
     $table[$name][] = $legend;
     $table[$name][] = $job->getModuleName();
     $table[$name][] = $showname ? $job->name : $job->title;
     $table[$name][] = $job->getPlugin('scheduler')->formatLabel($job);
-    $table[$name][] = $log_entry->formatStartTime();
-    $table[$name][] = $log_entry->formatDuration() . $progress;
+    $table[$name][] = $job->log_entry->formatStartTime();
+    $table[$name][] = $job->log_entry->formatDuration() . ' ' . $progress;
     $table[$name][] = $status;
 
     if ($verbose) {
       $table['verbose:' . $name][] = '';
       $table['verbose:' . $name][] = '';
       $table['verbose:' . $name][] = $job->name;
-      $table['verbose:' . $name][] = $log_entry->init_message;
+      $table['verbose:' . $name][] = $job->log_entry->init_message;
       $table['verbose:' . $name][] = '';
-      $table['verbose:' . $name][] = $log_entry->message;
+      $table['verbose:' . $name][] = $job->log_entry->message;
     }
   }
   drush_print_table($table);

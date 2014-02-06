@@ -349,7 +349,7 @@ class UltimateCronPlugin {
    *   Array of key names forming a "path" where the leaf will be removed
    *   from $array.
    */
-  function drupal_array_remove_nested_value(array &$array, array $parents) {
+  public function drupal_array_remove_nested_value(array &$array, array $parents) {
     $ref = &$array;
     $last_parent = array_pop($parents);
     foreach ($parents as $parent) {
@@ -990,10 +990,30 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    *
    * @return string
    *   Formatted progress.
-  */
+   */
   public function formatProgress($job, $progress) {
-    $progress = is_numeric($progress) ? sprintf("(%d%%)", round($progress * 100)) : '';
+    $progress = $progress ? sprintf("(%d%%)", round($progress * 100)) : '';
     return $progress;
+  }
+
+  /**
+   * Default implementation of initializeProgress().
+   *
+   * @param UltimateCronJob $job
+   *   Job to initialize progress for.
+   */
+  public function initializeProgress($job) {
+    return UltimateCronProgress::factory($job->name)->setProgress(FALSE);
+  }
+
+  /**
+   * Default implementation of finishProgress().
+   *
+   * @param UltimateCronJob $job
+   *   Job to finish progress for.
+   */
+  public function finishProgress($job) {
+    return UltimateCronProgress::factory($job->name)->setProgress(FALSE);
   }
 
   /**
@@ -1004,7 +1024,7 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    *
    * @return float
    *   Progress for the job.
-  */
+   */
   public function getProgress($job) {
     return UltimateCronProgress::factory($job->name)->getProgress();
   }
@@ -1017,7 +1037,7 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    *
    * @return array
    *   Progresses, keyed by job name.
-  */
+   */
   public function getProgressMultiple($jobs) {
     return UltimateCronProgress::getProgressMultiple(array_keys($jobs));
   }
