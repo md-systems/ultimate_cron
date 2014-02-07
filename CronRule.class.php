@@ -385,26 +385,23 @@ class CronRule {
     $days = $intervals['days'];
     $intervals['days'] = $check_both ? range(31, 1) : $intervals['days'];
 
-    foreach (self::$ranges as $type => $range) {
-      if ($type == 'weekdays') {
-        continue;
-      }
+    $ranges = self::$ranges;
+    unset($ranges['weekdays']);
+
+    foreach ($ranges as $type => $range) {
       $found = array_keys($intervals[$type], $next[$type]);
       $idx[$type] = reset($found);
     }
 
-    reset(self::$ranges);
-    while (list($type, $range) = each(self::$ranges)) {
-      if ($type == 'weekdays') {
-        continue;
-      }
+    reset($ranges);
+    while (list($type, $range) = each($ranges)) {
       $idx[$type]--;
       if ($idx[$type] < 0) {
         $found = array_keys($intervals[$type], end($intervals[$type]));
         $idx[$type] = reset($found);
         if ($type == 'months') {
           $year--;
-          reset(self::$ranges);
+          reset($ranges);
         }
         continue;
       }
@@ -424,17 +421,17 @@ class CronRule {
             !in_array($intervals['days'][$idx['days']], $days) &&
             !isset($intervals['weekdays'][$date_array['wday']])
           ) {
-            reset(self::$ranges);
-            each(self::$ranges);
-            each(self::$ranges);
+            reset($ranges);
+            each($ranges);
+            each($ranges);
             continue;
           }
         }
         else {
           if (!isset($intervals['weekdays'][$date_array['wday']])) {
-            reset(self::$ranges);
-            each(self::$ranges);
-            each(self::$ranges);
+            reset($ranges);
+            each($ranges);
+            each($ranges);
             continue;
           }
         }
