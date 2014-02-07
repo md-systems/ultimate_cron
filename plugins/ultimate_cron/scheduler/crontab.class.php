@@ -8,8 +8,6 @@
  * Crontab scheduler.
  */
 class UltimateCronCrontabScheduler extends UltimateCronScheduler {
-  private $skews = array();
-
   /**
    * Default settings.
    */
@@ -136,9 +134,16 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
     }
 
     $settings = $job->getSettings($this->type);
-    $skew = $this->getSkew($job);
-
     $job_last_ran = $log_entry->start_time;
+
+    // Difference to last run time is less than catch_up + one minute (which is
+    // least possible difference to the next schedule. We can't possibly be
+    // behind. No need for calculation.
+    if ($job_last_ran < time() + $settings['catch_up'] + 60) {
+      return FALSE;
+    }
+
+    $skew = $this->getSkew($job);
     $next_schedule = NULL;
     foreach ($settings['rules'] as $rule) {
       $cron = CronRule::factory($rule, $job_last_ran, $skew);

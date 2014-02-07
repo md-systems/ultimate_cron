@@ -15,7 +15,7 @@ class UltimateCronJob {
   public $progressUpdated = 0;
   private $plugins = array();
   private $pluginSettings = array();
-  private $cacheSettings = array();
+  private $cacheSettings = NULL;
   private $ids = array();
 
   /**
@@ -113,8 +113,14 @@ class UltimateCronJob {
    *   all settings.
    */
   public function getSettings($type = '') {
-    if (isset($this->cacheSettings[$type])) {
-      return $this->cacheSettings[$type];
+    if (isset($this->cacheSettings)) {
+      if ($type) {
+        $settings = $this->cacheSettings[$type]['name'] ? $this->cacheSettings[$type][$this->cacheSettings[$type]['name']] : $this->cacheSettings[$type];
+      }
+      else {
+        $settings = $this->cacheSettings;
+      }
+      return $settings;
     }
     ctools_include('plugins');
     $settings = array();
@@ -123,21 +129,9 @@ class UltimateCronJob {
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $plugin_info) {
       $settings[$plugin_info['type']] = $this->getPluginSettings($plugin_type);
     }
-    if ($type) {
-      $class = $plugin_types['ultimate_cron'][$type]['defaults']['static']['class'];
-      if (!$class::$multiple) {
-        $result = $settings[$type][$settings[$type]['name']];
-      }
-      else {
-        $result = $settings[$type];
-      }
-    }
-    else {
-      $result = $settings;
-    }
 
-    $this->cacheSettings[$type] = $result;
-    return $result;
+    $this->cacheSettings = $settings;
+    return $this->getSettings($type);
   }
 
   /**

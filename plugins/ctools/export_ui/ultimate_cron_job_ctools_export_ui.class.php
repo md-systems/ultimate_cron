@@ -64,7 +64,10 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     $weight = 0;
     foreach ($allowed_operations as $name => &$operation) {
-      $operation += array('sort' => array(isset($default_sort[$name]) ? $default_sort[$name] : 0));
+      $operation += array('sort' => array(
+        isset($default_sort[$name]) ? $default_sort[$name] : 0),
+        'alias' => TRUE,
+      );
       $operation['sort'][] = $weight++;
     }
     uasort($allowed_operations, '_ultimate_cron_multi_column_sort');
