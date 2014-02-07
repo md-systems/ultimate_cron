@@ -250,7 +250,11 @@ function ultimate_cron_requirements($phase) {
 
       // Check if any jobs are behind.
       $jobs_behind = 0;
-      foreach (ultimate_cron_job_load_all() as $job) {
+      $jobs = ultimate_cron_job_load_all();
+      $log_entries = UltimateCronJob::loadLatestLogEntries($jobs);
+
+      foreach ($jobs as $job) {
+        $job->log_entry = $log_entries[$job->name];
         if ($job->isBehindSchedule()) {
           $jobs_behind++;
         }
