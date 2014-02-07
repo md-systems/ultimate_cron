@@ -313,13 +313,14 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
         LIMIT 1
       ) AS lid FROM {ultimate_cron_log} l3
       GROUP BY l3.name
-    ) l2 on l2.lid = l.lid
-    WHERE l.name IN (:jobs)", array(':jobs' => array_keys($jobs), ':log_types' => $log_types));
+    ) l2 on l2.lid = l.lid", array(':log_types' => $log_types));
 
     $log_entries = array();
     while ($object = $result->fetchObject()) {
-      $log_entries[$object->name] = new $this->log_entry_class($object->name, $this);
-      $log_entries[$object->name]->setData((array) $object);
+      if (isset($jobs[$object->name])) {
+        $log_entries[$object->name] = new $this->log_entry_class($object->name, $this);
+        $log_entries[$object->name]->setData((array) $object);
+      }
     }
     foreach ($jobs as $name => $job) {
       if (!isset($log_entries[$name])) {
