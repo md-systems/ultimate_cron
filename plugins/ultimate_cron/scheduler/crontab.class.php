@@ -139,7 +139,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
     // Difference to last run time is less than catch_up + one minute (which is
     // least possible difference to the next schedule. We can't possibly be
     // behind. No need for calculation.
-    if ($job_last_ran < time() + $settings['catch_up'] + 60) {
+    if (time() < $job_last_ran + $settings['catch_up'] + 60) {
       return FALSE;
     }
 
