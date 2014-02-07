@@ -22,6 +22,8 @@ class CronRule {
   private $type = NULL;
   static private $cache = array();
   static private $instances = array();
+  private $last_run;
+  private $next_run;
 
   /**
    * Factory method for CronRule instance.
@@ -41,7 +43,7 @@ class CronRule {
       $skew = 0;
     }
 
-    $time = isset($time) ? $time : time();
+    $time = isset($time) ? (int) $time : time();
 
     $key = "$rule:$time:$skew";
     if (isset(self::$instances[$key])) {
@@ -365,6 +367,10 @@ class CronRule {
    *   UNIX timestamp of next schedule time.
    */
   public function getNextSchedule() {
+    if (isset($this->next_run)) {
+      return $this->next_run;
+    }
+
     $intervals = $this->getIntervals();
     $last_schedule = $this->getLastSchedule();
 
@@ -437,7 +443,7 @@ class CronRule {
       break;
     }
 
-    $next_schedule = mktime(
+    $this->next_run = mktime(
       $intervals['hours'][$idx['hours']],
       $intervals['minutes'][$idx['minutes']],
       0,
@@ -445,7 +451,7 @@ class CronRule {
       $intervals['days'][$idx['days']],
       $year
     );
-    return $next_schedule;
+    return $this->next_run;
   }
 
   /**
