@@ -17,7 +17,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     return array(
       'max_execution_time' => 3600,
       'max_threads' => 1,
-      'thread' => 'fixed',
+      'thread' => 'any',
       'lock_timeout' => 3600,
       'poorman_keepalive' => FALSE,
     ) + parent::defaultSettings();
