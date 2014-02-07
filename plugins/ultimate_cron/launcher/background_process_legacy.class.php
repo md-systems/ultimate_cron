@@ -354,9 +354,10 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     $this->scheduledLaunch = TRUE;
     $settings = $this->getDefaultSettings();
 
-    // Don't use more than 45 seconds for launching jobs.
+    // Don't use more than 55 seconds for launching jobs.
     // If we fail, we will try again next time.
-    $expire = microtime(TRUE) + 45;
+    $timeout = 55;
+    $expire = microtime(TRUE) + 55;
 
     foreach ($jobs as $job) {
       if (!$job->isScheduled()) {
@@ -377,7 +378,9 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
 
       // Bail out if we expired.
       if (microtime(TRUE) >= $expire) {
-        watchdog('bgpl_launcher', 'Background Process launcher exceed time limit of 45 seconds.', array(), WATCHDOG_NOTICE);
+        watchdog('bgpl_launcher', 'Background Process launcher exceed time limit of @timeout seconds.', array(
+          '@timeout' => $timeout,
+        ), WATCHDOG_NOTICE);
         return;
       }
 
