@@ -16,6 +16,7 @@ class UltimateCronJob {
   private $plugins = array();
   private $pluginSettings = array();
   private $cacheSettings = array();
+  private $ids = array();
 
   /**
    * Invoke plugin cron_alter().
@@ -653,6 +654,12 @@ class UltimateCronJob {
     return $this->getPlugin('launcher')->formatProgress($this, $progress);
   }
 
+  /**
+   * Get a "unique" id for a job.
+   */
+  public function getUniqueID() {
+    return isset($this->ids[$this->name]) ? $this->ids[$this->name] : $this->ids[$this->name] = hexdec(substr(sha1($this->name), -8));
+  }
 
   /**
    * Send a nodejs message.

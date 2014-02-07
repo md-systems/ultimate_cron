@@ -154,6 +154,6 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
    * Get a "unique" skew for a job.
    */
   protected function getSkew($job) {
-    return isset($this->skews[$job->name]) ? $this->skews[$job->name] : $this->skews[$job->name] = hexdec(substr(sha1($job->name), -2));
+    return $job->getUniqueID() & 0xff;
   }
 }

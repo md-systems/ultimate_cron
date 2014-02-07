@@ -17,7 +17,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     return array(
       'max_execution_time' => 3600,
       'max_threads' => 1,
-      'thread' => 'any',
+      'thread' => 'fixed',
       'lock_timeout' => 3600,
       'poorman_keepalive' => FALSE,
     ) + parent::defaultSettings();
@@ -86,7 +86,10 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       $max_threads = $settings['max_threads'];
     }
 
-    $options = array('any' => t('-- Any-- '));
+    $options = array(
+      'any' => t('-- Any -- '),
+      'fixed' => t('-- Fixed -- '),
+    );
     for ($i = 1; $i <= $max_threads; $i++) {
       $options[$i] = $i;
     }
@@ -307,8 +310,16 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
     foreach ($jobs as $job) {
       $settings = $job->getSettings('launcher');
-      $proper_thread = ($settings['thread'] == 'any') || ($settings['thread'] == $thread);
-      if ($proper_thread && $job->isScheduled()) {
+      switch ($settings['thread']) {
+        case 'any':
+          $settings['thread'] = $thread;
+          break;
+
+        case 'fixed':
+          $settings['thread'] = ($job->getUniqueID() % $settings['max_threads']) + 1;
+          break;
+      }
+      if ($settings['thread'] == $thread && $job->isScheduled()) {
         $job->launch();
         // Be friendly, and check if we still own the lock.
         // If we don't, bail out, since someone else is handling

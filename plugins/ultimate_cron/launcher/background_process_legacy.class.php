@@ -412,7 +412,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    */
   static public function poormanLauncher($lock_id) {
     // Bail out if someone stole our lock.
-    if (!UltimateCronLock::reLock($lock_id, 90)) {
+    if (!UltimateCronLock::reLock($lock_id, 60)) {
       return;
     }
 
@@ -456,7 +456,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     }
 
     // Bail out if someone stole our lock.
-    if (!UltimateCronLock::reLock($lock_id, 90)) {
+    if (!UltimateCronLock::reLock($lock_id, 60)) {
       return;
     }
 
@@ -625,6 +625,13 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
 
     // Run job.
     try {
+      if ($job->getPlugin('launcher')->name != 'background_process_legacy') {
+        // Launcher has changed, end job/daemon.
+        $log_entry->finish();
+        $job->unlock($lock_id);
+        return;
+      }
+
       $settings = $job->getSettings('launcher');
       if ($settings['daemonize']) {
         $keepalive = TRUE;
