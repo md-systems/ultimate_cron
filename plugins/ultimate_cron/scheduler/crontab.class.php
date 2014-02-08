@@ -31,13 +31,21 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
    */
   public function formatLabelVerbose($job) {
     $settings = $job->getSettings($this->type);
-    $parsed = array();
 
+    $parsed = '';
+    $next_schedule = NULL;
+    $time = time();
+    $skew = $this->getSkew($job);
     foreach ($settings['rules'] as $rule) {
-      $cron = CronRule::factory($rule, time(), $this->getSkew($job));
-      $parsed[] = $cron->parseRule();
+      $cron = CronRule::factory($rule, $time, $skew);
+      $parsed .= $cron->parseRule() . "\n";
+      $result = $cron->getNextSchedule();
+      $next_schedule = is_null($next_schedule) || $next_schedule > $result ? $result : $next_schedule;
     }
-    return implode("\n", $parsed);
+    $parsed .= t('Next scheduled run at @datetime', array(
+      '@datetime' => format_date($next_schedule, 'custom', 'Y-m-d H:i:s')
+    ));
+    return $parsed;
   }
 
   /**
