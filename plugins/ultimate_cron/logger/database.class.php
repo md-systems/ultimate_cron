@@ -50,8 +50,9 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
     foreach ($jobs as $job) {
       if ($job->getPlugin($this->type)->name === $this->name) {
         $this->cleanupJob($job);
-        if (UltimateCronJob::$currentJob) {
-          UltimateCronJob::$currentJob->setProgress($current / $max);
+        $class = _ultimate_cron_get_class('job');
+        if ($class::$currentJob) {
+          $class::$currentJob->setProgress($current / $max);
           $current++;
         }
       }

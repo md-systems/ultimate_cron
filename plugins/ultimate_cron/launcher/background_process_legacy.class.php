@@ -396,11 +396,12 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    */
   public function launchPoorman() {
     $settings = $this->getDefaultSettings();
-    if ($lock_id = UltimateCronLock::lock('ultimate_cron_poorman_bgpl', 120)) {
+    $class = _ultimate_cron_get_class('lock');
+    if ($lock_id = $class::lock('ultimate_cron_poorman_bgpl', 120)) {
       $process = new BackgroundProcess();
       $process->service_group = $settings['poorman_service_group'];
       $process->start(array(get_class($this), 'poormanLauncher'), array($lock_id));
-      UltimateCronLock::persist($lock_id);
+      $class::persist($lock_id);
     }
   }
 
@@ -412,7 +413,8 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    */
   static public function poormanLauncher($lock_id) {
     // Bail out if someone stole our lock.
-    if (!UltimateCronLock::reLock($lock_id, 60)) {
+    $class = _ultimate_cron_get_class('lock');
+    if (!$class::reLock($lock_id, 60)) {
       return;
     }
 
@@ -456,7 +458,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     }
 
     // Bail out if someone stole our lock.
-    if (!UltimateCronLock::reLock($lock_id, 60)) {
+    if (!$class::reLock($lock_id, 60)) {
       return;
     }
 

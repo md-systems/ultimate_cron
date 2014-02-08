@@ -191,9 +191,10 @@ function drush_ultimate_cron_cron_list() {
     dt('Status')
   );
 
-  $lock_ids = UltimateCronJob::isLockedMultiple($jobs);
-  $log_entries = UltimateCronJob::loadLatestLogEntries($jobs);
-  $progresses = UltimateCronJob::getProgressMultiple($jobs);
+  $class = _ultimate_cron_get_class('job');
+  $lock_ids = $class::isLockedMultiple($jobs);
+  $log_entries = $class::loadLatestLogEntries($jobs);
+  $progresses = $class::getProgressMultiple($jobs);
   foreach ($jobs as $name => $job) {
     if ($module && !in_array($job->hook['module'], $module)) {
       continue;

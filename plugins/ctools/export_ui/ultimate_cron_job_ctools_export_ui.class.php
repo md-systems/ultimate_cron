@@ -250,9 +250,10 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
   public function list_form(&$form, &$form_state) {
     parent::list_form($form, $form_state);
 
-    $lock_ids = UltimateCronJob::isLockedMultiple($this->items);
-    $log_entries = UltimateCronJob::loadLatestLogEntries($this->items);
-    $progresses = UltimateCronJob::getProgressMultiple($this->items);
+    $class = _ultimate_cron_get_class('job');
+    $lock_ids = $class::isLockedMultiple($this->items);
+    $log_entries = $class::loadLatestLogEntries($this->items);
+    $progresses = $class::getProgressMultiple($this->items);
     foreach ($this->items as $name => $item) {
       $item->log_entry = isset($item->log_entry) ? $item->log_entry : $log_entries[$name];
       $item->progress = isset($item->progress) ? $item->progress : $progresses[$name];

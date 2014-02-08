@@ -251,7 +251,8 @@ function ultimate_cron_requirements($phase) {
       // Check if any jobs are behind.
       $jobs_behind = 0;
       $jobs = ultimate_cron_job_load_all();
-      $log_entries = UltimateCronJob::loadLatestLogEntries($jobs);
+      $class = _ultimate_cron_get_class('job');
+      $log_entries = $class::loadLatestLogEntries($jobs);
 
       foreach ($jobs as $job) {
         $job->log_entry = $log_entries[$job->name];

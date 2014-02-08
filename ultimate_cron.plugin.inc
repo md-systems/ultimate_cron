@@ -1003,7 +1003,8 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    *   Job to initialize progress for.
    */
   public function initializeProgress($job) {
-    return UltimateCronProgress::factory($job->name)->setProgress(FALSE);
+    $class = _ultimate_cron_get_class('progress');
+    return $class::factory($job->name)->setProgress(FALSE);
   }
 
   /**
@@ -1013,7 +1014,8 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    *   Job to finish progress for.
    */
   public function finishProgress($job) {
-    return UltimateCronProgress::factory($job->name)->setProgress(FALSE);
+    $class = _ultimate_cron_get_class('progress');
+    return $class::factory($job->name)->setProgress(FALSE);
   }
 
   /**
@@ -1026,7 +1028,8 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    *   Progress for the job.
    */
   public function getProgress($job) {
-    return UltimateCronProgress::factory($job->name)->getProgress();
+    $class = _ultimate_cron_get_class('progress');
+    return $class::factory($job->name)->getProgress();
   }
 
   /**
@@ -1039,7 +1042,8 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    *   Progresses, keyed by job name.
    */
   public function getProgressMultiple($jobs) {
-    return UltimateCronProgress::getProgressMultiple(array_keys($jobs));
+    $class = _ultimate_cron_get_class('progress');
+    return $class::getProgressMultiple(array_keys($jobs));
   }
 
   /**
@@ -1051,7 +1055,8 @@ abstract class UltimateCronLauncher extends UltimateCronPlugin {
    *   Progress (0-1).
    */
   public function setProgress($job, $progress) {
-    return UltimateCronProgress::factory($job->name)->setProgress($progress);
+    $class = _ultimate_cron_get_class('progress');
+    return $class::factory($job->name)->setProgress($progress);
   }
 
 }

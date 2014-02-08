@@ -1521,6 +1521,15 @@ function _ultimate_cron_get_transactional_safe_connection() {
   return Database::getConnection()->inTransaction() ? 'ultimate_cron' : 'default';
 }
 
+function _ultimate_cron_get_class($name) {
+  static $defaults = array(
+    'job' => 'UltimateCronJob',
+    'lock' => 'UltimateCronLock',
+    'progress' => 'UltimateCronProgress',
+  );
+  return variable_get('ultimate_cron_class_' . $name, $defaults[$name]);
+}
+
 /**
  * Stripped debug backtrace.
  *

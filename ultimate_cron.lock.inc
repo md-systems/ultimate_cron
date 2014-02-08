@@ -204,8 +204,7 @@ class UltimateCronLock {
   static public function cleanup() {
     $target = _ultimate_cron_get_transactional_safe_connection();
     $count = 0;
-    $now = microtime(TRUE);
-
+    $class = _ultimate_cron_get_class('job');
     $now = microtime(TRUE);
     db_update('ultimate_cron_lock', array('target' => $target))
       ->expression('current', 'lid')
@@ -225,7 +224,7 @@ class UltimateCronLock {
           ->condition('lid', $lids, 'IN')
           ->execute();
       }
-      if ($job = UltimateCronJob::$currentJob) {
+      if ($job = $class::$currentJob) {
         if ($job->getSignal('kill')) {
           return $job->kill();
         }
