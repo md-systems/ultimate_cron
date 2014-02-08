@@ -302,7 +302,7 @@ function ultimate_cron_job_load_all_raw($reset = FALSE) {
 }
 
 /**
- * Export UI load callback.
+ * CTools Export load callback.
  *
  * @param string $name
  *   Name of the job to load.
@@ -318,7 +318,7 @@ function ultimate_cron_job_load($name, $reset = FALSE) {
 }
 
 /**
- * Export UI load multiple callback.
+ * CTools Export load multiple callback.
  *
  * @param array $names
  *   Names of the jobs to load.
@@ -339,7 +339,7 @@ function ultimate_cron_job_load_multiple($names, $reset = FALSE) {
 }
 
 /**
- * Export UI load all callback.
+ * CTools Export load all callback.
  *
  * @param boolean $reset
  *   (optional) Reset the ctools export object cache.
@@ -424,7 +424,7 @@ function ultimate_cron_prepare_job($name, $hook, $job = NULL) {
 }
 
 /**
- * Export UI set status callback.
+ * CTools Export set status callback.
  *
  * Set job status and log it.
  *
@@ -453,7 +453,7 @@ function ultimate_cron_job_set_status($object, $status) {
 }
 
 /**
- * Export UI save callback.
+ * CTools Export save callback.
  *
  * Save a job and log it.
  *
@@ -493,7 +493,7 @@ function ultimate_cron_job_save(&$object) {
 }
 
 /**
- * Export UI delete callback.
+ * CTools Export delete callback.
  *
  * Revert a job and log it.
  *
@@ -536,6 +536,22 @@ function ultimate_cron_job_delete($object) {
  */
 function ultimate_cron_job_get_status($name) {
   return variable_get('default_ultimate_cron_job_' . $name, NULL);
+}
+
+/**
+ * CTools Export export callback.
+ *
+ * Export job.
+ *
+ * @param mixed $object
+ *   Name of job or UltimateCronJob object.
+ * @param integer $indent
+ *   Indent to use.
+ */
+function ultimate_cron_job_export($object, $indent = '') {
+  $job = clone $object;
+  // $job->settings = $job->getSettings();
+  return ctools_export_object('ultimate_cron_job', $job, $indent);
 }
 
 // ---------- HOOKS ----------

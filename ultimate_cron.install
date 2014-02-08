@@ -23,6 +23,7 @@ function ultimate_cron_schema() {
       'save callback' => 'ultimate_cron_job_save',
       'delete callback' => 'ultimate_cron_job_delete',
       'status callback' => 'ultimate_cron_job_set_status',
+      'export callback' => 'ultimate_cron_job_export',
       'object' => 'UltimateCronJob',
       'api' => array(
         'owner' => 'ultimate_cron',
