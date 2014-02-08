@@ -554,10 +554,9 @@ function ultimate_cron_job_get_status($name) {
  * @param integer $indent
  *   Indent to use.
  */
-function ultimate_cron_job_export($object, $indent = '') {
-  $job = clone $object;
-  // $job->settings = $job->getSettings();
-  return ctools_export_object('ultimate_cron_job', $job, $indent);
+function ultimate_cron_job_export_settings($object, $field, $value, $indent = '') {
+  // $value = $object->getSettings();
+  return ctools_var_export($value, $indent);
 }
 
 // ---------- HOOKS ----------
