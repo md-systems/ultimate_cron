@@ -30,8 +30,9 @@ function ultimate_cron_drush_command() {
       'module' => 'Comma separated list of modules to show jobs from',
       'enabled' => 'Show enabled jobs',
       'disabled' => 'Show enabled jobs',
+      'behind' => 'Show jobs that are behind schedule',
       'status' => 'Comma separated list of statuses to show jobs from',
-      'verbose' => 'Show verbose information',
+      'extended' => 'Show extended information',
       'name' => 'Show name instead of title',
       'scheduled' => 'Show scheduled jobs',
     ),
@@ -170,7 +171,8 @@ function drush_ultimate_cron_cron_list() {
   $module = drush_get_option('module');
   $enabled = drush_get_option('enabled');
   $disabled = drush_get_option('disabled');
-  $verbose = drush_get_option('verbose');
+  $behind = drush_get_option('behind');
+  $extended = drush_get_option('extended');
   $statuses = drush_get_option('status');
   $scheduled = drush_get_option('scheduled');
   $showname = drush_get_option('name');
@@ -212,7 +214,6 @@ function drush_ultimate_cron_cron_list() {
       continue;
     }
 
-
     $legend = '';
 
     if (!empty($job->disabled)) {
@@ -224,11 +225,15 @@ function drush_ultimate_cron_cron_list() {
     $job->progress = $progresses[$job->name];
 
     if ($job->log_entry->lid && $job->lock_id && $job->log_entry->lid !== $job->lock_id) {
-      $job->log_entry = $job->loadLogEntry($lock_id);
+      $job->log_entry = $job->loadLogEntry($job->lock_id);
     }
 
-    if ($behind = $job->isBehindSchedule()) {
+    if ($time = $job->isBehindSchedule()) {
       $legend .= 'B';
+    }
+
+    if ($behind && !$time) {
+      continue;
     }
 
     if ($job->lock_id && $job->log_entry->lid == $job->lock_id) {
@@ -255,13 +260,13 @@ function drush_ultimate_cron_cron_list() {
     $table[$name][] = $job->log_entry->formatDuration() . ' ' . $progress;
     $table[$name][] = $status;
 
-    if ($verbose) {
-      $table['verbose:' . $name][] = '';
-      $table['verbose:' . $name][] = '';
-      $table['verbose:' . $name][] = $job->name;
-      $table['verbose:' . $name][] = $job->log_entry->init_message;
-      $table['verbose:' . $name][] = '';
-      $table['verbose:' . $name][] = $job->log_entry->message;
+    if ($extended) {
+      $table['extended:' . $name][] = '';
+      $table['extended:' . $name][] = '';
+      $table['extended:' . $name][] = $job->name;
+      $table['extended:' . $name][] = $job->getPlugin('scheduler')->formatLabelVerbose($job);
+      $table['extended:' . $name][] = $job->log_entry->init_message;
+      $table['extended:' . $name][] = $job->log_entry->message;
     }
   }
   drush_print_table($table);
