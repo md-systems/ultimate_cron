@@ -30,7 +30,6 @@ function ultimate_cron_schema() {
         'minimum_version' => 3,
         'current_version' => 3,
       ),
-      'in_code_only' => TRUE,
     ),
     'fields' => array(
       'jid' => array(

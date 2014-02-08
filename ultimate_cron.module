@@ -397,8 +397,11 @@ function ultimate_cron_prepare_job($name, $hook, $job = NULL) {
     }
   }
   else {
-    $job->{$export['export type string']} = t('Overridden');
-    $job->export_type = EXPORT_IN_CODE | EXPORT_IN_DATABASE;
+    // If object lives in database, then it is overridden, since we do not
+    // have objects living only in the database.
+    if ($job->export_type & EXPORT_IN_DATABASE) {
+      $job->{$export['export type string']} = t('Overridden');
+    }
   }
 
   // We do alot of += on arrays. Let's make sure we have an array to begin with.
