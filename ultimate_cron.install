@@ -768,17 +768,33 @@ function ultimate_cron_update_7200() {
   db_create_table('ultimate_cron_job', $schema['ultimate_cron_job']);
   db_create_table('ultimate_cron_signal', $schema['ultimate_cron_signal']);
 
+  // Rebuild registry so the Drupals auto loader may find our classes.
+  registry_rebuild();
+
   // New table is ready. Let's migrate the settings.
   ctools_include('export');
   ctools_include('plugins');
   ctools_plugin_get_plugin_type_info(TRUE);
-  $old_jobs = db_query("SELECT * FROM {ultimate_cron}");
+
+  $old_jobs = array();
+  foreach (db_query("SELECT * FROM {ultimate_cron}") as $old_job) {
+    $old_job->settings = unserialize($old_job->settings);
+    $old_jobs[$old_job->name] = $old_job;
+  }
+
+  foreach (module_implements('ctools_plugin_api') as $module) {
+    if (module_invoke($module, 'ctools_plugin_api', 'ultimate_cron', 'default_ultimate_cron_functions')) {
+      print "including for module: $module\n";
+      module_load_include('default_ultimate_cron_functions.inc', $module);
+    }
+  }
+
+  $old_features = module_invoke_all('default_ultimate_cron_function');
+  $old_jobs += $old_features;
+
   $jobs = ultimate_cron_job_load_all();
 
-  foreach ($old_jobs as $old_job) {
-    $name = $old_job->name;
-    $old_job->settings = unserialize($old_job->settings);
-
+  foreach ($old_jobs as $name => $old_job) {
     if (isset($jobs[$name])) {
       $jobs[$name]->settings['scheduler'] = array(
         'name' => 'crontab',
@@ -798,7 +814,11 @@ function ultimate_cron_update_7200() {
       if (!empty($old_job->settings['catch_up'])) {
         $jobs[$name]->settings['launcher']['background_process_legacy']['service_group'] = $old_job->settings['service_group'];
       }
+      if (!empty($old_job->settings['queue_polling_throttle'])) {
+        $jobs[$name]->settings['settings']['queue']['polling_throttle'] = $old_job->settings['queue_polling_throttle'];
+      }
 
+      $jobs[$name]->dont_log = TRUE;
       ctools_export_crud_save('ultimate_cron_job', $jobs[$name]);
     }
 
@@ -861,10 +881,30 @@ function ultimate_cron_update_7200() {
   variable_set('ultimate_cron_plugin_scheduler_default', 'crontab');
   variable_set('ultimate_cron_plugin_launcher_default', 'background_process_legacy');
 
-  // Migrate poormans cron setting.
-  $general = ultimate_cron_plugin_load('settings', 'general');
-  $general->settings['poorman'] = variable_get('ultimate_cron_poorman', FALSE);
-  $general->setSettings();
+  // Migrate settings.
+  $bgpl = ultimate_cron_plugin_load('launcher', 'background_process_legacy');
+  $bgpl->settings['max_threads'] = variable_get('ultimate_cron_simultaneous_connections', 40) == 40 ? 2 : variable_get('ultimate_cron_simultaneous_connections', 40);
+  $bgpl->settings['service_group'] = variable_get('ultimate_cron_service_group', 'default');
+  $bgpl->setSettings();
+
+  $crontab = ultimate_cron_plugin_load('scheduler', 'crontab');
+  $crontab->settings['rules'] = array(variable_get('ultimate_cron_rule', '*/10+@ * * * *'));
+  $crontab->settings['catch_up'] = variable_get('ultimate_cron_catch_up', 300);
+  $crontab->setSettings();
+
+  $database = ultimate_cron_plugin_load('logger', 'database');
+  $database->settings['method'] = ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE;
+  $database->settings['expire'] = variable_get('ultimate_cron_cleanup_log', 86400 * 30);
+  $database->setSettings();
+
+  $queue = ultimate_cron_plugin_load('settings', 'queue');
+  $queue->settings['lease_time'] = variable_get('ultimate_cron_queue_lease_time', 30);
+  $queue->settings['empty_delay'] = variable_get('ultimate_cron_queue_polling_latency', 0);
+  $queue->setSettings();
+
+  $poorman = ultimate_cron_plugin_load('settings', 'poorman');
+  $poorman->settings['launcher'] = variable_get('ultimate_cron_poorman', FALSE) ? 'background_process_legacy' : '';
+  $poorman->setSettings();
 }
 
 /**

@@ -443,11 +443,13 @@ function ultimate_cron_job_set_status($object, $status) {
     $job = ultimate_cron_job_load($name);
   }
 
-  $log = $job->startLog(uniqid($job->name, TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
-  $log->log($job->name, 'Job @status by ' . $log->formatUser(), array(
-    '@status' => $status ? t('disabled') : t('enabled'),
-  ), WATCHDOG_INFO);
-  $log->finish();
+  if (empty($object->dont_log)) {
+    $log = $job->startLog(uniqid($job->name, TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
+    $log->log($job->name, 'Job @status by ' . $log->formatUser(), array(
+      '@status' => $status ? t('disabled') : t('enabled'),
+    ), WATCHDOG_INFO);
+    $log->finish();
+  }
 
   variable_set('default_ultimate_cron_job_' . $name, $status ? TRUE : FALSE);
 }
@@ -485,9 +487,11 @@ function ultimate_cron_job_save(&$object) {
   }
   $result = drupal_write_record($table, $object, $update);
 
-  $log = $object->startLog(uniqid($object->name, TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
-  $log->log($object->name, 'Job modified by ' . $log->formatUser(), array(), WATCHDOG_INFO);
-  $log->finish();
+  if (empty($object->dont_log)) {
+    $log = $object->startLog(uniqid($object->name, TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
+    $log->log($object->name, 'Job modified by ' . $log->formatUser(), array(), WATCHDOG_INFO);
+    $log->finish();
+  }
 
   return $result;
 }
@@ -520,9 +524,11 @@ function ultimate_cron_job_delete($object) {
     ->condition($export['key'], $object->{$export['key']})
     ->execute();
 
-  $log = $object->startLog(uniqid($object->name, TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
-  $log->log($object->name, 'Job reverted by ' . $log->formatUser(), array(), WATCHDOG_INFO);
-  $log->finish();
+  if (empty($object->dont_log)) {
+    $log = $object->startLog(uniqid($object->name, TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
+    $log->log($object->name, 'Job reverted by ' . $log->formatUser(), array(), WATCHDOG_INFO);
+    $log->finish();
+  }
 }
 
 /**
@@ -623,14 +629,11 @@ function ultimate_cron_menu() {
     'file' => 'ultimate_cron.poorman.inc',
   );
 
+  ctools_include('plugins');
   // In case a plugin has been removed, we need to clear the plugin cache
   // first, so cTools won't try to include non-existant files.
-  cache_clear_all('plugins:ultimate_cron:', 'cache', TRUE);
-  drupal_static_reset('ctools_plugins');
-  drupal_static_reset('ctools_plugin_setup');
+  $plugin_types = ctools_plugin_get_plugin_type_info(TRUE);
 
-  ctools_include('plugins');
-  $plugin_types = ctools_plugin_get_plugin_type_info();
   $weight = 0;
   foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
     $static = $info['defaults']['static'];
@@ -837,7 +840,9 @@ function ultimate_cron_cronapi() {
  * Capture watchdog messages and send them to the loggers.
  */
 function ultimate_cron_watchdog(array $log_entry) {
-  UltimateCronLogger::hook_watchdog($log_entry);
+  if (class_exists('UltimateCronLogger')) {
+    UltimateCronLogger::hook_watchdog($log_entry);
+  }
 }
 
 // ---------- FIXUPS FOR CORE  ----------
