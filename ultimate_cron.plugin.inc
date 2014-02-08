@@ -1493,7 +1493,15 @@ abstract class UltimateCronLogEntry {
    * Format initial message.
    */
   public function formatInitMessage() {
-    return $this->init_message . ' ' . t('by') . ' ' . $this->formatUser();
+    if ($this->start_time) {
+      return $this->init_message ? $this->init_message . ' ' . t('by') . ' ' . $this->formatUser() : t('N/A');
+    }
+    else {
+      $registered = variable_get('ultimate_cron_hooks_registered', array());
+      return !empty($registered[$this->name]) ? t('Registered at @datetime', array(
+        '@datetime' => format_date($registered[$this->name], 'custom', 'Y-m-d H:i:s'),
+      )) : t('N/A');
+    }
   }
 
   /**

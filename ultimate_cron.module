@@ -1325,6 +1325,18 @@ function ultimate_cron_get_hooks($reset = FALSE) {
   // Allow other to manipulate the hook list.
   drupal_alter('cron', $hooks);
 
+  // Keep track on when we first registered new cron jobs.
+  // This is used for as a base for time comparison in behind schedule
+  // calculation for jobs that haven't run.
+  $registered = variable_get('ultimate_cron_hooks_registered', array());
+  $new = array();
+  foreach ($hooks as $name => $hook) {
+    $new[$name] = empty($registered[$name]) ? time() : $registered[$name];
+  }
+  if ($registered != $new) {
+    variable_set('ultimate_cron_hooks_registered', $new);
+  }
+
   $cache = $hooks;
   cache_set('ultimate_cron_hooks', $cache);
   return $cache;

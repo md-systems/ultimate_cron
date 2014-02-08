@@ -129,12 +129,17 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
 
     $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
     // If job hasn't run yet, then who are we to say it's behind its schedule?
-    if (!$log_entry->start_time) {
-      return FALSE;
+    // Check the registered time, and use that if it's available.
+    $job_last_ran = $log_entry->start_time;
+    if (!$job_last_ran) {
+      $registered = variable_get('ultimate_cron_hooks_registered', array());
+      if (empty($registered[$job->name])) {
+        return FALSE;
+      }
+      $job_last_ran = $registered[$job->name];
     }
 
     $settings = $job->getSettings($this->type);
-    $job_last_ran = $log_entry->start_time;
 
     $skew = $this->getSkew($job);
     $next_schedule = NULL;
