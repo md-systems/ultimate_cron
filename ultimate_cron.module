@@ -559,6 +559,40 @@ function ultimate_cron_job_export_settings($object, $field, $value, $indent = ''
   return ctools_var_export($value, $indent);
 }
 
+/**
+ * Only overriden jobs should be exportable.
+ */
+function ultimate_cron_ultimate_cron_job_list() {
+  $table = 'ultimate_cron_job';
+  $list = array();
+
+  $items = ultimate_cron_job_load_all_raw();
+  $schema = ctools_export_get_schema($table);
+
+  $export_key = $schema['export']['key'];
+  foreach ($items as $item) {
+    // Try a couple of possible obvious title keys:
+    $keys = array('admin_title', 'title');
+    if (isset($schema['export']['admin_title'])) {
+      array_unshift($keys, $schema['export']['admin_title']);
+    }
+
+    $string = '';
+    foreach ($keys as $key) {
+      if (!empty($item->$key)) {
+        $string = $item->$key . " (" . $item->$export_key . ")";
+        break;
+      }
+    }
+
+    if (empty($string)) {
+      $string = $item->$export_key;
+    }
+    $list[$item->$export_key] = check_plain($string);
+  }
+  return $list;
+}
+
 // ---------- HOOKS ----------
 
 /**
