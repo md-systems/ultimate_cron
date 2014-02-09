@@ -115,7 +115,7 @@ class UltimateCronJob {
   public function getSettings($type = '') {
     if (isset($this->cacheSettings)) {
       if ($type) {
-        $settings = $this->cacheSettings[$type]['name'] ? $this->cacheSettings[$type][$this->cacheSettings[$type]['name']] : $this->cacheSettings[$type];
+        $settings = !empty($this->cacheSettings[$type]['name']) ? $this->cacheSettings[$type][$this->cacheSettings[$type]['name']] : $this->cacheSettings[$type];
       }
       else {
         $settings = $this->cacheSettings;
