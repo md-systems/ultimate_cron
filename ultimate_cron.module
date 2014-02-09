@@ -601,6 +601,13 @@ function ultimate_cron_ultimate_cron_job_list() {
 // ---------- HOOKS ----------
 
 /**
+ * Implements hook_flush_caches().
+ */
+function ultimate_cron_flush_caches() {
+  return array('cache_ultimate_cron');
+}
+
+/**
  * Implements hook_hook_info().
  */
 function ultimate_cron_hook_info() {

@@ -12,7 +12,7 @@ class UltimateCronCacheLogger extends UltimateCronLogger {
    */
   public function defaultSettings() {
     return array(
-      'bin' => 'cache',
+      'bin' => 'cache_ultimate_cron',
       'timeout' => 0,
     );
   }
@@ -86,9 +86,14 @@ class UltimateCronCacheLogEntry extends UltimateCronLogEntry {
       return;
     }
 
+    if ($this->log_type != ULTIMATE_CRON_LOG_TYPE_NORMAL) {
+      return;
+    }
+
     $job = ultimate_cron_job_load($this->name);
 
-    $settings = $this->logger->getDefaultSettings($job);
+    $settings = $job->getSettings('logger');
+
     $expire = $settings['timeout'] > 0 ? time() + $settings['timeout'] : $settings['timeout'];
     cache_set('uc-name:' . $this->name, $this->lid, $settings['bin'], $expire);
     cache_set('uc-lid:' . $this->lid, $this->getData(), $settings['bin'], $expire);
