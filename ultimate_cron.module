@@ -565,6 +565,67 @@ function ultimate_cron_job_export_settings($object, $field, $value, $indent = ''
 }
 
 /**
+ * Turn exported code into an object.
+ *
+ * Note: If the code is poorly formed, this could crash and there is no
+ * way to prevent this.
+ *
+ * @param $table
+ *   The name of the table to use to retrieve $schema values. This table
+ *   must have an 'export' section containing data or this function
+ *   will fail.
+ * @param $code
+ *   The code to eval to create the object.
+ *
+ * @return
+ *   An object created from the export. This object will NOT have been saved
+ *   to the database. In the case of failure, a string containing all errors
+ *   that the system was able to determine.
+ */
+function ultimate_cron_job_import($code) {
+  $table = 'ultimate_cron_job';
+  $schema = ctools_export_get_schema($table);
+  $export = $schema['export'];
+
+  ob_start();
+  eval($code);
+  ob_end_clean();
+
+  if (empty(${$export['identifier']})) {
+    $errors = ob_get_contents();
+    if (empty($errors)) {
+      $errors = t('No item found.');
+    }
+    return $errors;
+  }
+
+  $item = ${$export['identifier']};
+
+  $jobs = ultimate_cron_job_load_all();
+  if (isset($jobs[$item->name])) {
+    $job = clone $jobs[$item->name];
+    $job->disabled = $item->disabled;
+    $job->api_version = $item->api_version;
+    $job->name = $item->name;
+    $job->title = $item->title;
+    $job->settings = $item->settings;
+    $item = $job;
+  }
+  else {
+    return t('Job "@name" doesn\'t exist. You can only import jobs already defined by the system.', array(
+      '@name' => $item->name,
+    ));
+  }
+
+  // Set these defaults just the same way that ctools_export_new_object sets
+  // them.
+  $item->export_type = NULL;
+  $item->{$export['export type string']} = t('Overridden');
+
+  return $item;
+}
+
+/**
  * Only overriden jobs should be exportable.
  */
 function ultimate_cron_ultimate_cron_job_list() {

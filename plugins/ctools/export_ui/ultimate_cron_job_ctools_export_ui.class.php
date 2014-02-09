@@ -12,7 +12,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     parent::hook_menu($items);
 
     unset($items['admin/config/system/cron/jobs/add']);
-    unset($items['admin/config/system/cron/jobs/import']);
+    // unset($items['admin/config/system/cron/jobs/import']);
     unset($items['admin/config/system/cron/jobs/list/%ctools_export_ui/delete']);
     unset($items['admin/config/system/cron/jobs/list/%ctools_export_ui/clone']);
   }

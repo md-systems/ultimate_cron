@@ -23,6 +23,7 @@ function ultimate_cron_schema() {
       'save callback' => 'ultimate_cron_job_save',
       'delete callback' => 'ultimate_cron_job_delete',
       'status callback' => 'ultimate_cron_job_set_status',
+      'import callback' => 'ultimate_cron_job_import',
       'cache defaults' => TRUE,
       'default cache bin' => 'cache_ultimate_cron',
       'object' => 'UltimateCronJob',
