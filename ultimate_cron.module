@@ -401,10 +401,12 @@ function ultimate_cron_prepare_job($name, $hook, $job = NULL) {
     // have objects living only in the database.
     if ($job->export_type & EXPORT_IN_DATABASE) {
       $job->{$export['export type string']} = t('Overridden');
+      $job->export_type |= EXPORT_IN_CODE;
     }
   }
 
   // We do alot of += on arrays. Let's make sure we have an array to begin with.
+  ctools_include('plugins');
   $plugin_types = ctools_plugin_get_plugin_type_info();
   foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
     $class = $info['defaults']['static']['class'];
