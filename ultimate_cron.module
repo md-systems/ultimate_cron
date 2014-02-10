@@ -716,16 +716,7 @@ function ultimate_cron_help($path, $arg) {
 function ultimate_cron_menu() {
   $items = array();
 
-  $items['admin/config/system/cron/settings'] = array(
-    'title' => 'Settings',
-    'description' => 'Cron settings',
-    'page callback' => 'drupal_get_form',
-    'page arguments' => array('ultimate_cron_settings_form'),
-    'access arguments' => array('administer ultimate cron'),
-    'type' => MENU_LOCAL_TASK,
-    'file' => 'ultimate_cron.admin.inc',
-  );
-
+  // Poormans cron trigger.
   $items['admin/config/system/cron/poorman'] = array(
     'title' => 'Poormans cron',
     'description' => 'Trigger poormans cron',
@@ -740,6 +731,7 @@ function ultimate_cron_menu() {
   // first, so cTools won't try to include non-existant files.
   $plugin_types = ctools_plugin_get_plugin_type_info(TRUE);
 
+  // Create callbacks for all plugins.
   $weight = 0;
   foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
     $static = $info['defaults']['static'];
