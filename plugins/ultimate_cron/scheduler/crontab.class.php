@@ -41,6 +41,11 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
       $parsed .= $cron->parseRule() . "\n";
       $result = $cron->getNextSchedule();
       $next_schedule = is_null($next_schedule) || $next_schedule > $result ? $result : $next_schedule;
+      $result = $cron->getLastSchedule();
+      if ($time < $result + $settings['catch_up']) {
+        $result = floor($time / 60) * 60 + 60;
+        $next_schedule = $next_schedule > $result ? $result : $next_schedule;
+      }
     }
     $parsed .= t('Next scheduled run at @datetime', array(
       '@datetime' => format_date($next_schedule, 'custom', 'Y-m-d H:i:s')
