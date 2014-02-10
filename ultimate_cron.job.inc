@@ -45,37 +45,39 @@ class UltimateCronJob {
   /**
    * Get a signal without affecting it.
    *
-   * @see ultimate_cron_peek_signal()
+   * @see UltimateCronSignal::peek()
    */
   public function peekSignal($signal) {
     if (isset(self::$signals[$this->name][$signal])) {
       return TRUE;
     }
-    return ultimate_cron_peek_signal($this->name, $signal);
+    $class = _ultimate_cron_get_class('signal');
+    return $class::peek($this->name, $signal);
   }
 
   /**
    * Get a signal and clear it if found.
    *
-   * @see ultimate_cron_get_signal()
+   * @see UltimateCronSignal::get()
    */
   public function getSignal($signal) {
     if (isset(self::$signals[$this->name][$signal])) {
       unset(self::$signals[$this->name][$signal]);
       return TRUE;
     }
-
-    return ultimate_cron_get_signal($this->name, $signal);
+    $class = _ultimate_cron_get_class('signal');
+    return $class::get($this->name, $signal);
   }
 
   /**
    * Send a signal.
    *
-   * @see ultimate_cron_set_signal()
+   * @see UltimateCronSignal::set()
    */
   public function sendSignal($signal, $persist = FALSE) {
     if ($persist) {
-      ultimate_cron_set_signal($this->name, $signal);
+      $class = _ultimate_cron_get_class('signal');
+      $class::set($this->name, $signal);
     }
     else {
       self::$signals[$this->name][$signal] = TRUE;
@@ -85,21 +87,23 @@ class UltimateCronJob {
   /**
    * Clear a signal.
    *
-   * @see ultimate_cron_clear_signal()
+   * @see UltimateCronSignal::clear()
    */
   public function clearSignal($signal) {
     unset(self::$signals[$this->name][$signal]);
-    ultimate_cron_clear_signal($this->name, $signal);
+    $class = _ultimate_cron_get_class('signal');
+    $class::clear($this->name, $signal);
   }
 
   /**
    * Send all signal for the job.
    *
-   * @see ultimate_cron_clear_signals()
+   * @see UltimateCronSignal::flush()
    */
   public function clearSignals() {
     unset(self::$signals[$this->name]);
-    ultimate_cron_clear_signals($this->name);
+    $class = _ultimate_cron_get_class('signal');
+    $class::flush($this->name);
   }
 
   /**

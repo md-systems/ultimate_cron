@@ -5,7 +5,6 @@
  */
 
 include dirname(__FILE__) . '/ultimate_cron.poorman.inc';
-include dirname(__FILE__) . '/ultimate_cron.signal.inc';
 
 define('ULTIMATE_CRON_LOG_TYPE_NORMAL', 0);
 define('ULTIMATE_CRON_LOG_TYPE_ADMIN', 1);
@@ -1600,6 +1599,7 @@ function _ultimate_cron_get_class($name) {
     'job' => 'UltimateCronJob',
     'lock' => 'UltimateCronLock',
     'progress' => 'UltimateCronProgress',
+    'signal' => 'UltimateCronSignal',
   );
   return variable_get('ultimate_cron_class_' . $name, $defaults[$name]);
 }
