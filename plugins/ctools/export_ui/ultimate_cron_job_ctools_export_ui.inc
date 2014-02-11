@@ -23,8 +23,7 @@ $plugin = array(
         'title' => 'Run scheduled jobs',
         'page callback' => 'ultimate_cron_run_scheduled_page',
         'page arguments' => array(),
-        'access callback' => TRUE,
-        'access arguments' => array(),
+        'access arguments' => array('administer ultimate cron'),
         'module' => 'ultimate_cron',
         'file path' => drupal_get_path('module', 'ultimate_cron'),
         'file' => 'ultimate_cron.module',
@@ -36,8 +35,7 @@ $plugin = array(
         'page callback' => 'ctools_export_ui_switcher_page',
         'page arguments' => array('ultimate_cron_job_ctools_export_ui', 'run', 6),
         'load arguments' => array('ultimate_cron_job_ctools_export_ui'),
-        'access callback' => TRUE,
-        'access arguments' => array(),
+        'access arguments' => array('administer ultimate cron'),
         'type' => MENU_CALLBACK,
       ),
       'unlock' => array(
@@ -46,8 +44,7 @@ $plugin = array(
         'page callback' => 'ctools_export_ui_switcher_page',
         'page arguments' => array('ultimate_cron_job_ctools_export_ui', 'unlock', 6),
         'load arguments' => array('ultimate_cron_job_ctools_export_ui'),
-        'access callback' => TRUE,
-        'access arguments' => array(),
+        'access arguments' => array('administer ultimate cron'),
         'type' => MENU_CALLBACK,
       ),
       'logs' => array(
@@ -56,8 +53,7 @@ $plugin = array(
         'page callback' => 'ctools_export_ui_switcher_page',
         'page arguments' => array('ultimate_cron_job_ctools_export_ui', 'logs', 6),
         'load arguments' => array('ultimate_cron_job_ctools_export_ui'),
-        'access callback' => TRUE,
-        'access arguments' => array(),
+        'access arguments' => array('administer ultimate cron'),
         'type' => MENU_VISIBLE_IN_BREADCRUMB,
       ),
       'custom' => array(
@@ -66,12 +62,14 @@ $plugin = array(
         'page callback' => 'ctools_export_ui_switcher_page',
         'page arguments' => array('ultimate_cron_job_ctools_export_ui', 'custom', 6),
         'load arguments' => array('ultimate_cron_job_ctools_export_ui'),
-        'access callback' => TRUE,
-        'access arguments' => array(),
+        'access arguments' => array('administer ultimate cron'),
         'type' => MENU_VISIBLE_IN_BREADCRUMB,
       ),
     ),
   ),
+
+  // General access criteria.
+  'access' => 'administer ultimate cron',
 
   // Add our custom operations.
   'allowed operations' => array(
