@@ -5,6 +5,53 @@
  */
 
 class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
+  public function access($op, $item) {
+    switch ($op) {
+      case 'list':
+        return user_access('administer ultimate cron') || user_access($this->plugin['access']);
+    }
+
+    // More fine-grained access control:
+    $key = $op . ' access';
+    if (!empty($this->plugin[$key])) {
+      if (!user_access($this->plugin[$key])) {
+        return FALSE;
+      }
+    }
+
+    // If we need to do a token test, do it here.
+    if (empty($this->notoken) && !empty($this->plugin['allowed operations'][$op]['token']) && (!isset($_GET['token']) || !drupal_valid_token($_GET['token'], $op))) {
+      return FALSE;
+    }
+
+    switch ($op) {
+      case 'import':
+        return user_access('use PHP for settings');
+
+      case 'revert':
+        return ($item->export_type & EXPORT_IN_DATABASE) && ($item->export_type & EXPORT_IN_CODE);
+
+      case 'delete':
+        return ($item->export_type & EXPORT_IN_DATABASE) && !($item->export_type & EXPORT_IN_CODE);
+
+      case 'disable':
+        return empty($item->disabled);
+
+      case 'enable':
+        return !empty($item->disabled);
+
+      case 'configure':
+        if (!empty($item->hook['configure'])) {
+          $router_item = menu_get_item($item->hook['configure']);
+          return $router_item['access'];
+        }
+        return TRUE;
+
+      default:
+        return TRUE;
+    }
+  }
+
   /**
    * Ensure we cannot add, import, delete or clone.
    */
@@ -63,13 +110,19 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     );
 
     $weight = 0;
+    $this->notoken = TRUE;
     foreach ($allowed_operations as $name => &$operation) {
+      if (!$this->access($name, $item)) {
+        unset($allowed_operations[$name]);
+        continue;
+      }
       $operation += array('sort' => array(
         isset($default_sort[$name]) ? $default_sort[$name] : 0),
         'alias' => TRUE,
       );
       $operation['sort'][] = $weight++;
     }
+    unset($this->notoken);
     uasort($allowed_operations, '_ultimate_cron_multi_column_sort');
     return $allowed_operations;
   }

@@ -35,7 +35,8 @@ $plugin = array(
         'page callback' => 'ctools_export_ui_switcher_page',
         'page arguments' => array('ultimate_cron_job_ctools_export_ui', 'run', 6),
         'load arguments' => array('ultimate_cron_job_ctools_export_ui'),
-        'access arguments' => array('administer ultimate cron'),
+        'access callback' => 'ctools_export_ui_task_access',
+        'access arguments' => array('ultimate_cron_job_ctools_export_ui', 'run'),
         'type' => MENU_CALLBACK,
       ),
       'unlock' => array(
@@ -44,7 +45,8 @@ $plugin = array(
         'page callback' => 'ctools_export_ui_switcher_page',
         'page arguments' => array('ultimate_cron_job_ctools_export_ui', 'unlock', 6),
         'load arguments' => array('ultimate_cron_job_ctools_export_ui'),
-        'access arguments' => array('administer ultimate cron'),
+        'access callback' => 'ctools_export_ui_task_access',
+        'access arguments' => array('ultimate_cron_job_ctools_export_ui', 'unlock'),
         'type' => MENU_CALLBACK,
       ),
       'logs' => array(
@@ -53,7 +55,8 @@ $plugin = array(
         'page callback' => 'ctools_export_ui_switcher_page',
         'page arguments' => array('ultimate_cron_job_ctools_export_ui', 'logs', 6),
         'load arguments' => array('ultimate_cron_job_ctools_export_ui'),
-        'access arguments' => array('administer ultimate cron'),
+        'access callback' => 'ctools_export_ui_task_access',
+        'access arguments' => array('ultimate_cron_job_ctools_export_ui', 'logs'),
         'type' => MENU_VISIBLE_IN_BREADCRUMB,
       ),
       'custom' => array(
@@ -62,14 +65,24 @@ $plugin = array(
         'page callback' => 'ctools_export_ui_switcher_page',
         'page arguments' => array('ultimate_cron_job_ctools_export_ui', 'custom', 6),
         'load arguments' => array('ultimate_cron_job_ctools_export_ui'),
-        'access arguments' => array('administer ultimate cron'),
+        'access callback' => 'ctools_export_ui_task_access',
+        'access arguments' => array('ultimate_cron_job_ctools_export_ui', 'custom'),
         'type' => MENU_VISIBLE_IN_BREADCRUMB,
       ),
     ),
   ),
 
-  // General access criteria.
-  'access' => 'administer ultimate cron',
+  // Fine grained access criterias.
+  'logs access' => 'view cron jobs',
+  'export access' => 'view cron jobs',
+  'run access' => 'run cron jobs',
+  'unlock access' => 'run cron jobs',
+  'custom access' => 'run cron jobs',
+  'edit access' => 'administer ultimate cron',
+  'enable access' => 'administer ultimate cron',
+  'disable access' => 'administer ultimate cron',
+  'revert access' => 'administer ultimate cron',
+  'import' => 'administer ultimate cron',
 
   // Add our custom operations.
   'allowed operations' => array(
