@@ -1271,7 +1271,6 @@ function ultimate_cron_get_module_hooks($module) {
       $items[$hook_name] += array(
         'module' => $module,
         'title' => 'Easy hook ' . $name,
-        'configure' => empty($info['configure']) ? NULL : $info['configure'],
       );
     }
   }

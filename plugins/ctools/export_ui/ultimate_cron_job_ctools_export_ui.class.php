@@ -42,7 +42,14 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
       case 'configure':
         if (!empty($item->hook['configure'])) {
-          $router_item = menu_get_item($item->hook['configure']);
+          $cache = cache_get($item->hook['configure'], 'cache_menu');
+          if ($cache) {
+            $router_item = menu_get_item($item->hook['configure'], $cache->data);
+          }
+          else {
+            $router_item = menu_get_item($item->hook['configure']);
+            cache_set($item->hook['configure'], $router_item, 'cache_menu');
+          }
           return $router_item['access'];
         }
         return TRUE;
