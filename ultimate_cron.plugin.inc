@@ -19,6 +19,7 @@ class UltimateCronPlugin {
   static public $multiple = FALSE;
   static public $instances = array();
   public $weight = 0;
+  static public $globalOptions = array();
 
   /**
    * Constructor.
@@ -48,6 +49,58 @@ class UltimateCronPlugin {
       self::$instances[$plugin['plugin type']][$name] = new $class($name, $plugin);
     }
     return self::$instances[$plugin['plugin type']][$name];
+  }
+
+  /**
+   * Get global plugin option.
+   *
+   * @param string $name
+   *   Name of global plugin option to get.
+   *
+   * @return mixed
+   *   Value of option if any, NULL if not found.
+   */
+  static public function getGlobalOption($name) {
+    return isset(self::$globalOptions[$name]) ? self::$globalOptions[$name] : NULL;
+  }
+
+  /**
+   * Get all global plugin options.
+   *
+   * @return array
+   *   All options currently set, keyed by name.
+   */
+  static public function getGlobalOptions() {
+    return self::$globalOptions;
+  }
+
+  /**
+   * Set global plugin option.
+   *
+   * @param string $name
+   *   Name of global plugin option to get.
+   * @param string $value
+   *   The value to give it.
+   */
+  static public function setGlobalOption($name, $value) {
+    self::$globalOptions[$name] = $value;
+  }
+
+  /**
+   * Remove a global plugin option.
+   *
+   * @param string $name
+   *   Name of global plugin option to remove.
+   */
+  static public function unsetGlobalOption($name) {
+    unset(self::$globalOptions[$name]);
+  }
+
+  /**
+   * Remove all global plugin options.
+   */
+  static public function unsetGlobalOptions() {
+    self::$globalOptions = array();
   }
 
   /**

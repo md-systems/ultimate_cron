@@ -386,7 +386,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
 
       // Everything's good. Launch job!
       $job_settings = $job->getSettings($this->type);
-      $job->recheck = $job_settings['recheck'];
+      $job->recheck = !self::getGlobalOption('bypass_schedule') && $job_settings['recheck'];
       $job->launch();
     }
   }

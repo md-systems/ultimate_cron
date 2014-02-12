@@ -99,7 +99,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
       '#type' => 'select',
       '#default_value' => $values['thread'],
       '#options' => $options,
-      '#description' => t('Which thread to run in when invoking with ?thread=N.'),
+      '#description' => t('Which thread to run in when invoking with ?thread=N. Note: This setting only has an effect when cron is run through cron.php with an argument ?thread=N or through Drush with --options=thread=N.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
       '#weight' => 2,
@@ -273,7 +273,10 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
     $lock_timeout = 55;
 
     if (!empty($_GET['thread'])) {
-      $thread = intval($_GET['thread']);
+      self::setGlobalOption('thread', $_GET['thread']);
+    }
+
+    if ($thread = intval(self::getGlobalOption('thread'))) {
       if ($thread < 1 || $thread > $settings['max_threads']) {
         watchdog('serial_launcher', "Invalid thread available for starting launch thread", array(), WATCHDOG_WARNING);
         return;
@@ -335,7 +338,7 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
           $settings['thread'] = ($job->getUniqueID() % $settings['max_threads']) + 1;
           break;
       }
-      if ((empty($_GET['thread']) || $settings['thread'] == $thread) && $job->isScheduled()) {
+      if ((!self::getGlobalOption('thread') || $settings['thread'] == $thread) && $job->isScheduled()) {
         $job->launch();
         // Be friendly, and check if someone else has taken the lock.
         // If they have, bail out, since someone else is now handling

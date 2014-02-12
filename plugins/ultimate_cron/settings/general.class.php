@@ -37,7 +37,7 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
    * Implements hook_cron_post_schedule().
    */
   public function cron_post_schedule($job, &$result) {
-    if (!empty($GLOBALS['ultimate_cron_drush_bypass_schedule'])) {
+    if (self::getGlobalOption('bypass_schedule')) {
       $result = $result || (empty($job->disabled) && !$job->isLocked());
     }
   }

@@ -73,10 +73,12 @@ function ultimate_cron_drush_command() {
       'name' => 'Job to run',
     ),
     'options' => array(
-      'force' => 'Only effective when cron-run is run without any arguments. This options skip the schedule check for each job. Locks are still respected.',
+      'force' => 'Only effective when cron-run is run without any arguments. This options skip the schedule check for each job. Locks are still respected. This option is a synonom for --options=bypass_schedule',
+      'options' => 'Custom options for plugins, e.g. --options=thread=1 for serial launcher',
     ),
     'examples' => array(
       'drush cron-run node_cron' => 'Run the node_cron job',
+      'drush cron-run --options=thread=1' => 'Run all scheduled jobs and instruct serial launcher only to launch thread 1 jobs',
     ),
     'aliases' => array('cr'),
   );
@@ -410,9 +412,16 @@ function drush_ultimate_cron_cron_job_set($name = NULL, $settings = NULL) {
  * Run cron job(s).
  */
 function drush_ultimate_cron_cron_run($name = NULL) {
+  if ($options = drush_get_option('options')) {
+    $pairs = explode(',', $options);
+    foreach ($pairs as $pair) {
+      list($key, $value) = explode('=', $pair);
+      UltimateCronPlugin::setGlobalOption(trim($key), trim($value));
+    }
+  }
   if (!$name) {
     if (drush_get_option('force')) {
-      $GLOBALS['ultimate_cron_drush_bypass_schedule'] = TRUE;
+      UltimateCronPlugin::setGlobalOption('bypass_schedule', TRUE);
     }
     ultimate_cron_run_scheduled(FALSE);
   }
