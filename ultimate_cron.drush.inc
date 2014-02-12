@@ -197,6 +197,9 @@ function drush_ultimate_cron_cron_list() {
   $lock_ids = $class::isLockedMultiple($jobs);
   $log_entries = $class::loadLatestLogEntries($jobs);
   $progresses = $class::getProgressMultiple($jobs);
+
+  $print_legend = FALSE;
+
   foreach ($jobs as $name => $job) {
     if ($module && !in_array($job->hook['module'], $module)) {
       continue;
@@ -218,6 +221,7 @@ function drush_ultimate_cron_cron_list() {
 
     if (!empty($job->disabled)) {
       $legend .= 'D';
+      $print_legend = TRUE;
     }
 
     $job->lock_id = $lock_ids[$job->name];
@@ -230,6 +234,7 @@ function drush_ultimate_cron_cron_list() {
 
     if ($time = $job->isBehindSchedule()) {
       $legend .= 'B';
+      $print_legend = TRUE;
     }
 
     if ($behind && !$time) {
@@ -239,6 +244,7 @@ function drush_ultimate_cron_cron_list() {
     if ($job->lock_id && $job->log_entry->lid == $job->lock_id) {
       $legend .= 'R';
       list($null, $status) = $job->getPlugin('launcher')->formatRunning($job);
+      $print_legend = TRUE;
     }
     elseif ($job->log_entry->start_time && !$job->log_entry->end_time) {
       list($null, $status) = $job->getPlugin('launcher')->formatUnfinished($job);
@@ -270,7 +276,7 @@ function drush_ultimate_cron_cron_list() {
     }
   }
   drush_print_table($table);
-  if ($legend) {
+  if ($print_legend) {
     drush_print("\n" . dt('Legend: D = Disabled, R = Running, B = Behind schedule'));
   }
 }
