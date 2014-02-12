@@ -7,6 +7,7 @@ dependencies[] = ctools
 files[] = tests/rules.test
 files[] = CronRule.class.php
 files[] = ultimate_cron.lock.inc
+files[] = ultimate_cron.memcache-lock.inc
 files[] = ultimate_cron.job.inc
 files[] = ultimate_cron.plugin.inc
 files[] = ultimate_cron.progress.inc
