@@ -266,7 +266,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       $rows[$log_entry->lid]['data'][] = array(
         'data' => $log_entry->formatDuration() . $progress,
         'class' => array('ctools-export-ui-duration'),
-        'title' => $log_entry->formatEndTime(),
+        'title' => strip_tags($log_entry->formatEndTime()),
       );
 
       $rows[$log_entry->lid]['data'][] = array('data' => $log_entry->formatUser(), 'class' => array('ctools-export-ui-user'));
@@ -531,7 +531,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $this->rows[$name]['data'][] = array(
       'data' => check_plain($item->getModuleName()),
       'class' => array('ctools-export-ui-module'),
-      'title' => check_plain($item->getModuleDescription()),
+      'title' => strip_tags($item->getModuleDescription()),
     );
 
     // If we have an admin title, make it the first row.
@@ -539,7 +539,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
       $this->rows[$name]['data'][] = array(
         'data' => check_plain($item->{$this->plugin['export']['admin_title']}),
         'class' => array('ctools-export-ui-title'),
-        'title' => $item->name,
+        'title' => strip_tags($item->name),
       );
     }
 
@@ -566,7 +566,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $this->rows[$name]['data'][] = array(
       'data' => '<span class="duration-time" data-src="' . $item->log_entry->getDuration() . '">' . $item->log_entry->formatDuration() . '</span> <span class="duration-progress">' . $progress . '</span>',
       'class' => array('ctools-export-ui-duration'),
-      'title' => $item->log_entry->formatEndTime(),
+      'title' => strip_tags($item->log_entry->formatEndTime()),
     );
 
     // Status.
@@ -597,7 +597,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
 
     // Add an automatic mouseover of the description if one exists.
     if (!empty($this->plugin['export']['admin_description'])) {
-      $this->rows[$name]['title'] = $item->{$this->plugin['export']['admin_description']};
+      $this->rows[$name]['title'] = strip_tags($item->{$this->plugin['export']['admin_description']});
     }
   }
 
