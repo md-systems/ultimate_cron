@@ -294,6 +294,7 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
     $output .= theme('table', array(
       'header' => $header,
       'rows' => $rows,
+      'empty' => t('No log entries exists for this job yet.'),
     ));
     $output .= theme('pager');
     return $output;
