@@ -689,10 +689,9 @@ function ultimate_cron_init() {
   if (!variable_get('ultimate_cron_bypass_transactional_safe_connection')) {
     $info = Database::getConnectionInfo('default');
     Database::addConnectionInfo('default', 'ultimate_cron', $info['default']);
-
-    $GLOBALS['ultimate_cron_original_session_saving'] = drupal_save_session();
-    $GLOBALS['ultimate_cron_original_user'] = $GLOBALS['user'];
   }
+  $GLOBALS['ultimate_cron_original_session_saving'] = drupal_save_session();
+  $GLOBALS['ultimate_cron_original_user'] = $GLOBALS['user'];
 
   _ultimate_cron_variable_load('cron_last');
 }
@@ -1599,7 +1598,7 @@ function _ultimate_cron_multi_column_sort($a, $b) {
  *   Connection target.
  */
 function _ultimate_cron_get_transactional_safe_connection() {
-  return Database::getConnection()->inTransaction() ? 'ultimate_cron' : 'default';
+  return !variable_get('ultimate_cron_bypass_transactional_safe_connection') && Database::getConnection()->inTransaction() ? 'ultimate_cron' : 'default';
 }
 
 function _ultimate_cron_get_class($name) {
