@@ -756,6 +756,3 @@ class UltimateCronJob {
     return $final_cells;
   }
 }
-
-class UltimateCronJobTest extends UltimateCronJob {
-}
