@@ -550,7 +550,7 @@ function ultimate_cron_job_get_status($name) {
 }
 
 /**
- * CTools Export export callback.
+ * CTools Export field export callback.
  *
  * Export job.
  *
@@ -562,6 +562,21 @@ function ultimate_cron_job_get_status($name) {
 function ultimate_cron_job_export_settings($object, $field, $value, $indent = '') {
   // $value = $object->getSettings();
   return ctools_var_export($value, $indent);
+}
+
+/**
+ * CTools Export export callback.
+ *
+ * Export job.
+ *
+ * @param mixed $object
+ *   Name of job or UltimateCronJob object.
+ * @param integer $indent
+ *   Indent to use.
+ */
+function ultimate_cron_job_export($object, $indent = '') {
+  $object = (object) (array) $object;
+  return ctools_export_object('ultimate_cron_job', $object, $indent);
 }
 
 /**

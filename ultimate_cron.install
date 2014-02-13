@@ -10,6 +10,8 @@
 function ultimate_cron_schema() {
   $schema = array();
 
+  $class = variable_get('ultimate_cron_class_job', 'UltimateCronJob');
+
   $schema['ultimate_cron_job'] = array(
     'description' => 'Cron jobs',
     'export' => array(
@@ -24,9 +26,10 @@ function ultimate_cron_schema() {
       'delete callback' => 'ultimate_cron_job_delete',
       'status callback' => 'ultimate_cron_job_set_status',
       'import callback' => 'ultimate_cron_job_import',
+      'export callback' => 'ultimate_cron_job_export',
       'cache defaults' => TRUE,
       'default cache bin' => 'cache_ultimate_cron',
-      'object' => 'UltimateCronJob',
+      'object' => $class,
       'api' => array(
         'owner' => 'ultimate_cron',
         'api' => 'ultimate_cron',
@@ -581,6 +584,8 @@ function ultimate_cron_update_7109() {
 function ultimate_cron_update_7200() {
   $schema = array();
 
+  $class = variable_get('ultimate_cron_class_job', 'UltimateCronJob');
+
   $schema['ultimate_cron_job'] = array(
     'description' => 'Cron jobs',
     'export' => array(
@@ -594,7 +599,7 @@ function ultimate_cron_update_7200() {
       'save callback' => 'ultimate_cron_job_save',
       'delete callback' => 'ultimate_cron_job_delete',
       'status callback' => 'ultimate_cron_job_set_status',
-      'object' => 'UltimateCronJob',
+      'object' => $class,
       'api' => array(
         'owner' => 'ultimate_cron',
         'api' => 'ultimate_cron',
