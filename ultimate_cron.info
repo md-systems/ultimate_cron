@@ -11,6 +11,8 @@ files[] = ultimate_cron.memcache-lock.inc
 files[] = ultimate_cron.job.inc
 files[] = ultimate_cron.plugin.inc
 files[] = ultimate_cron.progress.inc
+files[] = ultimate_cron.memcache-progress.inc
 files[] = ultimate_cron.signal.inc
+files[] = ultimate_cron.cache-signal.inc
 
 configure = admin/config/system/cron/settings
