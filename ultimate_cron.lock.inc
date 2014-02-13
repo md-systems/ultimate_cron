@@ -14,6 +14,8 @@
 class UltimateCronLock {
   private static $locks = NULL;
 
+  public static $killable = TRUE;
+
   /**
    * Shutdown handler for releasing locks.
    */

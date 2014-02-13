@@ -11,6 +11,16 @@ class UltimateCronSerialLauncher extends UltimateCronLauncher {
   public $currentThread = NULL;
 
   /**
+   * Implements hook_cron_alter().
+   */
+  public function cron_alter(&$jobs) {
+    $class = _ultimate_cron_get_class('lock');
+    if (!empty($class::$killable)) {
+      $jobs['ultimate_cron_plugin_launcher_serial_cleanup']->hook['tags'][] = 'killable';
+    }
+  }
+
+  /**
    * Default settings.
    */
   public function defaultSettings() {
