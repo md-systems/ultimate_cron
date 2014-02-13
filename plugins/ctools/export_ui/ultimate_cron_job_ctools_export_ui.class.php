@@ -191,56 +191,6 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
    * Page with logs.
    */
   public function logs_page($js, $input, $item) {
-    /*
-    $log_entries = $item->getLogEntries(50);
-
-    $data = array();
-    $xlabels = array();
-    $max = 0;
-    foreach (array_reverse($log_entries) as $log_entry) {
-      $duration = round(($log_entry->end_time - $log_entry->start_time) * 1000);
-      $data[] = $duration;
-      $max = $max < $duration ? $duration : $max;
-      $xlabels[] = format_date((int) $log_entry->start_time, 'custom', 'Y-m-d H:i:s');
-    }
-
-    $ylabels = array();
-    $step = $max / 20;
-    dpm($step);
-    dpm($max);
-    for ($yc = 0; $yc <= $max; $yc += $step) {
-      $yl = $yc / 1000;
-      // dpm($yc);
-      $ylabels[round($yc)] = gmdate('H:i:s:', (int) $yl) . sprintf("%04d", round($yl * 1000));
-    }
-    dpm($ylabels);
-
-    $chart = array(
-      '#type' => 'chart',
-      '#chart_type' => 'column',
-      '#title' => t('Column simple'),
-      // '#chart_library' => 'highcharts',
-    );
-    $chart['duration'] = array(
-      '#type' => 'chart_data',
-      '#title' => t('Duration'),
-      '#data' => $data,
-      // '#suffix' => 'seconds',
-    );
-    $chart['xaxis'] = array(
-      '#type' => 'chart_xaxis',
-      '#labels' => $xlabels,
-    );
-    $chart['yaxis'] = array(
-      '#type' => 'chart_yaxis',
-      '#axis_type' => 'linear',
-      '#labels' => $ylabels,
-    );
-    dpm($chart);
-
-    return drupal_render($chart);
-/**/
-
     $log_entries = $item->getLogEntries();
     $output = '';
     $header = array(

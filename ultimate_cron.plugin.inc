@@ -1339,7 +1339,7 @@ abstract class UltimateCronLogEntry {
   public $lid = NULL;
   public $name = '';
   public $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL;
-  public $uid = 0;
+  public $uid = NULL;
   public $start_time = 0;
   public $end_time = 0;
   public $init_message = '';
@@ -1369,8 +1369,10 @@ abstract class UltimateCronLogEntry {
     $this->name = $name;
     $this->logger = $logger;
     $this->log_type = $log_type;
-    global $user;
-    $this->uid = $user->uid;
+    if (!isset($this->uid)) {
+      global $user;
+      $this->uid = $user->uid;
+    }
   }
 
   /**
