@@ -226,7 +226,8 @@ class UltimateCronLock {
       }
       if ($job = $class::$currentJob) {
         if ($job->getSignal('kill')) {
-          return $job->kill();
+          watchdog('ultimate_cron', 'kill signal recieved', array(), WATCHDOG_WARNING);
+          return;
         }
       }
     } while ($lids);

@@ -218,13 +218,6 @@ class UltimateCronJob {
   }
 
   /**
-   * Log kill signal recieved.
-   */
-  public function kill() {
-    watchdog('ultimate_cron', 'kill signal recieved', array(), WATCHDOG_WARNING);
-  }
-
-  /**
    * Enable a job.
    */
   public function enable() {

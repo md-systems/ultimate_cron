@@ -66,7 +66,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
             'worker callback' => $info['worker callback'],
           ),
         ),
-        'tags' => array('queue', 'core'),
+        'tags' => array('queue', 'core', 'killable'),
         'module' => $info['module'],
       );
       if (isset($info['time'])) {
@@ -96,6 +96,11 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
     $end = microtime(TRUE) + $settings['queue']['time'];
     $items = 0;
     while (microtime(TRUE) < $end) {
+      if ($job->getSignal('kill')) {
+        watchdog('ultimate_cron', 'kill signal recieved', array(), WATCHDOG_WARNING);
+        break;
+      }
+
       $item = $queue->claimItem($settings['queue']['lease_time']);
       if (!$item) {
         if ($settings['queue']['empty_delay']) {
