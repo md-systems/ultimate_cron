@@ -809,7 +809,7 @@ function ultimate_cron_menu_alter(&$items) {
   // Steal the core cron run.
   $steal = &$items['admin/reports/status/run-cron'];
   $steal['page callback'] = 'ultimate_cron_run_scheduled_page';
-  $steal['page arguments'] = array();
+  $steal['page arguments'] = array('admin/reports/status');
   $steal['module'] = 'ultimate_cron';
   $steal['file'] = 'ultimate_cron.module';
 }
@@ -1490,12 +1490,10 @@ function ultimate_cron_blank_values($array) {
 /**
  * Page callback for running scheduled jobs.
  */
-function ultimate_cron_run_scheduled_page() {
+function ultimate_cron_run_scheduled_page($dest = NULL) {
   ultimate_cron_run_scheduled(TRUE);
-  if (isset($_SERVER['HTTP_REFERER']) && empty($_GET['destination'])) {
-    $_GET['destination'] = parse_url($_SERVER['HTTP_REFERER'], PHP_URL_PATH);
-  }
-  drupal_goto('admin/config/system/cron');
+  $dest = $dest ? $dest : 'admin/config/system/cron';
+  drupal_goto($dest);
 }
 
 /**
