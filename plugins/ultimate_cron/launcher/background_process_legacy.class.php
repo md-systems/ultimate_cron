@@ -329,16 +329,17 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
 
     $log_entry = $job->startLog($lock_id, $init_message);
 
-    // We want to finish the log in the sub-request.
-    $log_entry->unCatchMessages();
-
     if (!$process->execute(array(get_class($this), 'job_callback'), array($job->name, $lock_id, $recheck))) {
       watchdog('bgpl_launcher', 'Could execute background process dispatch for handle @handle', array(
         '@handle' => $handle,
       ), WATCHDOG_ERROR);
+      $log_entry->finish();
       $this->unlock($lock_id);
       return FALSE;
     }
+
+    // We want to finish the log in the sub-request.
+    $log_entry->unCatchMessages();
 
     drupal_set_message(t('@name: @init_message', array(
       '@name' => $job->name,
