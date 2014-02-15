@@ -29,7 +29,7 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
           'title' => t('Kill'),
           'href' => 'admin/config/system/cron/jobs/list/' . $job->name . '/signal/' . $this->type . '/' . $this->name . '/kill',
           'attributes' => array('class' => array('use-ajax')),
-          'query' => array('token' => drupal_get_token('kill')),
+          'query' => array('token' => drupal_get_token('signal')),
         );
       }
     }

@@ -11,7 +11,10 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   public $scheduledLaunch = FALSE;
   public $weight = -10;
 
-  function cron_alter(&$jobs) {
+  /**
+   * Implements hook_cron_alter().
+   */
+  public function cron_alter(&$jobs) {
     unset($jobs['background_process_cron']);
     if (isset($jobs['ultimate_cron_plugin_launcher_background_process_legacy_cleanup'])) {
       $job = &$jobs['ultimate_cron_plugin_launcher_background_process_legacy_cleanup'];
@@ -31,7 +34,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   /**
    * Implements hook_cron_alter().
    */
-  function cron_pre_schedule($job) {
+  public function cron_pre_schedule($job) {
     if ($job->name !== 'ultimate_cron_plugin_launcher_background_process_legacy_cleanup') {
       return;
     }
@@ -42,8 +45,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     // @todo Move to some access handler or pre-execute?
     if ($lock_id = $job->isLocked()) {
       $process = background_process_get_process('uc-ultimate_cron_plugin_launcher_background_process_legacy_cleanup');
-      #if ($process->start + variable_get('background_process_cleanup_age', BACKGROUND_PROCESS_CLEANUP_AGE) < time()) {
-      if ($process && $process->start + 10 < time()) {
+      if ($process && $process->start + variable_get('background_process_cleanup_age', BACKGROUND_PROCESS_CLEANUP_AGE) < time()) {
         $log_entry = $job->resumeLog($lock_id);
         $log_entry->log('bgpl_launcher', 'Self unlocking stale lock', array(), WATCHDOG_ERROR);
         $log_entry->finish();
@@ -81,7 +83,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
           'title' => t('Kill daemon'),
           'href' => 'admin/config/system/cron/jobs/list/' . $job->name . '/signal/' . $this->type . '/' . $this->name . '/end_daemonize',
           'attributes' => array('class' => array('use-ajax')),
-          'query' => array('token' => drupal_get_token($op)),
+          'query' => array('token' => drupal_get_token('signal')),
         );
       }
     }
@@ -499,6 +501,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     $class = _ultimate_cron_get_class('lock');
     if ($lock_id = $class::lock('ultimate_cron_poorman_bgpl', 60)) {
       $process = new BackgroundProcess();
+      $process->uid = 0;
       $process->service_group = $settings['poorman_service_group'];
       $process->start(array(get_class($this), 'poormanLauncher'), array($lock_id));
       $class::persist($lock_id);
@@ -556,6 +559,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
 
     foreach ($launchers as $name) {
       $process = new BackgroundProcess('_ultimate_cron_poorman_' . $name);
+      $process->uid = 0;
       $process->service_group = $settings['poorman_service_group'];
       $process->start('ultimate_cron_run_launchers', array(array($name)));
     }
