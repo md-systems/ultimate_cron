@@ -55,10 +55,10 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   }
 
   /**
-   * Custom action for plugins.
+   * Handle end_daemonize signal.
    */
-  public function custom_page($js, $input, $item, $action) {
-    switch ($action) {
+  public function signal($item, $signal) {
+    switch ($signal) {
       case 'end_daemonize':
         $item->sendSignal('end_daemonize', TRUE);
         $item->sendSignal('kill', TRUE);
@@ -70,9 +70,6 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * Use ajax for run, since we're launching in the background.
    */
   public function build_operations_alter($job, &$allowed_operations) {
-    if (!empty($allowed_operations['kill'])) {
-      $allowed_operations['kill']['attributes'] = array('class' => array('use-ajax'));
-    }
     if (!empty($allowed_operations['run'])) {
       $allowed_operations['run']['attributes'] = array('class' => array('use-ajax'));
     }
@@ -82,8 +79,9 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
         unset($allowed_operations['kill']);
         $allowed_operations['end_daemonize'] = array(
           'title' => t('Kill daemon'),
-          'href' => 'admin/config/system/cron/jobs/list/' . $job->name . '/custom/' . $this->type . '/' . $this->name . '/end_daemonize',
+          'href' => 'admin/config/system/cron/jobs/list/' . $job->name . '/signal/' . $this->type . '/' . $this->name . '/end_daemonize',
           'attributes' => array('class' => array('use-ajax')),
+          'query' => array('token' => drupal_get_token($op)),
         );
       }
     }

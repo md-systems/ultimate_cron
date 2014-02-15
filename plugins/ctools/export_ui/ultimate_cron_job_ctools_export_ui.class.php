@@ -137,12 +137,9 @@ class ultimate_cron_job_ctools_export_ui extends ctools_export_ui {
   /**
    * Custom action for plugins.
    */
-  public function custom_page($js, $input, $item, $plugin_type, $plugin_name, $action) {
-    $output = $item->custom_page($js, $input, $item, $plugin_type, $plugin_name, $action);
-    if ($output) {
-      return $output;
-    }
-    elseif (!$js) {
+  public function signal_page($js, $input, $item, $plugin_type, $plugin_name, $signal) {
+    $item->signal($item, $plugin_type, $plugin_name, $signal);
+    if (!$js) {
       drupal_goto(ctools_export_ui_plugin_base_path($this->plugin));
     }
     else {

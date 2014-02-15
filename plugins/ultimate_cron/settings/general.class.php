@@ -9,10 +9,10 @@
  */
 class UltimateCronGeneralSettings extends UltimateCronSettings {
   /**
-   * Custom action for plugins.
+   * Handle kill signal.
    */
-  public function custom_page($js, $input, $item, $action) {
-    switch ($action) {
+  public function signal($item, $signal) {
+    switch ($signal) {
       case 'kill':
         $item->sendSignal('kill', TRUE);
         return;
@@ -27,7 +27,9 @@ class UltimateCronGeneralSettings extends UltimateCronSettings {
       if (in_array('killable', $job->hook['tags']) && !$job->peekSignal('kill')) {
         $allowed_operations['kill'] = array(
           'title' => t('Kill'),
-          'href' => 'admin/config/system/cron/jobs/list/' . $job->name . '/custom/' . $this->type . '/' . $this->name . '/kill',
+          'href' => 'admin/config/system/cron/jobs/list/' . $job->name . '/signal/' . $this->type . '/' . $this->name . '/kill',
+          'attributes' => array('class' => array('use-ajax')),
+          'query' => array('token' => drupal_get_token('kill')),
         );
       }
     }

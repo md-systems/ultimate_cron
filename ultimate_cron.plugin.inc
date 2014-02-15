@@ -309,9 +309,9 @@ class UltimateCronPlugin {
   }
 
   /**
-   * Custom action for plugins.
+   * Signal page for plugins.
    */
-  public function custom_page($js, $input, $item, $action) {
+  public function signal($item, $signal) {
   }
 
   /**

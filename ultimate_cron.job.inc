@@ -242,11 +242,11 @@ class UltimateCronJob {
   }
 
   /**
-   * Custom action for plugins.
+   * Signal page for plugins.
    */
-  public function custom_page($js, $input, $item, $plugin_type, $plugin_name, $action) {
+  public function signal($item, $plugin_type, $plugin_name, $signal) {
     $plugin = ultimate_cron_plugin_load($plugin_type, $plugin_name);
-    return $plugin->custom_page($js, $input, $item, $action);
+    return $plugin->signal($item, $signal);
   }
 
   /**
