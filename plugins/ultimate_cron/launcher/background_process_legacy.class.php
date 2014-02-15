@@ -11,6 +11,49 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   public $scheduledLaunch = FALSE;
   public $weight = -10;
 
+  function cron_alter(&$jobs) {
+    unset($jobs['background_process_cron']);
+    if (isset($jobs['ultimate_cron_plugin_launcher_background_process_legacy_cleanup'])) {
+      $job = &$jobs['ultimate_cron_plugin_launcher_background_process_legacy_cleanup'];
+      $job->hook['scheduler'] = isset($job->hook['scheduler']) ? $job->hook['scheduler'] : array();
+      $scheduler =& $job->hook['scheduler'];
+      $scheduler['simple'] = isset($scheduler['simple']) ? $scheduler['simple'] : array();
+      $scheduler['crontab'] = isset($scheduler['crontab']) ? $scheduler['crontab'] : array();
+      $scheduler['simple'] += array(
+        'rules' => array('* * * * *'),
+      );
+      $scheduler['crontab'] += array(
+        'rules' => array('* * * * *'),
+      );
+    }
+  }
+
+  /**
+   * Implements hook_cron_alter().
+   */
+  function cron_pre_schedule($job) {
+    if ($job->name !== 'ultimate_cron_plugin_launcher_background_process_legacy_cleanup') {
+      return;
+    }
+
+    $job->hook['override_congestion_protection'] = TRUE;
+
+    // Unlock background if too old.
+    // @todo Move to some access handler or pre-execute?
+    if ($lock_id = $job->isLocked()) {
+      $process = background_process_get_process('uc-ultimate_cron_plugin_launcher_background_process_legacy_cleanup');
+      #if ($process->start + variable_get('background_process_cleanup_age', BACKGROUND_PROCESS_CLEANUP_AGE) < time()) {
+      if ($process && $process->start + 10 < time()) {
+        $log_entry = $job->resumeLog($lock_id);
+        $log_entry->log('bgpl_launcher', 'Self unlocking stale lock', array(), WATCHDOG_ERROR);
+        $log_entry->finish();
+        $job->sendSignal('background_process_legacy_dont_log');
+        $job->unlock($lock_id);
+        unset($job->lock_id);
+      }
+    }
+  }
+
   /**
    * Custom action for plugins.
    */
@@ -202,6 +245,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    *
    * Background Process doesn't internally provide a unique id
    * for the running process, so we'll have to add that ourselves.
+   * We store the unique lock id in the second callback argument.
    */
   public function lock($job) {
     $handle = 'uc-' . $job->name;
@@ -238,8 +282,8 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * Check locked state.
    *
    * Because Background Process doesn't support a unique id per
-   * process, we'll have to match against the prefix, which is
-   * the job name.
+   * process, we return the second callback argument from the process,
+   * where we previously stored the unique lock id.
    */
   public function isLocked($job) {
     $process = background_process_get_process('uc-' . $job->name);
@@ -284,6 +328,42 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     }
 
     return $lock_ids;
+  }
+
+  /**
+   * Background process cleanup uses drupal_set_message() to inform about
+   * the result of the cleanup.
+   *
+   * We trap these, and log them as watchdog messages.
+   */
+  public function cleanup() {
+    $before = drupal_get_messages(NULL, FALSE);
+    background_process_cron();
+    $after = drupal_get_messages(NULL, FALSE);
+    foreach ($after as $type => $a_messages) {
+      $b_messages = isset($before[$type]) ? $before[$type] : array();
+      $messages = array_diff($a_messages, $b_messages);
+      foreach ($messages as $message) {
+        switch ($type) {
+          case 'status':
+            $severity = WATCHDOG_INFO;
+            break;
+
+          case 'warning':
+            $severity = WATCHDOG_WARNING;
+            break;
+
+          case 'error':
+            $severity = WATCHDOG_ERROR;
+            break;
+
+          default:
+            $severity = WATCHDOG_CRITICAL;
+            break;
+        }
+        watchdog('bpgl_launcher', $message, array(), $severity);
+      }
+    }
   }
 
   /**
@@ -360,35 +440,56 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
     $timeout = 55;
     $expire = microtime(TRUE) + 55;
 
-    foreach ($jobs as $job) {
-      if (!$job->isScheduled()) {
-        continue;
-      }
-
-      // Wait until there's an available thread.
+    while ($jobs && microtime(TRUE) < $expire) {
       $threads = $this->numberOfProcessesRunning();
-      if ($threads >= $settings['max_threads']) {
-        watchdog('bgpl_launcher', 'Background Process launcher congested. @threads/@max threads running.', array(
-          '@max' => $settings['max_threads'],
-          '@threads' => $threads,
-        ), WATCHDOG_DEBUG);
-        do {
-          sleep(1);
-        } while (microtime(TRUE) < $expire && $this->numberOfProcessesRunning() >= $settings['max_threads']);
+      foreach ($jobs as $job) {
+        if (!$job->isScheduled()) {
+          unset($jobs[$job->name]);
+          continue;
+        }
+
+        if (empty($job->hook['override_congestion_protection'])) {
+          // Skip if we're congested.
+          if ($threads >= $settings['max_threads']) {
+            continue;
+          }
+        }
+
+        // Everything's good. Launch job!
+        $job_settings = $job->getSettings($this->type);
+        $job->recheck = !self::getGlobalOption('bypass_schedule') && $job_settings['recheck'];
+        $job->launch();
+        unset($jobs[$job->name]);
+        $threads = $this->numberOfProcessesRunning();
       }
 
-      // Bail out if we expired.
-      if (microtime(TRUE) >= $expire) {
-        watchdog('bgpl_launcher', 'Background Process launcher exceed time limit of @timeout seconds.', array(
-          '@timeout' => $timeout,
-        ), WATCHDOG_NOTICE);
-        return;
+      // If there are still jobs left to be launched, wait a little.
+      if ($jobs) {
+        sleep(1);
       }
+    }
 
-      // Everything's good. Launch job!
-      $job_settings = $job->getSettings($this->type);
-      $job->recheck = !self::getGlobalOption('bypass_schedule') && $job_settings['recheck'];
-      $job->launch();
+    // Bail out if we expired.
+    if (microtime(TRUE) >= $expire) {
+      watchdog('bgpl_launcher', 'Background Process launcher exceed time limit of @timeout seconds.', array(
+        '@timeout' => $timeout,
+      ), WATCHDOG_NOTICE);
+    }
+
+
+    if ($jobs) {
+      watchdog('bgpl_launcher', '@jobs jobs missed their schedule due to congestion.', array(
+        '@jobs' => count($jobs),
+      ), WATCHDOG_NOTICE);
+      foreach ($jobs as $name => $job) {
+        if ($lock_id = $job->lock()) {
+          $log_entry = $jobs[$name]->startLog($lock_id, 'congestion');
+          $log_entry->log('bgpl_launcher', 'Missed schedule due to congestion', array(), WATCHDOG_NOTICE);
+          $log_entry->finish();
+          $job->sendSignal('background_process_legacy_dont_log');
+          $job->unlock();
+        }
+      }
     }
   }
 

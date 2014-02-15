@@ -57,6 +57,6 @@ function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL)
     ));
   }
 
-  watchdog('bgpl_launcher', $msg, array(), WATCHDOG_WARNING);
+  $log_entry->log('bgpl_launcher', $msg, array(), WATCHDOG_WARNING);
   $log_entry->finish();
 }
