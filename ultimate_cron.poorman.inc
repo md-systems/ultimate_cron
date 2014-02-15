@@ -145,6 +145,9 @@ function ultimate_cron_exit($dest = NULL) {
   drupal_cache_system_paths();
   module_implements_write_cache();
 
+  // Poormans cron should run as anonymous, just like regular cron does.
+  global $user;
+  $user = drupal_anonymous_user();
   $launcher->launchPoorman();
   exit;
 }
