@@ -118,6 +118,7 @@ function ultimate_cron_exit($dest = NULL) {
     watchdog('ultimate_cron', 'Invalid poormans cron launcher: @name', array(
       '@name' => $settings['launcher'],
     ), WATCHDOG_ERROR);
+    return;
   }
 
   // Poormans cron needs to be the last that runs.

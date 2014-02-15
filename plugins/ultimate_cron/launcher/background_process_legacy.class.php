@@ -497,7 +497,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   public function launchPoorman() {
     $settings = $this->getDefaultSettings();
     $class = _ultimate_cron_get_class('lock');
-    if ($lock_id = $class::lock('ultimate_cron_poorman_bgpl', 120)) {
+    if ($lock_id = $class::lock('ultimate_cron_poorman_bgpl', 60)) {
       $process = new BackgroundProcess();
       $process->service_group = $settings['poorman_service_group'];
       $process->start(array(get_class($this), 'poormanLauncher'), array($lock_id));
@@ -511,13 +511,13 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
    * @param string $lock_id
    *   The lock id used for this process.
    */
-  static public function poormanLauncher() {
-    // Bail out if someone else is running poormans cron.
+  static public function poormanLauncher($lock_id) {
     $class = _ultimate_cron_get_class('lock');
-    $lock_id = $class::lock('ultimate_cron_poorman_bgpl', 60);
-    if (!$lock_id) {
+    // Bail out if someone stole our lock.
+    if (!$class::reLock($lock_id, 60)) {
       return;
     }
+
     ultimate_cron_poorman_page_flush();
 
     // Wait until it's our turn (0 seconds at next minute).
@@ -579,9 +579,6 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
       }
       /**/
     }
-
-    // Release lock, so next process may handle poormans cron.
-    $class::unlock($lock_id);
 
     // Check poorman settings. If launcher has changed, we don't want
     // to keepalive.

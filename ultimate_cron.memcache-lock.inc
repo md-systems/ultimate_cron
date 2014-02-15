@@ -148,12 +148,16 @@ class UltimateCronLockMemcache {
     }
 
     $bin = variable_get('ultimate_cron_lock_memcache_bin', 'semaphore');
-    if (dmemcache_set($name, $lock_id, $timeout, $bin)) {
-      self::unlockRaw("lock-$name", $semaphore);
-      self::$locks[$lock_id] = TRUE;
-      return self::$locks[$lock_id];
+    $current_lock_id = self::isLocked($name);
+    if ($current_lock_id === FALSE || $current_lock_id === $lock_id) {
+      if (dmemcache_set($name, $lock_id, $timeout, $bin)) {
+        self::unlockRaw("lock-$name", $semaphore);
+        self::$locks[$lock_id] = TRUE;
+        return self::$locks[$lock_id];
+      }
     }
     self::unlockRaw("lock-$name", $semaphore);
+    return FALSE;
   }
   /**
    * Check if lock is taken.
@@ -169,7 +173,8 @@ class UltimateCronLockMemcache {
    */
   static public function isLocked($name, $ignore_expiration = FALSE) {
     $bin = variable_get('ultimate_cron_lock_memcache_bin', 'semaphore');
-    return dmemcache_get($name, $bin);
+    $result = dmemcache_get($name, $bin);
+    return $result ? $result : FALSE;
   }
 
   /**
