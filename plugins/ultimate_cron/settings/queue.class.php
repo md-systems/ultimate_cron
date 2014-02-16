@@ -8,6 +8,9 @@
  * Queue settings plugin class.
  */
 class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
+  static private $throttled = array();
+  static private $queues = NULL;
+
   /**
    * Get cron queues and static cache them.
    *
@@ -18,8 +21,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
    *   Cron queue definitions.
    */
   private function get_queues() {
-    static $queues = NULL;
-    if (!isset($queues)) {
+    if (!isset(self::$queues)) {
       $queues = array();
       foreach (module_implements('cron_queue_info') as $module) {
         $items = module_invoke($module, 'cron_queue_info');
@@ -31,6 +33,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
         }
       }
       drupal_alter('cron_queue_info', $queues);
+      self::$queues = $queues;
     }
     return $queues;
   }
@@ -90,9 +93,6 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
     $queue = DrupalQueue::get($settings['queue']['name']);
     $function = $settings['queue']['worker callback'];
 
-    // Re-throttle.
-    $job->getPlugin('settings', 'queue')->throttle($job);
-
     $end = microtime(TRUE) + $settings['queue']['time'];
     $items = 0;
     while (microtime(TRUE) < $end) {
@@ -140,6 +140,9 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '@queue' => $settings['queue']['name'],
     ), WATCHDOG_INFO);
 
+    // Re-throttle.
+    $job->getPlugin('settings', 'queue')->throttle($job);
+
     return;
   }
 
@@ -159,11 +162,13 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
             $name = $job->name . '_' . $i;
             $hook = $job->hook;
             $hook['settings']['queue']['master'] = $job->name;
+            $hook['settings']['queue']['thread'] = $i;
             $hook['name'] = $name;
             $hook['title'] .= " (#$i)";
             $hook['immutable'] = TRUE;
             $new_jobs[$name] = ultimate_cron_prepare_job($name, $hook);
             $new_jobs[$name]->settings = $settings + $new_jobs[$name]->settings;
+            $new_jobs[$name]->title = $job->title . " (#$i)";
           }
         }
       }
@@ -175,11 +180,12 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
    * Implements hook_cron_alter().
    */
   public function cron_pre_schedule($job) {
-    $settings = $job->getSettings('settings');
-    static $throttled = FALSE;
-    if (!$throttled && !empty($job->hook['settings']['queue']['master'])) {
-      $throttled = TRUE;
-      $this->throttle($job);
+    $queue_name = !empty($job->hook['settings']['queue']['name']) ? $job->hook['settings']['queue']['name'] : FALSE;
+    if ($queue_name) {
+      if (empty(self::$throttled[$job->name])) {
+        self::$throttled[$job->name] = TRUE;
+        $this->throttle($job);
+      }
     }
   }
 
@@ -296,19 +302,35 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
    * Enables or disables queue threads depending on remaining items in queue.
    */
   public function throttle($job) {
-    $settings = $job->getSettings('settings');
-    if (!empty($settings['queue']['master'])) {
+    if (!empty($job->hook['settings']['queue']['master'])) {
       // We always base the threads on the master.
-      $job = ultimate_cron_job_load($settings['queue']['master']);
-      $settings = $job->getSettings('settings');
+      $master_job = ultimate_cron_job_load($job->hook['settings']['queue']['master']);
+      $settings = $master_job->getSettings('settings');
+    }
+    else {
+      return;
     }
     if ($settings['queue']['throttle']) {
       $queue = DrupalQueue::get($settings['queue']['name']);
       $items = $queue->numberOfItems();
-      for ($i = 2; $i <= $settings['queue']['threads']; $i++) {
-        $name = $job->name . '_' . $i;
-        $status = !empty($job->disabled) || ($items > ($i - 1) * $settings['queue']['threshold']);
-        ultimate_cron_job_set_status($name, !$status);
+      $thread = $job->hook['settings']['queue']['thread'];
+
+      $name = $master_job->name . '_' . $thread;
+      $status = empty($master_job->disabled) && ($items >= ($thread - 1) * $settings['queue']['threshold']);
+      $new_status = !$status ? TRUE : FALSE;
+      $old_status = ultimate_cron_job_get_status($name) ? TRUE : FALSE;
+      if ($old_status !== $new_status) {
+        $log_entry = $job->startLog(uniqid($job->name, TRUE), 'throttling', ULTIMATE_CRON_LOG_TYPE_ADMIN);
+        $log_entry->log($job->name, 'Job @status by queue throttling (items:@items, boundary:@boundary, threshold:@threshold)', array(
+          '@status' => $new_status ? t('disabled') : t('enabled'),
+          '@items' => $items,
+          '@boundary' => ($thread - 1) * $settings['queue']['threshold'],
+          '@threshold' => $settings['queue']['threshold'],
+        ), WATCHDOG_INFO);
+        $log_entry->finish();
+        $job->dont_log = TRUE;
+        ultimate_cron_job_set_status($job, $new_status);
+        $job->disabled = $new_status;
       }
     }
   }

@@ -449,11 +449,11 @@ function ultimate_cron_job_set_status($object, $status) {
   }
 
   if (empty($object->dont_log)) {
-    $log = $job->startLog(uniqid($job->name, TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
-    $log->log($job->name, 'Job @status by ' . $log->formatUser(), array(
+    $log_entry = $job->startLog(uniqid($job->name, TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
+    $log_entry->log($job->name, 'Job @status by ' . $log_entry->formatUser(), array(
       '@status' => $status ? t('disabled') : t('enabled'),
     ), WATCHDOG_INFO);
-    $log->finish();
+    $log_entry->finish();
   }
 
   variable_set('default_ultimate_cron_job_' . $name, $status ? TRUE : FALSE);
