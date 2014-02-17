@@ -289,13 +289,22 @@ function ultimate_cron_plugin_load_all($type, $reset = FALSE) {
  */
 function ultimate_cron_job_load_all_raw($reset = FALSE) {
   ctools_include('export');
+  $table = 'ultimate_cron_job';
   if ($reset) {
-    ctools_export_load_object_reset('ultimate_cron_job');
+    ctools_export_load_object_reset($table);
   }
-  $results = ctools_export_load_object('ultimate_cron_job');
-  foreach ($results as $name => $result) {
+
+  $class = _ultimate_cron_get_class('job');
+
+  $results = ctools_export_load_object($table);
+  foreach ($results as $name => &$result) {
     $result->disabled = ultimate_cron_job_get_status($name);
     $result->settings = !empty($result->settings) ? $result->settings : array();
+
+    // Make sure the object is of the correcty type.
+    if (!$result instanceOf $class) {
+      $result = $class::factory($result);
+    }
   }
   return $results;
 }

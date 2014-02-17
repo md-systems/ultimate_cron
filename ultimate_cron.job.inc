@@ -19,6 +19,23 @@ class UltimateCronJob {
   private $ids = array();
 
   /**
+   * Create an instance of this object with the data from another object.
+   *
+   * @param object $object
+   *   The source object.
+   *
+   * @return UltimateCronJob
+   *   Resulting object.
+   */
+  static public function factory($object) {
+    $result = new self();
+    foreach ($object as $key => $value) {
+      $result->$key = $value;
+    }
+    return $result;
+  }
+
+  /**
    * Invoke plugin cron_alter().
    *
    * Calls on cron_alter() on all valid plugins for this job.
