@@ -1257,24 +1257,7 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
         $severity = WATCHDOG_ERROR;
       }
 
-      global $user;
-      global $base_root;
-      $watchdog_log_entry = array(
-        'type'        => $log_entry->name,
-        'message'     => $message,
-        'variables'   => array(),
-        'severity'    => $severity,
-        'link'        => NULL,
-        'user'        => $user,
-        'uid'         => isset($user->uid) ? $user->uid : 0,
-        'request_uri' => $base_root . request_uri(),
-        'referer'     => isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '',
-        'ip'          => ip_address(),
-        // Request time isn't accurate for long processes, use time() instead.
-        'timestamp'   => time(),
-      );
-
-      $log_entry->watchdog($watchdog_log_entry);
+      $log_entry->log($log_entry->name, $message, array(), $severity);
     }
     $log_entry->finish();
   }
