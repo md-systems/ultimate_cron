@@ -1423,7 +1423,7 @@ function ultimate_cron_get_hooks($reset = FALSE) {
   $registered = variable_get('ultimate_cron_hooks_registered', array());
   $new = array();
   foreach ($hooks as $name => $hook) {
-    $new[$name] = empty($registered[$name]) ? time() : $registered[$name];
+    $new[$name] = empty($registered[$name]) ? REQUEST_TIME : $registered[$name];
   }
   if ($registered != $new) {
     variable_set('ultimate_cron_hooks_registered', $new);

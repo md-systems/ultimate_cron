@@ -189,7 +189,7 @@ function ultimate_cron_poorman_trigger() {
   $http_options = variable_get('ultimate_cron_poorman_http_options', array());
 
   $url_options = array(
-    'query' => array('timestamp' => time()),
+    'query' => array('timestamp' => REQUEST_TIME),
     'absolute' => TRUE,
   ) + $url_options;
 

@@ -34,7 +34,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
 
     $parsed = '';
     $next_schedule = NULL;
-    $time = time();
+    $time = REQUEST_TIME;
     $skew = $this->getSkew($job);
     foreach ($settings['rules'] as $rule) {
       $cron = CronRule::factory($rule, $time, $skew);
@@ -161,7 +161,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
       $time = $cron->getNextSchedule();
       $next_schedule = is_null($next_schedule) || $time < $next_schedule ? $time : $next_schedule;
     }
-    $behind = time() - $next_schedule;
+    $behind = REQUEST_TIME - $next_schedule;
 
     return $behind > $settings['catch_up'] ? $behind: FALSE;
   }
