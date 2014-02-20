@@ -28,7 +28,7 @@ class UltimateCronPoormanSettings extends UltimateCronSettings {
       $launchers = ultimate_cron_plugin_load_all('launcher');
       $options = array('' => '-- ' . t('Disabled') . ' --');
       foreach ($launchers as $name => $launcher) {
-        if (method_exists($launcher, 'launchPoorman')) {
+        if ($launcher->isValid() && method_exists($launcher, 'launchPoorman')) {
           $options[$name] = $launcher->title;
         }
       }
