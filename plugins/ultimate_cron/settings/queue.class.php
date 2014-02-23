@@ -12,6 +12,13 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
   static private $queues = NULL;
 
   /**
+   * Include check of enabled plugin for isValid() check.
+   */
+  public function isValid($job = NULL) {
+    return variable_get($this->key . '_enabled', TRUE) ? parent::isValid($job) : FALSE;
+  }
+
+  /**
    * Get cron queues and static cache them.
    *
    * Works like module_invoke_all('cron_queue_info'), but adds
@@ -211,10 +218,29 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
     $elements = &$form['settings'][$this->type][$this->name];
     $values = &$form_state['values']['settings'][$this->type][$this->name];
 
+    $states = array();
+    if (!$job) {
+      $elements['enabled'] = array(
+        '#title' => t('Enable cron queue processing'),
+        '#type' => 'checkbox',
+        '#default_value' => variable_get($this->key . '_enabled', TRUE),
+        '#fallback' => TRUE,
+      );
+      $states = array(
+        '#states' => array(
+          'visible' => array(
+            ':input[name="settings[' . $this->type . '][' . $this->name . '][enabled]"]' => array(
+              'checked' => TRUE,
+            ),
+          ),
+        ),
+      );
+    }
+
     $elements['timeouts'] = array(
       '#type' => 'fieldset',
       '#title' => t('Timeouts'),
-    );
+    ) + $states;
     $elements['timeouts']['lease_time'] = array(
       '#parents' => array('settings', $this->type, $this->name, 'lease_time'),
       '#title' => t("Queue lease time"),
@@ -237,7 +263,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
     $elements['delays'] = array(
       '#type' => 'fieldset',
       '#title' => t('Delays'),
-    );
+    ) + $states;
     $elements['delays']['empty_delay'] = array(
       '#parents' => array('settings', $this->type, $this->name, 'empty_delay'),
       '#title' => t("Empty delay"),
@@ -263,13 +289,17 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '#default_value' => $values['throttle'],
       '#description' => t('Throttle queues using multiple threads.'),
     );
-    $elements['throttling'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Throttling'),
+
+    $states = !$job ? $states : array(
       '#states' => array(
         'visible' => array(':input[name="settings[' . $this->type . '][' . $this->name . '][throttle]"]' => array('checked' => TRUE))
       ),
     );
+
+    $elements['throttling'] = array(
+      '#type' => 'fieldset',
+      '#title' => t('Throttling'),
+    ) + $states;
     $elements['throttling']['threads'] = array(
       '#parents' => array('settings', $this->type, $this->name, 'threads'),
       '#title' => t('Threads'),
@@ -294,6 +324,17 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
+  }
+
+  /**
+   * Form submit handler.
+   */
+  public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
+    if (!$job) {
+      $values = &$form_state['values']['settings'][$this->type][$this->name];
+      variable_set($this->key . '_enabled', $values['enabled']);
+      unset($values['enabled']);
+    }
   }
 
   /**

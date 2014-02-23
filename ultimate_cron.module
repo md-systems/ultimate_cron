@@ -1319,7 +1319,9 @@ function ultimate_cron_get_plugin_hooks() {
   foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
     $plugins = ultimate_cron_plugin_load_all($plugin_type);
     foreach ($plugins as $plugin) {
-      $items += $plugin->cronapi();
+      if ($plugin->isValid()) {
+        $items += $plugin->cronapi();
+      }
     }
   }
   return $items;
