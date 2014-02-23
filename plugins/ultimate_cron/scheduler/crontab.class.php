@@ -84,7 +84,7 @@ class UltimateCronCrontabScheduler extends UltimateCronScheduler {
       '#title' => t("Catch up"),
       '#type' => 'textfield',
       '#default_value' => $values['catch_up'],
-      '#description' => t('Dont run job after X seconds of rule.'),
+      '#description' => t("Don't run job after X seconds of rule."),
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
