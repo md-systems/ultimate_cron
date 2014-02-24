@@ -222,6 +222,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
     if (!$job) {
       $elements['enabled'] = array(
         '#title' => t('Enable cron queue processing'),
+        '#description' => t('If enabled, cron queues will be processed by this plugin. If another cron queue plugin is installed, it may be necessary/beneficial to disable this plugin.'),
         '#type' => 'checkbox',
         '#default_value' => variable_get($this->key . '_enabled', TRUE),
         '#fallback' => TRUE,
