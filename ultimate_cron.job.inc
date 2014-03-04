@@ -314,9 +314,11 @@ class UltimateCronJob {
           if (isset($this->hook['file'])) {
             require_once $this->hook['file path'] . '/' . $this->hook['file'];
           }
-          $result = call_user_func_array($this->hook['callback'], array(
-            $this, $this->hook['callback arguments']
-          ));
+          $arguments = $this->hook['callback arguments'];
+          if (!in_array('core', $this->hook['tags'])) {
+            array_unshift($arguments, $this);
+          }
+          $result = call_user_func_array($this->hook['callback'], $arguments);
           break;
 
         case 'elysia_cron-2':
