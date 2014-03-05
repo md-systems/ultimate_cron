@@ -314,7 +314,7 @@ class UltimateCronJob {
           if (isset($this->hook['file'])) {
             require_once $this->hook['file path'] . '/' . $this->hook['file'];
           }
-          $arguments = $this->hook['callback arguments'];
+          $arguments = array($this->hook['callback arguments']);
           if ($this->hook['pass job argument']) {
             array_unshift($arguments, $this);
           }

@@ -1404,7 +1404,12 @@ abstract class UltimateCronLogEntry {
    * Capture watchdog message and append it to the log entry.
    */
   public function watchdog(array $log_entry) {
-    $this->message .= t($log_entry['message'], $log_entry['variables']) . "\n";
+    if (isset($log_entry['variables']) && is_array($log_entry['variables'])) {
+      $this->message .= t($log_entry['message'], $log_entry['variables']) . "\n";
+    }
+    else {
+      $this->message .= $log_entry['message'];
+    }
     if ($this->severity < 0 || $this->severity > $log_entry['severity']) {
       $this->severity = $log_entry['severity'];
     }
