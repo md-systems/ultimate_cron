@@ -987,7 +987,7 @@ function ultimate_cron_cron_alter(&$hooks) {
   $update['filter_cron']['title'] = t('Expire outdated filter cache entries');
   $update['node_cron']['title'] = t('Mark old nodes as read');
   $update['search_cron']['title'] = t('Update indexes');
-  $update['system_cron']['title'] = t('Cleanup (batch, flood, temp-files, etc.)');
+  $update['system_cron']['title'] = t('Cleanup (caches, batch, flood, temp-files, etc.)');
   $update['aggregator_cron']['title'] = t('Refresh feeds');
   $update['openid_cron']['title'] = t('Remove expired nonces from the database');
   $update['ping_cron']['title'] = t('Notify remote sites');
