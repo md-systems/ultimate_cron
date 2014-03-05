@@ -573,6 +573,13 @@ class UltimateCronPlugin {
     );
 
     $form_state['default_values']['settings'][$plugin_type][$current_plugin->name] = $defaults;
+    if (
+      $current_plugin->name == $original_plugin &&
+      isset($job->settings[$plugin_type][$current_plugin->name]) &&
+      is_array($job->settings[$plugin_type][$current_plugin->name])
+    ) {
+      $form_state['values']['settings'][$plugin_type][$current_plugin->name] += $job->settings[$plugin_type][$current_plugin->name];
+    }
     $form_state['values']['settings'][$plugin_type][$current_plugin->name] += ultimate_cron_blank_values($defaults);
 
     $current_plugin->settingsForm($form, $form_state, $job);
