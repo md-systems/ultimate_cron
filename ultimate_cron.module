@@ -1279,6 +1279,7 @@ function ultimate_cron_get_module_hooks($module) {
       'title' => 'Default cron handler',
       'configure' => empty($info['configure']) ? NULL : $info['configure'],
       'tags' => array(),
+      'pass job argument' => FALSE,
     );
     $items["{$module}_cron"]['tags'][] = 'core';
   }
@@ -1378,6 +1379,7 @@ function ultimate_cron_prepare_hooks(&$hooks) {
       'enabled' => TRUE,
       'tags' => array(),
       'api_version' => 'ultimate_cron-2',
+      'pass job argument' => TRUE,
     );
   }
 }
