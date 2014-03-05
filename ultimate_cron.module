@@ -17,6 +17,43 @@ function _ultimate_cron_define_log_type_all() {
   return array(ULTIMATE_CRON_LOG_TYPE_NORMAL, ULTIMATE_CRON_LOG_TYPE_ADMIN);
 }
 
+if (!function_exists('array_replace_recursive')) {
+  /**
+   * A array_replace_recursive() for earlier PHP versions.
+   *
+   * Taken from php.net, slightly modified.
+   *
+   * @see http://dk1.php.net/manual/en/function.array-replace-recursive.php#109390
+   */
+  function array_replace_recursive($base, $replacements) {
+    foreach (array_slice(func_get_args(), 1) as $replacements) {
+      $bref_stack = array(&$base);
+      $head_stack = array($replacements);
+
+      do {
+        end($bref_stack);
+
+        $bref = &$bref_stack[key($bref_stack)];
+        $head = array_pop($head_stack);
+
+        unset($bref_stack[key($bref_stack)]);
+
+        foreach (array_keys($head) as $key) {
+          if (isset($bref[$key]) && is_array($bref[$key]) && is_array($head[$key])) {
+            $bref_stack[] = &$bref[$key];
+            $head_stack[] = $head[$key];
+          }
+          else {
+            $bref[$key] = $head[$key];
+          }
+        }
+      } while (count($head_stack));
+    }
+
+    return $base;
+  }
+}
+
 /**
  * Memory exhaust protection.
  * To reduce the risk of shutdown handlers failing, we reserve 2MiB of memory
@@ -594,14 +631,10 @@ function ultimate_cron_job_export($object, $indent = '') {
  * Note: If the code is poorly formed, this could crash and there is no
  * way to prevent this.
  *
- * @param $table
- *   The name of the table to use to retrieve $schema values. This table
- *   must have an 'export' section containing data or this function
- *   will fail.
- * @param $code
+ * @param string $code
  *   The code to eval to create the object.
  *
- * @return
+ * @return object
  *   An object created from the export. This object will NOT have been saved
  *   to the database. In the case of failure, a string containing all errors
  *   that the system was able to determine.
@@ -999,11 +1032,12 @@ function ultimate_cron_cron_alter(&$hooks) {
   $update['dblog_cron']['configure'] = 'admin/config/development/logging';
   $update['ctools_cron']['title'] = t('Clean up old caches');
 
+  $update['system_cron']['scheduler']['crontab'] = array('rules' => array('0+@ */3 * * *'));
+  $update['system_cron']['scheduler']['simple'] = array('rules' => array('0+@ */3 * * *'));
+
   foreach ($update as $name => $data) {
     if (isset($hooks[$name])) {
-      foreach ($data as $key => $value) {
-        $hooks[$name][$key] = $value;
-      }
+      $hooks[$name] = array_replace_recursive($hooks[$name], $data);
     }
   }
 }
@@ -1553,20 +1587,20 @@ function ultimate_cron_run_launchers($launchers = NULL) {
 /**
  * Log message either to watchdog or to screen.
  *
- * @param $type
+ * @param string $type
  *   The category to which this message belongs. Can be any string, but the
  *   general practice is to use the name of the module calling watchdog().
- * @param $message
+ * @param string $message
  *   The message to store in the log. Keep $message translatable
  *   by not concatenating dynamic values into it! Variables in the
  *   message should be added by using placeholder strings alongside
  *   the variables argument to declare the value of the placeholders.
  *   See t() for documentation on how $message and $variables interact.
- * @param $variables
+ * @param array $variables
  *   Array of variables to replace in the message on display or
  *   NULL if message is already translated or not possible to
  *   translate.
- * @param $severity
+ * @param integer $severity
  *   The severity of the message; one of the following values as defined in
  *   @link http://www.faqs.org/rfcs/rfc3164.html RFC 3164: @endlink
  *   - WATCHDOG_EMERGENCY: Emergency, system is unusable.
@@ -1627,6 +1661,15 @@ function _ultimate_cron_get_transactional_safe_connection() {
   return !variable_get('ultimate_cron_bypass_transactional_safe_connection') && Database::getConnection()->inTransaction() ? 'ultimate_cron' : 'default';
 }
 
+/**
+ * Get class for a specific task.
+ *
+ * @param string $name
+ *   Name of task.
+ *
+ * @return string
+ *   Name of class.
+ */
 function _ultimate_cron_get_class($name) {
   static $defaults = array(
     'job' => 'UltimateCronJob',
