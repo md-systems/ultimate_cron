@@ -1221,6 +1221,19 @@ abstract class UltimateCronLogger extends UltimateCronPlugin {
   }
 
   /**
+   * Log to ultimate cron logs only.
+   *
+   * @see watchdog()
+   */
+  final static public function log($type, $message, $variables = array(), $severity = WATCHDOG_NOTICE, $link = NULL) {
+    if (self::$log_entries) {
+      foreach (self::$log_entries as $log_entry_object) {
+        $log_entry_object->log($type, $message, $variables, $severity, $link);
+      }
+    }
+  }
+
+  /**
    * Shutdown handler wrapper for catching messages.
    *
    * @param string $class
