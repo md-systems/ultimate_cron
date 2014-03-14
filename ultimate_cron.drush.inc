@@ -74,6 +74,7 @@ function ultimate_cron_drush_command() {
     ),
     'options' => array(
       'force' => 'Only effective when cron-run is run without any arguments. This options skip the schedule check for each job. Locks are still respected. This option is a synonom for --options=bypass_schedule',
+      'check-schedule' => 'Checks the schedule when running a single job. The opposite of --force but for a single job only',
       'options' => 'Custom options for plugins, e.g. --options=thread=1 for serial launcher',
     ),
     'examples' => array(
@@ -429,6 +430,11 @@ function drush_ultimate_cron_cron_run($name = NULL) {
     $job = ultimate_cron_job_load($name);
     if (!$job) {
       return drush_set_error(dt('@name not found', array('@name' => $name)));
+    }
+    if (drush_get_option('check-schedule')) {
+      if (!$job->isScheduled()) {
+        return;
+      }
     }
     $job->launch();
   }
