@@ -891,7 +891,7 @@ function ultimate_cron_cron_queue_info() {
           '@function' => $debug['4']['function'],
           '@line' => $debug['3']['line'],
           '@file' => $debug['3']['file'],
-        ), WATCHDOG_CRITICAL);
+        ), WATCHDOG_WARNING);
 
         // Normally core cron just runs all the jobs regardless of schedule
         // and locks. Jobs handled by core will be run this way, but other
