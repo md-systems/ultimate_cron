@@ -885,50 +885,21 @@ function ultimate_cron_cron_queue_info() {
   $debug = debug_backtrace();
   if (!empty($debug[3]['function']) && $debug['3']['function'] == 'drupal_cron_run') {
     if (!empty($debug[4])) {
-      // Looks like drupal_cron_run() was called unexpectedly.
       try {
-        watchdog('ultimate_cron', 'drupal_cron_run() called unexpectedly by @file:@line function @function. Reverting to core cron!', array(
-          '@function' => $debug['4']['function'],
-          '@line' => $debug['3']['line'],
-          '@file' => $debug['3']['file'],
-        ), WATCHDOG_WARNING);
-
-        // Normally core cron just runs all the jobs regardless of schedule
-        // and locks. Jobs handled by core will be run this way, but other
-        // jobs known to Ultimate Cron will check schedule and lock before
-        // running. This might change in the future, so that Ultimate Cron
-        // jobs are also run without checking schedule.
-        //
-        // Split up jobs between core and non-core, and run the non-core jobs
-        // first.
-        foreach (ultimate_cron_job_load_all() as $job) {
-          if (in_array('core', $job->hook['tags'])) {
-            $core_jobs[] = $job;
-          }
-          else {
-            if (!variable_get('ultimate_cron_check_schedule_on_core_cron', FALSE) || $job->isScheduled()) {
-              if ($lock_id = $job->lock()) {
-                $log_entry = $job->startLog($lock_id, 'Launched by Drupal core');
-                $job->run();
-                $log_entry->finish();
-                $job->unlock();
-              }
-            }
-          }
+        if ($debug['4']['function'] == 'install_finished') {
+          // Looks like drupal_cron_run() was called unexpectedly.
+          watchdog('ultimate_cron', 'Running cron in compatibility mode during site install.', array(), WATCHDOG_INFO);
+        }
+        else {
+          // Looks like drupal_cron_run() was called unexpectedly.
+          watchdog('ultimate_cron', 'drupal_cron_run() called unexpectedly by @file:@line function @function. Running core in compatibility mode.', array(
+            '@function' => $debug['4']['function'],
+            '@line' => $debug['3']['line'],
+            '@file' => $debug['3']['file'],
+          ), WATCHDOG_WARNING);
         }
 
-        // Before passing control back to core, make sure that we can get a
-        // lock on the jobs. If we can't, we don't allow core to run any
-        // jobs, since we can't inform core which jobs are safe to run.
-        foreach ($core_jobs as $job) {
-          $lock_id = $job->lock();
-          if (!$lock_id) {
-            throw new Exception(t('Could not acquire lock for @name', array(
-              '@name' => $job->name,
-            )));
-          }
-          $job->startLog($lock_id, 'Launched by Drupal core');
-        }
+        ultimate_cron_cron_run_compatibility();
       }
       catch (Exception $e) {
         // Restore the user.
@@ -1062,6 +1033,55 @@ function ultimate_cron_cron_run() {
 
   ultimate_cron_run_scheduled(FALSE);
   exit;
+}
+
+/**
+ * Run cron in compatibility mode.
+ *
+ * Runs all non core cron jobs first, then locks core cron jobs,
+ * and then assumes that the consumer of this function will execute the
+ * core cron jobs.
+ *
+ * If a lock cannot be obtained for a core cron job, an exception will be
+ * thrown since it will then be unsafe to run it.
+ */
+function ultimate_cron_cron_run_compatibility() {
+  // Normally core cron just runs all the jobs regardless of schedule
+  // and locks.
+  // By default we will also run all Ultimate Cron jobs regardless of
+  // their schedule. This behavior can be overridden via the variable:
+  // "ultimate_cron_check_schedule_on_core_cron".
+  //
+  // Split up jobs between core and non-core, and run the non-core jobs
+  // first.
+  foreach (ultimate_cron_job_load_all() as $job) {
+    if (in_array('core', $job->hook['tags'])) {
+      $core_jobs[] = $job;
+    }
+    else {
+      if (!variable_get('ultimate_cron_check_schedule_on_core_cron', FALSE) || $job->isScheduled()) {
+        if ($lock_id = $job->lock()) {
+          $log_entry = $job->startLog($lock_id, 'Launched by Drupal core');
+          $job->run();
+          $log_entry->finish();
+          $job->unlock();
+        }
+      }
+    }
+  }
+
+  // Before passing control back to core, make sure that we can get a
+  // lock on the jobs. If we can't, we don't allow core to run any
+  // jobs, since we can't inform core which jobs are safe to run.
+  foreach ($core_jobs as $job) {
+    $lock_id = $job->lock();
+    if (!$lock_id) {
+      throw new Exception(t('Could not acquire lock for @name', array(
+        '@name' => $job->name,
+      )));
+    }
+    $job->startLog($lock_id, 'Launched by Drupal core');
+  }
 }
 
 // ---------- HELPER FUNCTIONS ----------
