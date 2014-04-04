@@ -3,11 +3,13 @@
  * @file
  * Queue settings for Ultimate Cron.
  */
+use Drupal\ultimate_cron\CronJob;
+use Drupal\ultimate_cron\TaggedSettings;
 
 /**
  * Queue settings plugin class.
  */
-class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
+class QueueSettings extends TaggedSettings {
   static private $throttled = array();
   static private $queues = NULL;
 
@@ -88,7 +90,7 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
    *
    * This is a wrapper around the cron queues "worker callback".
    *
-   * @param UltimateCronJob $job
+   * @param CronJob $job
    *   The job being run.
    */
   static public function worker_callback($job) {

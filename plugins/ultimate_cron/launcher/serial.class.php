@@ -3,11 +3,12 @@
  * @file
  * Serial cron job launcher for Ultimate Cron.
  */
+use Drupal\ultimate_cron\Launcher;
 
 /**
  * Ultimate Cron launcher plugin class.
  */
-class UltimateCronSerialLauncher extends UltimateCronLauncher {
+class UltimateSerialLauncher extends Launcher {
   public $currentThread = NULL;
 
   /**

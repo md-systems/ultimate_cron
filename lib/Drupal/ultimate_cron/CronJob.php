@@ -4,12 +4,19 @@
  * Job class for Ultimate Cron.
  */
 
+namespace Drupal\ultimate_cron;
+use Drupal\Core\CronInterface;
+use Drupal\ultimate_cron\LogEntry;
+use Exception;
+use Drupal\ultimate_cron\CronPlugin;
+use Drupal\ultimate_cron\Logger;
+
 /**
  * Class for handling cron jobs.
  *
  * This class represents the jobs available in the system.
  */
-class UltimateCronJob {
+class CronJob implements CronInterface {
   static public $signals;
   static public $currentJob;
   public $progressUpdated = 0;
@@ -24,7 +31,7 @@ class UltimateCronJob {
    * @param object $object
    *   The source object.
    *
-   * @return UltimateCronJob
+   * @return CronJob
    *   Resulting object.
    */
   static public function factory($object) {
@@ -276,12 +283,14 @@ class UltimateCronJob {
       $static = $info['defaults']['static'];
       $class = $static['class'];
       if (!$class::$multiple) {
-        $this->getPlugin($name)->build_operations_alter($this, $allowed_operations);
+        $this->getPlugin($name)
+          ->build_operations_alter($this, $allowed_operations);
       }
       else {
         $plugins = ultimate_cron_plugin_load_all($name);
         foreach ($plugins as $plugin) {
-          $this->getPlugin($name, $plugin->name)->build_operations_alter($this, $allowed_operations);
+          $this->getPlugin($name, $plugin->name)
+            ->build_operations_alter($this, $allowed_operations);
         }
       }
     }
@@ -293,14 +302,15 @@ class UltimateCronJob {
    */
   public function invoke() {
     try {
-      UltimateCronPlugin::hook_cron_pre_invoke($this);
+      CronPlugin::hook_cron_pre_invoke($this);
       module_invoke_all('cron_pre_invoke', $this);
       switch ($this->hook['api_version']) {
         case 'ultimate_cron-1':
           // error_log("$this->name : INVOKE 1.x");
           if (is_callable($this->hook['callback'])) {
             $result = call_user_func_array($this->hook['callback'], array(
-              $this->name, $this->hook
+              $this->name,
+              $this->hook
             ));
             break;
           }
@@ -343,14 +353,13 @@ class UltimateCronJob {
             '@api_version' => $this->hook['api_version'],
           )));
       }
-    }
-    catch (Exception $e) {
-      UltimateCronPlugin::hook_cron_post_invoke($this);
+    } catch (Exception $e) {
+      CronPlugin::hook_cron_post_invoke($this);
       module_invoke_all('cron_post_invoke', $this);
       throw $e;
     }
 
-    UltimateCronPlugin::hook_cron_post_invoke($this);
+    CronPlugin::hook_cron_post_invoke($this);
     module_invoke_all('cron_post_invoke', $this);
     return $result;
   }
@@ -359,10 +368,11 @@ class UltimateCronJob {
    * Check job schedule.
    */
   public function isScheduled() {
-    UltimateCronPlugin::hook_cron_pre_schedule($this);
+    CronPlugin::hook_cron_pre_schedule($this);
     module_invoke_all('cron_pre_schedule', $this);
-    $result = empty($this->disabled) && !$this->isLocked() && $this->getPlugin('scheduler')->isScheduled($this);
-    UltimateCronPlugin::hook_cron_post_schedule($this, $result);
+    $result = empty($this->disabled) && !$this->isLocked() && $this->getPlugin('scheduler')
+        ->isScheduled($this);
+    CronPlugin::hook_cron_post_schedule($this, $result);
     module_invoke_all('cron_post_schedule', $this, $result);
     return $result;
   }
@@ -378,10 +388,10 @@ class UltimateCronJob {
    * Launch job.
    */
   public function launch() {
-    UltimateCronPlugin::hook_cron_pre_launch($this);
+    CronPlugin::hook_cron_pre_launch($this);
     module_invoke_all('cron_pre_launch', $this);
     $result = $this->getPlugin('launcher')->launch($this);
-    UltimateCronPlugin::hook_cron_post_launch($this);
+    CronPlugin::hook_cron_post_launch($this);
     module_invoke_all('cron_post_launch', $this);
     return $result;
   }
@@ -457,12 +467,12 @@ class UltimateCronJob {
   public function run() {
     $this->clearSignals();
     $this->initializeProgress();
-    UltimateCronPlugin::hook_cron_pre_run($this);
+    CronPlugin::hook_cron_pre_run($this);
     module_invoke_all('cron_pre_run', $this);
     self::$currentJob = $this;
     $result = $this->getPlugin('launcher')->run($this);
     self::$currentJob = NULL;
-    UltimateCronPlugin::hook_cron_post_run($this);
+    CronPlugin::hook_cron_post_run($this);
     module_invoke_all('cron_post_run', $this);
     $this->finishProgress();
     return $result;
@@ -479,7 +489,8 @@ class UltimateCronJob {
    */
   public function getLogEntries($log_types = ULTIMATE_CRON_LOG_TYPE_ALL, $limit = 10) {
     $log_types = $log_types == ULTIMATE_CRON_LOG_TYPE_ALL ? _ultimate_cron_define_log_type_all() : $log_types;
-    return $this->getPlugin('logger')->getLogEntries($this->name, $log_types, $limit);
+    return $this->getPlugin('logger')
+      ->getLogEntries($this->name, $log_types, $limit);
   }
 
   /**
@@ -488,7 +499,7 @@ class UltimateCronJob {
    * @param string $lock_id
    *   The lock id of the log entry.
    *
-   * @return UltimateCronLogEntry
+   * @return LogEntry
    *   The log entry.
    */
   public function loadLogEntry($lock_id) {
@@ -498,7 +509,7 @@ class UltimateCronJob {
   /**
    * Load latest log.
    *
-   * @return UltimateCronLogEntry
+   * @return LogEntry
    *   The latest log entry for this job.
    */
   public function loadLatestLogEntry($log_types = array(ULTIMATE_CRON_LOG_TYPE_NORMAL)) {
@@ -535,7 +546,7 @@ class UltimateCronJob {
    * @param string $init_message
    *   Initial message for the log.
    *
-   * @return UltimateCronLogger
+   * @return Logger
    *   The log object.
    */
   public function startLog($lock_id, $init_message = '', $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL) {
@@ -551,7 +562,7 @@ class UltimateCronJob {
    * @param string $lock_id
    *   The lock id of the log to resume.
    *
-   * @return UltimateCronLogEntry
+   * @return LogEntry
    *   The log entry object.
    */
   public function resumeLog($lock_id) {
@@ -743,11 +754,11 @@ class UltimateCronJob {
       $message = (object) array(
         'channel' => 'ultimate_cron',
         'data' => (object) array(
-          'action' => $action,
-          'job' => $build,
-          'timestamp' => microtime(TRUE),
-          'elements' => $elements,
-        ),
+            'action' => $action,
+            'job' => $build,
+            'timestamp' => microtime(TRUE),
+            'elements' => $elements,
+          ),
         'callback' => 'nodejsUltimateCron',
       );
       nodejs_send_content_channel_message($message);

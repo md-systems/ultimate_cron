@@ -1,4 +1,5 @@
 <?php
+use Drupal\ultimate_cron\CronRule;
 
 /**
  * @file
@@ -52,7 +53,7 @@ class UltimateCronRulesUnitTestCase extends DrupalUnitTestCase {
     $message[] = ($options['result'] ? '' : 'not ') . 'expected to run';
 
     // Do the actual test
-    $result = UltimateCronCrontabScheduler::shouldRun($options['rules'], strtotime($options['last_run']), strtotime($options['now']), $options['catch_up']);
+    $result = UltimateCrontabScheduler::shouldRun($options['rules'], strtotime($options['last_run']), strtotime($options['now']), $options['catch_up']);
 
     return array($options['result'] == $result, implode('<br/>', $message));
   }

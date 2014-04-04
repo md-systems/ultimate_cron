@@ -1,10 +1,11 @@
 <?php
+namespace Drupal\ultimate_cron;
 /**
  * @file
  * File containing functions for Ultimate Cron signal handling.
  */
 
-class UltimateCronSignal {
+class CronSignal {
   /**
    * Get a signal without claiming it.
    *

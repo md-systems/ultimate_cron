@@ -4,6 +4,8 @@
  * This class parses cron rules and determines last execution time using least case integer comparison.
  */
 
+namespace Drupal\ultimate_cron;
+
 class CronRule {
 
   public $rule = NULL;
@@ -133,7 +135,10 @@ class CronRule {
    */
   public function expandRange($part, $type) {
     $this->type = $type;
-    $part = preg_replace_callback('!(\d+)(?:-(\d+))?((/(\d+))?(\+(\d+))?)?!', array($this, 'expandInterval'), $part);
+    $part = preg_replace_callback('!(\d+)(?:-(\d+))?((/(\d+))?(\+(\d+))?)?!', array(
+      $this,
+      'expandInterval'
+    ), $part);
     if (!preg_match('/([^0-9\,])/', $part)) {
       $part = explode(',', $part);
       rsort($part);
@@ -152,7 +157,20 @@ class CronRule {
    */
   public function preProcessRule(&$parts) {
     // Allow JAN-DEC.
-    $months = array(1 => 'jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec');
+    $months = array(
+      1 => 'jan',
+      'feb',
+      'mar',
+      'apr',
+      'may',
+      'jun',
+      'jul',
+      'aug',
+      'sep',
+      'oct',
+      'nov',
+      'dec'
+    );
     $parts[3] = strtr(strtolower($parts[3]), array_flip($months));
 
     // Allow SUN-SUN.
@@ -201,19 +219,19 @@ class CronRule {
     $this->preProcessRule($parts);
     $intervals = array();
     $intervals['parts'] = $parts;
-    $intervals['minutes']  = $this->expandRange($parts[0], 'minutes');
+    $intervals['minutes'] = $this->expandRange($parts[0], 'minutes');
     if (empty($intervals['minutes'])) {
       return self::$cache['intervals'][$this->rule][$this->skew] = FALSE;
     }
-    $intervals['hours']    = $this->expandRange($parts[1], 'hours');
+    $intervals['hours'] = $this->expandRange($parts[1], 'hours');
     if (empty($intervals['hours'])) {
       return self::$cache['intervals'][$this->rule][$this->skew] = FALSE;
     }
-    $intervals['days']     = $this->expandRange($parts[2], 'days');
+    $intervals['days'] = $this->expandRange($parts[2], 'days');
     if (empty($intervals['days'])) {
       return self::$cache['intervals'][$this->rule][$this->skew] = FALSE;
     }
-    $intervals['months']   = $this->expandRange($parts[3], 'months');
+    $intervals['months'] = $this->expandRange($parts[3], 'months');
     if (empty($intervals['months'])) {
       return self::$cache['intervals'][$this->rule][$this->skew] = FALSE;
     }
@@ -272,12 +290,12 @@ class CronRule {
     }
 
     // Get starting points.
-    $start_year   = date('Y', $time);
+    $start_year = date('Y', $time);
     // Go back max 28 years (leapyear * weekdays).
-    $end_year     = $start_year - 28;
-    $start_month  = date('n', $time);
-    $start_day    = date('j', $time);
-    $start_hour   = date('G', $time);
+    $end_year = $start_year - 28;
+    $start_month = date('n', $time);
+    $start_day = date('j', $time);
+    $start_hour = date('G', $time);
     $start_minute = (int) date('i', $time);
 
     // If both weekday and days are restricted, then use either or

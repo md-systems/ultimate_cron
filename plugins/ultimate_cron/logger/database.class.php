@@ -4,11 +4,14 @@
  * Database logger for Ultimate Cron.
  */
 
+use Drupal\ultimate_cron\Logger;
+use Drupal\ultimate_cron\LogEntry;
+
 define('ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_DISABLED', 1);
 define('ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE', 2);
 define('ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN', 3);
 
-class UltimateCronDatabaseLogger extends UltimateCronLogger {
+class UltimateDatabaseLogger extends Logger {
   public $options = array();
   public $log_entry_class = 'UltimateCronDatabaseLogEntry';
 
@@ -289,7 +292,7 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
       $log_entry->finished = TRUE;
     }
     else {
-      $log_entry = new UltimateCronDatabaseLogEntry($name, $this);
+      $log_entry = new DatabaseLogEntry($name, $this);
     }
     return $log_entry;
   }
@@ -355,7 +358,7 @@ class UltimateCronDatabaseLogger extends UltimateCronLogger {
 
 }
 
-class UltimateCronDatabaseLogEntry extends UltimateCronLogEntry {
+class DatabaseLogEntry extends LogEntry {
   /**
    * Save log entry.
    */

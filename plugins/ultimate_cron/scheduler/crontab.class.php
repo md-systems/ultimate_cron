@@ -3,11 +3,13 @@
  * @file
  * Crontab cron job scheduler for Ultimate Cron.
  */
+use Drupal\ultimate_cron\CronRule;
+use Drupal\ultimate_cron\Scheduler;
 
 /**
  * Crontab scheduler.
  */
-class UltimateCronCrontabScheduler extends UltimateCronScheduler {
+class UltimateCrontabScheduler extends Scheduler {
   /**
    * Default settings.
    */

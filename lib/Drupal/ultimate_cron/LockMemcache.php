@@ -6,12 +6,13 @@
  * Supports cross request persistance.
  */
 
+namespace Drupal\ultimate_cron;
 /**
  * Class for handling lock functions.
  *
  * This is a pseudo namespace really. Should probably be refactored...
  */
-class UltimateCronLockMemcache {
+class LockMemcache {
   private static $locks = NULL;
 
   /**
@@ -52,7 +53,10 @@ class UltimateCronLockMemcache {
     // First, ensure cleanup.
     if (!isset(self::$locks)) {
       self::$locks = array();
-      ultimate_cron_register_shutdown_function(array('UltimateCronLockMemcache', 'shutdown'));
+      ultimate_cron_register_shutdown_function(array(
+        'Drupal\ultimate_cron\LockMemcache',
+        'shutdown'
+      ));
     }
 
     // Ensure that the timeout is at least 1 sec. This is a limitation
@@ -159,6 +163,7 @@ class UltimateCronLockMemcache {
     self::unlockRaw("lock-$name", $semaphore);
     return FALSE;
   }
+
   /**
    * Check if lock is taken.
    *

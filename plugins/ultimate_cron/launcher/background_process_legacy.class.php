@@ -3,11 +3,13 @@
  * @file
  * Background Process 1.x launcher for Ultimate Cron.
  */
+use Drupal\ultimate_cron\CronJob;
+use Drupal\ultimate_cron\Launcher;
 
 /**
  * Ultimate Cron launcher plugin class.
  */
-class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
+class UltimateBackgroundProcessLegacyLauncher extends Launcher {
   public $scheduledLaunch = FALSE;
   public $weight = -10;
 
@@ -601,7 +603,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   /**
    * Background process version of initializeProgress().
    *
-   * @param UltimateCronJob $job
+   * @param CronJob $job
    *   Job to initialize progress for.
    */
   public function initializeProgress($job) {
@@ -611,7 +613,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   /**
    * Background process version of finishProgress().
    *
-   * @param UltimateCronJob $job
+   * @param CronJob $job
    *   Job to finish progress for.
    */
   public function finishProgress($job) {
@@ -621,7 +623,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   /**
    * Implementation of getProgress().
    *
-   * @param UltimateCronJob $job
+   * @param CronJob $job
    *   Job to get progress for.
    *
    * @return float
@@ -636,7 +638,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   /**
    * Implementation of getProgressMultiple().
    *
-   * @param UltimateCronJob $jobs
+   * @param CronJob $jobs
    *   Jobs to get progresses for, keyed by job name.
    *
    * @return array
@@ -662,7 +664,7 @@ class UltimateCronBackgroundProcessLegacyLauncher extends UltimateCronLauncher {
   /**
    * Implementation of setProgress().
    *
-   * @param UltimateCronJob $job
+   * @param CronJob $job
    *   Job to set progress for.
    * @param float $progress
    *   Progress (0-1).

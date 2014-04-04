@@ -1,0 +1,47 @@
+<?php
+/**
+ * Created by PhpStorm.
+ * User: berdir
+ * Date: 4/4/14
+ * Time: 3:02 PM
+ */
+namespace Drupal\ultimate_cron;
+/**
+ * Abstract class for Ultimate Cron schedulers
+ *
+ * A scheduler is responsible for telling Ultimate Cron whether a job should
+ * run or not.
+ *
+ * Abstract methods:
+ *   isScheduled($job)
+ *     - Check if the given job is scheduled for launch at this time.
+ *       TRUE if it's scheduled for launch, otherwise FALSE.
+ *
+ *   isBehind($job)
+ *     - Check if the given job is behind its schedule.
+ *       FALSE if not behind, otherwise the amount of time it's behind
+ *       in seconds.
+ */
+abstract class Scheduler extends CronPlugin {
+  /**
+   * Check job schedule.
+   *
+   * @param CronJob $job
+   *   The job to check schedule for.
+   *
+   * @return boolean
+   *   TRUE if job is scheduled to run.
+   */
+  abstract public function isScheduled($job);
+
+  /**
+   * Check if job is behind schedule.
+   *
+   * @param CronJob $job
+   *   The job to check schedule for.
+   *
+   * @return boolean
+   *   TRUE if job is behind its schedule.
+   */
+  abstract public function isBehind($job);
+}

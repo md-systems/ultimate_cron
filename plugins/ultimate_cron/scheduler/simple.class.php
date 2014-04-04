@@ -7,7 +7,7 @@
 /**
  * Simple scheduler.
  */
-class UltimateCronSimpleScheduler extends UltimateCronCrontabScheduler {
+class UltimateCronSimpleScheduler extends UltimateCrontabScheduler {
   public $presets = array(
     '* * * * *' => 60,
     '*/15+@ * * * *' => 900,

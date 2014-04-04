@@ -1,10 +1,13 @@
 <?php
+namespace Drupal\ultimate_cron;
+use PDO;
+
 /**
  * @file
  * Pseudo namespace for progress functions.
  */
 
-class UltimateCronProgress {
+class Progress {
   public $name;
   public $progressUpdated = 0;
   public $interval = 1;
@@ -31,12 +34,12 @@ class UltimateCronProgress {
    * @param float $interval
    *   How often the database should be updated with the progress.
    *
-   * @return UltimateCronProgress
+   * @return Progress
    *   The object.
    */
   static public function factory($name, $interval = 1) {
     if (!isset(self::$instances[$name])) {
-      self::$instances[$name] = new UltimateCronProgress($name, $interval);
+      self::$instances[$name] = new Progress($name, $interval);
     }
     self::$instances[$name]->interval = $interval;
     return self::$instances[$name];

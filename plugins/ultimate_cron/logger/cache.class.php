@@ -1,10 +1,13 @@
 <?php
+use Drupal\ultimate_cron\Logger;
+use Drupal\ultimate_cron\LogEntry;
+
 /**
  * @file
  * Cache logger for Ultimate Cron.
  */
 
-class UltimateCronCacheLogger extends UltimateCronLogger {
+class UltimateCacheLogger extends Logger {
   public $log_entry_class = 'UltimateCronCacheLogEntry';
 
   /**
@@ -77,7 +80,7 @@ class UltimateCronCacheLogger extends UltimateCronLogger {
 }
 
 
-class UltimateCronCacheLogEntry extends UltimateCronLogEntry {
+class CacheLogEntry extends LogEntry {
   /**
    * Save log entry.
    */

@@ -1,0 +1,8 @@
+services:
+  cache.ultimate_cron:
+    class: Drupal\Core\Cache\CacheBackendInterface
+    tags:
+      - { name: cache.bin }
+    factory_method: get
+    factory_service: cache_factory
+    arguments: [ultimate_cron]

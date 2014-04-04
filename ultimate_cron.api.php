@@ -3,6 +3,7 @@
  * @file
  * Hooks provided by Ultimate Cron.
  */
+use Drupal\ultimate_cron\CronJob;
 
 /**
  * @addtogroup hooks
@@ -184,7 +185,7 @@ function hook_cron_easy_hooks_alter(&$easy_hooks) {
 /**
  * Invoked just before a job is asked for its schedule.
  *
- * @param UltimateCronJob $job
+ * @param CronJob $job
  *   The job being queried.
  */
 function hook_pre_schedule($job) {
@@ -193,7 +194,7 @@ function hook_pre_schedule($job) {
 /**
  * Invoked after a job has been asked for its schedule.
  *
- * @param UltimateCronJob $job
+ * @param CronJob $job
  *   The job being queried.
  */
 function hook_post_schedule($job) {
@@ -202,7 +203,7 @@ function hook_post_schedule($job) {
 /**
  * Invoked just before a job is launched.
  *
- * @param UltimateCronJob $job
+ * @param CronJob $job
  *   The job being launched.
  */
 function hook_pre_launch($job) {
@@ -211,7 +212,7 @@ function hook_pre_launch($job) {
 /**
  * Invoked after a job has been launched.
  *
- * @param UltimateCronJob $job
+ * @param CronJob $job
  *   The job that was launched.
  */
 function hook_post_launch($job) {
@@ -220,7 +221,7 @@ function hook_post_launch($job) {
 /**
  * Invoked just before a job is being run.
  *
- * @param UltimateCronJob $job
+ * @param CronJob $job
  *   The job being run.
  */
 function hook_pre_run($job) {
@@ -229,7 +230,7 @@ function hook_pre_run($job) {
 /**
  * Invoked after a job has been run.
  *
- * @param UltimateCronJob $job
+ * @param CronJob $job
  *   The job that was run.
  */
 function hook_post_run($job) {
@@ -238,7 +239,7 @@ function hook_post_run($job) {
 /**
  * Invoked just before a job is asked for its schedule.
  *
- * @param UltimateCronJob $job
+ * @param CronJob $job
  *   The job being invoked.
  */
 function hook_pre_invoke($job) {
@@ -247,7 +248,7 @@ function hook_pre_invoke($job) {
 /**
  * Invoked after a job has been invoked.
  *
- * @param UltimateCronJob $job
+ * @param CronJob $job
  *   The job that was invoked.
  */
 function hook_post_invoke($job) {
@@ -260,7 +261,7 @@ function hook_post_invoke($job) {
  * build_operations_alter($job, &$allowed_operations). It will only be
  * run for the currently active plugin for the job.
  *
- * @param UltimateCronJob $job
+ * @param CronJob $job
  *   The job in question.
  * @param array &$allowed_operations
  *   Allowed operations for this job.

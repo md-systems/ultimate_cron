@@ -3,6 +3,7 @@
  * @file
  * Drush commands for Ultimate Cron!
  */
+use Drupal\ultimate_cron\CronPlugin;
 
 /**
  * Implements hook_drush_command().
@@ -417,12 +418,12 @@ function drush_ultimate_cron_cron_run($name = NULL) {
     $pairs = explode(',', $options);
     foreach ($pairs as $pair) {
       list($key, $value) = explode('=', $pair);
-      UltimateCronPlugin::setGlobalOption(trim($key), trim($value));
+      CronPlugin::setGlobalOption(trim($key), trim($value));
     }
   }
   if (!$name) {
     if (drush_get_option('force')) {
-      UltimateCronPlugin::setGlobalOption('bypass_schedule', TRUE);
+      CronPlugin::setGlobalOption('bypass_schedule', TRUE);
     }
     ultimate_cron_run_scheduled(FALSE);
   }

@@ -3,11 +3,12 @@
  * @file
  * Poormans cron settings for Ultimate Cron.
  */
+use Drupal\ultimate_cron\Settings;
 
 /**
  * Poormans cron settings plugin class.
  */
-class UltimateCronPoormanSettings extends UltimateCronSettings {
+class PoormanSettings extends Settings {
   /**
    * Default settings.
    */

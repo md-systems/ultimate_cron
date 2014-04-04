@@ -6,12 +6,16 @@
  * Supports cross request persistance as well as GAP-LOCK mitigation.
  */
 
+namespace Drupal\ultimate_cron;
+use PDOException;
+use PDO;
+
 /**
  * Class for handling lock functions.
  *
  * This is a pseudo namespace really. Should probably be refactored...
  */
-class UltimateCronLock {
+class Lock {
   private static $locks = NULL;
 
   public static $killable = TRUE;
@@ -54,7 +58,10 @@ class UltimateCronLock {
     // First, ensure cleanup.
     if (!isset(self::$locks)) {
       self::$locks = array();
-      ultimate_cron_register_shutdown_function(array('UltimateCronLock', 'shutdown'));
+      ultimate_cron_register_shutdown_function(array(
+        'Drupal\ultimate_cron\Lock',
+        'shutdown'
+      ));
     }
 
     $target = _ultimate_cron_get_transactional_safe_connection();
@@ -80,8 +87,7 @@ class UltimateCronLock {
       self::$locks[$lock_id] = TRUE;
 
       return $lock_id;
-    }
-    catch (PDOException $e) {
+    } catch (PDOException $e) {
       return FALSE;
     }
   }
@@ -147,6 +153,7 @@ class UltimateCronLock {
       ->condition('current', 0)
       ->execute();
   }
+
   /**
    * Check if lock is taken.
    *

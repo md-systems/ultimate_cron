@@ -4,6 +4,11 @@
  * Ultimate Cron. Extend cron functionality in Drupal.
  */
 
+use Drupal\ultimate_cron\Logger;
+use Drupal\ultimate_cron\CronRule;
+use Drupal\ultimate_cron\CronJob;
+use Drupal\ultimate_cron\CronPlugin;
+
 include dirname(__FILE__) . '/ultimate_cron.poorman.inc';
 
 define('ULTIMATE_CRON_LOG_TYPE_NORMAL', 0);
@@ -17,50 +22,13 @@ function _ultimate_cron_define_log_type_all() {
   return array(ULTIMATE_CRON_LOG_TYPE_NORMAL, ULTIMATE_CRON_LOG_TYPE_ADMIN);
 }
 
-if (!function_exists('array_replace_recursive')) {
-  /**
-   * A array_replace_recursive() for earlier PHP versions.
-   *
-   * Taken from php.net, slightly modified.
-   *
-   * @see http://dk1.php.net/manual/en/function.array-replace-recursive.php#109390
-   */
-  function array_replace_recursive($base, $replacements) {
-    foreach (array_slice(func_get_args(), 1) as $replacements) {
-      $bref_stack = array(&$base);
-      $head_stack = array($replacements);
-
-      do {
-        end($bref_stack);
-
-        $bref = &$bref_stack[key($bref_stack)];
-        $head = array_pop($head_stack);
-
-        unset($bref_stack[key($bref_stack)]);
-
-        foreach (array_keys($head) as $key) {
-          if (isset($bref[$key]) && is_array($bref[$key]) && is_array($head[$key])) {
-            $bref_stack[] = &$bref[$key];
-            $head_stack[] = $head[$key];
-          }
-          else {
-            $bref[$key] = $head[$key];
-          }
-        }
-      } while (count($head_stack));
-    }
-
-    return $base;
-  }
-}
-
 /**
  * Memory exhaust protection.
  * To reduce the risk of shutdown handlers failing, we reserve 2MiB of memory
  * by default. This value is overridable.
  */
 
-$GLOBALS['__RESERVED_MEMORY'] = str_repeat('0', variable_get('ultimate_cron_reserve_memory', 1024 * 1024 * 2));
+//$GLOBALS['__RESERVED_MEMORY'] = str_repeat('0', variable_get('ultimate_cron_reserve_memory', 1024 * 1024 * 2));
 $GLOBALS['ultimate_cron_shutdown_functions'] = array();
 
 /**
@@ -354,7 +322,7 @@ function ultimate_cron_job_load_all_raw($reset = FALSE) {
  * @param boolean $reset
  *   (optional) Reset the ctools export object cache.
  *
- * @return UltimateCronJob
+ * @return CronJob
  *   The job loaded.
  */
 function ultimate_cron_job_load($name, $reset = FALSE) {
@@ -406,7 +374,7 @@ function ultimate_cron_job_load_all($reset = FALSE) {
   }
 
   $cache = $jobs;
-  UltimateCronPlugin::hook_cron_alter($cache);
+  CronPlugin::hook_cron_alter($cache);
 
   return $cache;
 }
@@ -418,11 +386,11 @@ function ultimate_cron_job_load_all($reset = FALSE) {
  *   Name of the job.
  * @param array $hook
  *   The cron hook data from hook_cronapi(), etc.
- * @param UltimateCronJob $job
+ * @param CronJob $job
  *   (optional) The job to prepare with the hook data. If no job is given,
  *   a new blank UltimateCronJob object will be used.
  *
- * @return UltimateCronJob
+ * @return CronJob
  *   The prepared UltimateCronJob object.
  */
 function ultimate_cron_prepare_job($name, $hook, $job = NULL) {
@@ -510,7 +478,7 @@ function ultimate_cron_job_set_status($object, $status) {
  *
  * Save a job and log it.
  *
- * @param UltimateCronJob &$object
+ * @param CronJob &$object
  *   The UltimateCronJob to save.
  *
  * @return boolean
@@ -922,7 +890,7 @@ function ultimate_cron_cron_queue_info() {
  *
  * This is a cron callback for cleanup up plugins.
  *
- * @param UltimateCronJob $job
+ * @param CronJob $job
  *   The cron job being run.
  * @param array $arguments
  *   (optional) An array that can have one or more of the following elements:
@@ -973,8 +941,8 @@ function ultimate_cron_cronapi() {
  * Capture watchdog messages and send them to the loggers.
  */
 function ultimate_cron_watchdog(array $log_entry) {
-  if (class_exists('UltimateCronLogger')) {
-    UltimateCronLogger::hook_watchdog($log_entry);
+  if (class_exists('Drupal\ultimate_cron\Logger')) {
+    Logger::hook_watchdog($log_entry);
   }
 }
 

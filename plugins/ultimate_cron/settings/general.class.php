@@ -3,11 +3,12 @@
  * @file
  * General settings for Ultimate Cron.
  */
+use Drupal\ultimate_cron\Settings;
 
 /**
  * General settings plugin class.
  */
-class UltimateCronGeneralSettings extends UltimateCronSettings {
+class GeneralSettings extends Settings {
   /**
    * Handle kill signal.
    */
