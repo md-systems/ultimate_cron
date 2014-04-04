@@ -3,12 +3,22 @@
  * @file
  * Serial cron job launcher for Ultimate Cron.
  */
-use Drupal\ultimate_cron\Launcher;
+namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Launcher;
+
+use Drupal\ultimate_cron\LauncherBase;
+use Exception;
 
 /**
  * Ultimate Cron launcher plugin class.
+ *
+ * @LauncherPlugin(
+ *   id = "serial",
+ *   title = @Translation("Serial"),
+ *   description = @Translation("Launches scheduled jobs in the same thread and runs them consecutively."),
+ * )
  */
-class UltimateSerialLauncher extends Launcher {
+class SerialLauncher extends LauncherBase {
+
   public $currentThread = NULL;
 
   /**
@@ -38,8 +48,8 @@ class UltimateSerialLauncher extends Launcher {
    * Settings form for the crontab scheduler.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
-    $elements = &$form['settings'][$this->type][$this->name];
-    $values = &$form_state['values']['settings'][$this->type][$this->name];
+    $elements = & $form['settings'][$this->type][$this->name];
+    $values = & $form_state['values']['settings'][$this->type][$this->name];
 
     $elements['timeouts'] = array(
       '#type' => 'fieldset',
@@ -63,7 +73,12 @@ class UltimateSerialLauncher extends Launcher {
     if (!$job) {
       $max_threads = $values['max_threads'];
       $elements['timeouts']['max_execution_time'] = array(
-        '#parents' => array('settings', $this->type, $this->name, 'max_execution_time'),
+        '#parents' => array(
+          'settings',
+          $this->type,
+          $this->name,
+          'max_execution_time'
+        ),
         '#title' => t("Maximum execution time"),
         '#type' => 'textfield',
         '#default_value' => $values['max_execution_time'],
@@ -72,7 +87,12 @@ class UltimateSerialLauncher extends Launcher {
         '#required' => TRUE,
       );
       $elements['launcher']['max_threads'] = array(
-        '#parents' => array('settings', $this->type, $this->name, 'max_threads'),
+        '#parents' => array(
+          'settings',
+          $this->type,
+          $this->name,
+          'max_threads'
+        ),
         '#title' => t("Maximum number of launcher threads"),
         '#type' => 'textfield',
         '#default_value' => $max_threads,
@@ -83,7 +103,12 @@ class UltimateSerialLauncher extends Launcher {
         '#weight' => 1,
       );
       $elements['launcher']['poorman_keepalive'] = array(
-        '#parents' => array('settings', $this->type, $this->name, 'poorman_keepalive'),
+        '#parents' => array(
+          'settings',
+          $this->type,
+          $this->name,
+          'poorman_keepalive'
+        ),
         '#title' => t("Poormans cron keepalive"),
         '#type' => 'checkbox',
         '#default_value' => $values['poorman_keepalive'],
@@ -121,8 +146,8 @@ class UltimateSerialLauncher extends Launcher {
    * Settings form validator.
    */
   public function settingsFormValidate(&$form, &$form_state, $job = NULL) {
-    $elements = &$form['settings'][$this->type][$this->name];
-    $values = &$form_state['values']['settings'][$this->type][$this->name];
+    $elements = & $form['settings'][$this->type][$this->name];
+    $values = & $form_state['values']['settings'][$this->type][$this->name];
     if (!$job) {
       if (intval($values['max_threads']) <= 0) {
         form_set_error("settings[$this->type][$this->name", t('%title must be greater than 0', array(
@@ -217,9 +242,11 @@ class UltimateSerialLauncher extends Launcher {
     // Run job.
     try {
       $job->run();
-    }
-    catch (Exception $e) {
-      watchdog('serial_launcher', 'Error executing %job: @error', array('%job' => $job->name, '@error' => $e->getMessage()), WATCHDOG_ERROR);
+    } catch (Exception $e) {
+      watchdog('serial_launcher', 'Error executing %job: @error', array(
+        '%job' => $job->name,
+        '@error' => $e->getMessage()
+      ), WATCHDOG_ERROR);
       $log_entry->finish();
       $job->unlock($lock_id);
       return FALSE;

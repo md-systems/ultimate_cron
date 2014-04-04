@@ -9,7 +9,7 @@ use Drupal\Core\CronInterface;
 use Drupal\ultimate_cron\LogEntry;
 use Exception;
 use Drupal\ultimate_cron\CronPlugin;
-use Drupal\ultimate_cron\Logger;
+use Drupal\ultimate_cron\LoggerBase;
 
 /**
  * Class for handling cron jobs.
@@ -546,7 +546,7 @@ class CronJob implements CronInterface {
    * @param string $init_message
    *   Initial message for the log.
    *
-   * @return Logger
+   * @return LoggerBase
    *   The log object.
    */
   public function startLog($lock_id, $init_message = '', $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL) {

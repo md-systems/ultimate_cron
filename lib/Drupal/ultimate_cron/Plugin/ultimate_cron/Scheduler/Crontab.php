@@ -3,13 +3,20 @@
  * @file
  * Crontab cron job scheduler for Ultimate Cron.
  */
+namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler;
+
 use Drupal\ultimate_cron\CronRule;
-use Drupal\ultimate_cron\Scheduler;
 
 /**
  * Crontab scheduler.
+ *
+ * @SchedulerPlugin(
+ *   id = "crontab",
+ *   title = @Translation("Crontab"),
+ *   description = @Translation("Use crontab rules for scheduling jobs."),
+ * )
  */
-class UltimateCrontabScheduler extends Scheduler {
+class Crontab extends SchedulerBase {
   /**
    * Default settings.
    */
@@ -59,8 +66,8 @@ class UltimateCrontabScheduler extends Scheduler {
    * Settings form for the crontab scheduler.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
-    $elements = &$form['settings'][$this->type][$this->name];
-    $values = &$form_state['values']['settings'][$this->type][$this->name];
+    $elements = & $form['settings'][$this->type][$this->name];
+    $values = & $form_state['values']['settings'][$this->type][$this->name];
 
     $rules = is_array($values['rules']) ? implode(',', $values['rules']) : '';
 
@@ -96,7 +103,7 @@ class UltimateCrontabScheduler extends Scheduler {
    * Submit handler.
    */
   public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
-    $values = &$form_state['values']['settings'][$this->type][$this->name];
+    $values = & $form_state['values']['settings'][$this->type][$this->name];
 
     if (!empty($values['rules'])) {
       $rules = explode(',', $values['rules']);
@@ -165,7 +172,7 @@ class UltimateCrontabScheduler extends Scheduler {
     }
     $behind = REQUEST_TIME - $next_schedule;
 
-    return $behind > $settings['catch_up'] ? $behind: FALSE;
+    return $behind > $settings['catch_up'] ? $behind : FALSE;
   }
 
   /**

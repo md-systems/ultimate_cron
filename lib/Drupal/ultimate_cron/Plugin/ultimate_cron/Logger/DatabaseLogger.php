@@ -1,19 +1,33 @@
 <?php
 /**
- * @file
- * Database logger for Ultimate Cron.
+ * Created by PhpStorm.
+ * User: berdir
+ * Date: 4/4/14
+ * Time: 4:27 PM
  */
+namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Logger;
 
-use Drupal\ultimate_cron\Logger;
-use Drupal\ultimate_cron\LogEntry;
+use Database;
+use Drupal\ultimate_cron\DatabaseLogEntry;
+use Drupal\ultimate_cron\LoggerBase;
+use PDO;
 
-define('ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_DISABLED', 1);
-define('ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE', 2);
-define('ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN', 3);
-
-class UltimateDatabaseLogger extends Logger {
+/**
+ * Database logger.
+ *
+ * @LoggerPlugin(
+ *   id = "database",
+ *   title = @Translation("Database"),
+ *   description = @Translation("Stores logs in the database."),
+ * )
+ */
+class DatabaseLogger extends LoggerBase {
   public $options = array();
   public $log_entry_class = 'UltimateCronDatabaseLogEntry';
+
+  const CLEANUP_METHOD_DISABLED = 1;
+  const CLEANUP_METHOD_EXPIRE = 2;
+  const CLEANUP_METHOD_RETAIN = 3;
 
   /**
    * Constructor.
@@ -21,9 +35,9 @@ class UltimateDatabaseLogger extends Logger {
   public function __construct($name, $plugin, $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL) {
     parent::__construct($name, $plugin, $log_type);
     $this->options['method'] = array(
-      ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_DISABLED => t('Disabled'),
-      ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE => t('Remove logs older than a specified age'),
-      ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN => t('Retain only a specific amount of log entries'),
+      static::CLEANUP_METHOD_DISABLED => t('Disabled'),
+      static::CLEANUP_METHOD_EXPIRE => t('Remove logs older than a specified age'),
+      static::CLEANUP_METHOD_RETAIN => t('Retain only a specific amount of log entries'),
     );
   }
 
@@ -32,7 +46,7 @@ class UltimateDatabaseLogger extends Logger {
    */
   public function defaultSettings() {
     return array(
-      'method' => ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN,
+      'method' => static::CLEANUP_METHOD_RETAIN,
       'expire' => 86400 * 14,
       'retain' => 1000,
     );
@@ -69,17 +83,17 @@ class UltimateDatabaseLogger extends Logger {
     $settings = $job->getSettings('logger');
 
     switch ($settings['method']) {
-      case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_DISABLED:
+      case static::CLEANUP_METHOD_DISABLED:
         return;
 
-      case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE:
+      case static::CLEANUP_METHOD_EXPIRE:
         $expire = $settings['expire'];
         // Let's not delete more than ONE BILLION log entries :-o.
         $max = 10000000000;
         $chunk = 100;
         break;
 
-      case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN:
+      case static::CLEANUP_METHOD_RETAIN:
         $expire = 0;
         $max = db_query("SELECT COUNT(lid) FROM {ultimate_cron_log} WHERE name = :name", array(
           ':name' => $job->name,
@@ -143,9 +157,9 @@ class UltimateDatabaseLogger extends Logger {
    * Settings form.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
-    $elements = &$form['settings'][$this->type][$this->name];
-    $defaults = &$form_state['default_values']['settings'][$this->type][$this->name];
-    $values = &$form_state['values']['settings'][$this->type][$this->name];
+    $elements = & $form['settings'][$this->type][$this->name];
+    $defaults = & $form_state['default_values']['settings'][$this->type][$this->name];
+    $values = & $form_state['values']['settings'][$this->type][$this->name];
 
     $elements['method'] = array(
       '#type' => 'select',
@@ -164,12 +178,12 @@ class UltimateDatabaseLogger extends Logger {
         '#states' => array(
           'visible' => array(
             ':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]' => array(
-              'value' => ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE,
+              'value' => static::CLEANUP_METHOD_EXPIRE,
             ),
           ),
           'enabled' => array(
             ':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]' => array(
-              'value' => ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE,
+              'value' => static::CLEANUP_METHOD_EXPIRE,
             ),
           )
         ),
@@ -179,12 +193,12 @@ class UltimateDatabaseLogger extends Logger {
         '#states' => array(
           'visible' => array(
             ':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]' => array(
-              'value' => ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN,
+              'value' => static::CLEANUP_METHOD_RETAIN,
             ),
           ),
           'enabled' => array(
             ':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]' => array(
-              'value' => ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN,
+              'value' => static::CLEANUP_METHOD_RETAIN,
             ),
           ),
         ),
@@ -192,42 +206,42 @@ class UltimateDatabaseLogger extends Logger {
     }
 
     $elements['method_expire'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Remove logs older than a specified age'),
-    ) + $states['expire'];
+        '#type' => 'fieldset',
+        '#title' => t('Remove logs older than a specified age'),
+      ) + $states['expire'];
     $elements['method_expire']['expire'] = array(
-      '#parents' => array('settings', $this->type, $this->name, 'expire'),
-      '#type' => 'textfield',
-      '#title' => t('Log entry expiration'),
-      '#description' => t('Remove log entries older than X seconds.'),
-      '#default_value' => $values['expire'],
-      '#fallback' => TRUE,
-      '#required' => TRUE,
-    ) + $states['expire'];
+        '#parents' => array('settings', $this->type, $this->name, 'expire'),
+        '#type' => 'textfield',
+        '#title' => t('Log entry expiration'),
+        '#description' => t('Remove log entries older than X seconds.'),
+        '#default_value' => $values['expire'],
+        '#fallback' => TRUE,
+        '#required' => TRUE,
+      ) + $states['expire'];
 
     $elements['method_retain'] = array(
-      '#type' => 'fieldset',
-      '#title' => t('Retain only a specific amount of log entries'),
-    ) + $states['retain'];
+        '#type' => 'fieldset',
+        '#title' => t('Retain only a specific amount of log entries'),
+      ) + $states['retain'];
     $elements['method_retain']['retain'] = array(
-      '#parents' => array('settings', $this->type, $this->name, 'retain'),
-      '#type' => 'textfield',
-      '#title' => t('Retain logs'),
-      '#description' => t('Retain X amount of log entries.'),
-      '#default_value' => $values['retain'],
-      '#fallback' => TRUE,
-      '#required' => TRUE,
-    ) + $states['retain'];
+        '#parents' => array('settings', $this->type, $this->name, 'retain'),
+        '#type' => 'textfield',
+        '#title' => t('Retain logs'),
+        '#description' => t('Retain X amount of log entries.'),
+        '#default_value' => $values['retain'],
+        '#fallback' => TRUE,
+        '#required' => TRUE,
+      ) + $states['retain'];
 
     if ($job) {
-      if ($defaults['method'] == ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE) {
+      if ($defaults['method'] == static::CLEANUP_METHOD_EXPIRE) {
         $elements['method_default'] = $elements['method_expire'];
         $elements['method_default']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
         $elements['method_default']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
         $elements['method_default']['expire']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
         $elements['method_default']['expire']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
       }
-      if ($defaults['method'] == ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN) {
+      if ($defaults['method'] == static::CLEANUP_METHOD_RETAIN) {
         $elements['method_default'] = $elements['method_retain'];
         $elements['method_default']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
         $elements['method_default']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
@@ -241,8 +255,8 @@ class UltimateDatabaseLogger extends Logger {
    * Submit handler.
    */
   public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
-    $values = &$form_state['values']['settings'][$this->type][$this->name];
-    $defaults = &$form_state['default_values']['settings'][$this->type][$this->name];
+    $values = & $form_state['values']['settings'][$this->type][$this->name];
+    $defaults = & $form_state['default_values']['settings'][$this->type][$this->name];
     if (!$job) {
       return;
     }
@@ -251,16 +265,16 @@ class UltimateDatabaseLogger extends Logger {
 
     // Cleanup form (can this be done elsewhere?)
     switch ($method) {
-      case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_DISABLED:
+      case static::CLEANUP_METHOD_DISABLED:
         unset($values['expire']);
         unset($values['retain']);
         break;
 
-      case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_EXPIRE:
+      case static::CLEANUP_METHOD_EXPIRE:
         unset($values['retain']);
         break;
 
-      case ULTIMATE_CRON_DATABASE_LOGGER_CLEANUP_METHOD_RETAIN:
+      case static::CLEANUP_METHOD_RETAIN:
         unset($values['expire']);
         break;
     }
@@ -349,76 +363,14 @@ class UltimateDatabaseLogger extends Logger {
       ->execute();
 
     $log_entries = array();
-    while ($object = $result->fetchObject($this->log_entry_class, array($name, $this))) {
+    while ($object = $result->fetchObject($this->log_entry_class, array(
+      $name,
+      $this
+    ))) {
       $log_entries[$object->lid] = $object;
     }
 
     return $log_entries;
   }
 
-}
-
-class DatabaseLogEntry extends LogEntry {
-  /**
-   * Save log entry.
-   */
-  public function save() {
-    if (!$this->lid) {
-      return;
-    }
-
-    static $retry = 0;
-
-    try {
-      db_insert('ultimate_cron_log')
-        ->fields(array(
-          'lid' => $this->lid,
-          'name' => $this->name,
-          'log_type' => $this->log_type,
-          'start_time' => $this->start_time,
-          'end_time' => $this->end_time,
-          'uid' => $this->uid,
-          'init_message' => $this->init_message,
-          'message' => $this->message,
-          'severity' => $this->severity
-        ))
-        ->execute();
-    }
-    catch (PDOException $e) {
-      // Row already exists. Let's update it, if we can.
-      $updated = db_update('ultimate_cron_log')
-        ->fields(array(
-          'name' => $this->name,
-          'log_type' => $this->log_type,
-          'start_time' => $this->start_time,
-          'end_time' => $this->end_time,
-          'init_message' => $this->init_message,
-          'message' => $this->message,
-          'severity' => $this->severity
-        ))
-        ->condition('lid', $this->lid)
-        ->condition('end_time', 0)
-        ->execute();
-      if (!$updated) {
-        // Row was not updated, someone must have beaten us to it.
-        // Let's create a new log entry.
-        $lid = $this->lid . '-' . uniqid('', TRUE);
-        $this->message = t('Lock #@original_lid was already closed and logged. Creating a new log entry #@lid', array(
-          '@original_lid' => $this->lid,
-          '@lid' => $lid,
-        )) . "\n" . $this->message;
-        $this->severity = $this->severity >= 0 && $this->severity < WATCHDOG_ERROR ? $this->severity : WATCHDOG_ERROR;
-        $this->lid = $lid;
-        $retry++;
-        if ($retry > 3) {
-          $retry = 0;
-          watchdog('database_logger', (string) $e, array(), WATCHDOG_CRITICAL);
-          return;
-        }
-
-        $this->save();
-        $retry--;
-      }
-    }
-  }
 }

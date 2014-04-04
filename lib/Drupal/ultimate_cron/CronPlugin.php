@@ -8,6 +8,7 @@
 
 
 namespace Drupal\ultimate_cron;
+use Drupal\Core\Plugin\PluginBase;
 
 /**
  * This is the base class for all Ultimate Cron plugins.
@@ -15,10 +16,7 @@ namespace Drupal\ultimate_cron;
  * This class handles all the load/save settings for a plugin as well as the
  * forms, etc.
  */
-class CronPlugin {
-  public $name = '';
-  public $title = '';
-  public $description = '';
+class CronPlugin extends PluginBase {
   public $plugin;
   public $settings = array();
   static public $multiple = FALSE;
@@ -36,7 +34,7 @@ class CronPlugin {
    * @param array $plugin
    *   The plugin definition.
    */
-  public function __construct($name, $plugin) {
+  /*public function __construct($name, $plugin) {
     $this->plugin = $plugin;
     $this->title = $plugin['title'];
     $this->description = $plugin['description'];
@@ -44,17 +42,7 @@ class CronPlugin {
     $this->type = $plugin['plugin type'];
     $this->key = 'ultimate_cron_plugin_' . $plugin['plugin type'] . '_' . $name . '_settings';
     $this->settings = variable_get($this->key, array());
-  }
-
-  /**
-   * Singleton factoryLogEntry.
-   */
-  static public function factory($class, $name, $plugin) {
-    if (empty($class::$instances[$plugin['plugin type']][$name])) {
-      \Drupal\ultimate_cron\self::$instances[$plugin['plugin type']][$name] = new $class($name, $plugin);
-    }
-    return \Drupal\ultimate_cron\self::$instances[$plugin['plugin type']][$name];
-  }
+  }*/
 
   /**
    * Get global plugin option.
@@ -66,7 +54,7 @@ class CronPlugin {
    *   Value of option if any, NULL if not found.
    */
   static public function getGlobalOption($name) {
-    return isset(\Drupal\ultimate_cron\self::$globalOptions[$name]) ? \Drupal\ultimate_cron\self::$globalOptions[$name] : NULL;
+    return isset(static::$globalOptions[$name]) ? static::$globalOptions[$name] : NULL;
   }
 
   /**
@@ -76,7 +64,7 @@ class CronPlugin {
    *   All options currently set, keyed by name.
    */
   static public function getGlobalOptions() {
-    return \Drupal\ultimate_cron\self::$globalOptions;
+    return static::$globalOptions;
   }
 
   /**
@@ -88,7 +76,7 @@ class CronPlugin {
    *   The value to give it.
    */
   static public function setGlobalOption($name, $value) {
-    \Drupal\ultimate_cron\self::$globalOptions[$name] = $value;
+    static::$globalOptions[$name] = $value;
   }
 
   /**
@@ -98,14 +86,14 @@ class CronPlugin {
    *   Name of global plugin option to remove.
    */
   static public function unsetGlobalOption($name) {
-    unset(\Drupal\ultimate_cron\self::$globalOptions[$name]);
+    unset(static::$globalOptions[$name]);
   }
 
   /**
    * Remove all global plugin options.
    */
   static public function unsetGlobalOptions() {
-    \Drupal\ultimate_cron\self::$globalOptions = array();
+    static::$globalOptions = array();
   }
 
   /**
@@ -443,7 +431,7 @@ class CronPlugin {
 
       // Unset when applicable.
       if (!empty($elements[$child]['#markup'])) {
-        \Drupal\ultimate_cron\self::drupal_array_remove_nested_value($values, $rel_parents);
+        static::drupal_array_remove_nested_value($values, $rel_parents);
       }
       elseif (
         $key_exists &&
@@ -451,7 +439,7 @@ class CronPlugin {
         !empty($elements[$child]['#fallback']) &&
         $value !== '0'
       ) {
-        \Drupal\ultimate_cron\self::drupal_array_remove_nested_value($values, $rel_parents);
+        static::drupal_array_remove_nested_value($values, $rel_parents);
       }
     }
   }

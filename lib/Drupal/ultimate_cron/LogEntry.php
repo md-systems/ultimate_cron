@@ -55,7 +55,7 @@ abstract class LogEntry {
    *
    * @param string $name
    *   Name of log.
-   * @param \Drupal\ultimate_cron\Logger $logger
+   * @param \Drupal\ultimate_cron\LoggerBase $logger
    *   A logger object.
    */
   public function __construct($name, $logger, $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL) {

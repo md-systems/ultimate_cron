@@ -4,7 +4,7 @@
  * Ultimate Cron. Extend cron functionality in Drupal.
  */
 
-use Drupal\ultimate_cron\Logger;
+use Drupal\ultimate_cron\LoggerBase;
 use Drupal\ultimate_cron\CronRule;
 use Drupal\ultimate_cron\CronJob;
 use Drupal\ultimate_cron\CronPlugin;
@@ -941,8 +941,8 @@ function ultimate_cron_cronapi() {
  * Capture watchdog messages and send them to the loggers.
  */
 function ultimate_cron_watchdog(array $log_entry) {
-  if (class_exists('Drupal\ultimate_cron\Logger')) {
-    Logger::hook_watchdog($log_entry);
+  if (class_exists('Drupal\ultimate_cron\LoggerBase')) {
+    LoggerBase::hook_watchdog($log_entry);
   }
 }
 

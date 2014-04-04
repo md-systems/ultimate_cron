@@ -1,13 +1,25 @@
 <?php
-use Drupal\ultimate_cron\Logger;
-use Drupal\ultimate_cron\LogEntry;
-
 /**
  * @file
  * Cache logger for Ultimate Cron.
  */
 
-class UltimateCacheLogger extends Logger {
+namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Logger;
+
+use Drupal\ultimate_cron\LoggerBase;
+
+/**
+ * Cache Logger.
+ *
+ * @LoggerPlugin(
+ *   id = "cache",
+ *   title = @Translation("Cache"),
+ *   description = @Translation("Stores the last log entry (and only the last) in the cache."),
+ * )
+ */
+class CacheLogger extends LoggerBase {
+
+
   public $log_entry_class = 'UltimateCronCacheLogEntry';
 
   /**
@@ -57,8 +69,8 @@ class UltimateCacheLogger extends Logger {
    * Settings form.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
-    $elements = &$form['settings'][$this->type][$this->name];
-    $values = &$form_state['values']['settings'][$this->type][$this->name];
+    $elements = & $form['settings'][$this->type][$this->name];
+    $values = & $form_state['values']['settings'][$this->type][$this->name];
 
     $elements['bin'] = array(
       '#type' => 'textfield',
@@ -76,29 +88,5 @@ class UltimateCacheLogger extends Logger {
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
-  }
-}
-
-
-class CacheLogEntry extends LogEntry {
-  /**
-   * Save log entry.
-   */
-  public function save() {
-    if (!$this->lid) {
-      return;
-    }
-
-    if ($this->log_type != ULTIMATE_CRON_LOG_TYPE_NORMAL) {
-      return;
-    }
-
-    $job = ultimate_cron_job_load($this->name);
-
-    $settings = $job->getSettings('logger');
-
-    $expire = $settings['timeout'] > 0 ? time() + $settings['timeout'] : $settings['timeout'];
-    cache_set('uc-name:' . $this->name, $this->lid, $settings['bin'], $expire);
-    cache_set('uc-lid:' . $this->lid, $this->getData(), $settings['bin'], $expire);
   }
 }

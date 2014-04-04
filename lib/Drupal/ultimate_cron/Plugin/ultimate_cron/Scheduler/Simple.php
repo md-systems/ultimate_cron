@@ -4,10 +4,19 @@
  * Simple cron job scheduler for Ultimate Cron.
  */
 
+namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler;
+
 /**
  * Simple scheduler.
+ *
+ * @SchedulerPlugin(
+ *   id = "simple",
+ *   title = @Translation("Simple"),
+ *   description = @Translation("Provides a set of predefined intervals for scheduling."),
+ * )
  */
-class UltimateCronSimpleScheduler extends UltimateCrontabScheduler {
+class Simple extends Crontab {
+
   public $presets = array(
     '* * * * *' => 60,
     '*/15+@ * * * *' => 900,
@@ -54,8 +63,8 @@ class UltimateCronSimpleScheduler extends UltimateCrontabScheduler {
    * Settings form for the simple scheduler.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
-    $elements = &$form['settings'][$this->type][$this->name];
-    $values = &$form_state['values']['settings'][$this->type][$this->name];
+    $elements = & $form['settings'][$this->type][$this->name];
+    $values = & $form_state['values']['settings'][$this->type][$this->name];
 
     $rule = is_array($values['rules']) ? reset($values['rules']) : '';
 

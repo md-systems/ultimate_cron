@@ -23,7 +23,7 @@ use Drupal\ultimate_cron\LogEntry;
  *   $log_entry_class
  *     - The class name of the log entry class associated with this logger.
  */
-abstract class Logger extends CronPlugin {
+abstract class LoggerBase extends CronPlugin {
   static public $log_entries = NULL;
   public $log_entry_class = 'UltimateCronLogEntry';
 
@@ -103,8 +103,8 @@ abstract class Logger extends CronPlugin {
    *   Watchdog log entry array.
    */
   final static public function hook_watchdog(array $log_entry) {
-    if (\Drupal\ultimate_cron\self::$log_entries) {
-      foreach (\Drupal\ultimate_cron\self::$log_entries as $log_entry_object) {
+    if (static::$log_entries) {
+      foreach (static::$log_entries as $log_entry_object) {
         $log_entry_object->watchdog($log_entry);
       }
     }

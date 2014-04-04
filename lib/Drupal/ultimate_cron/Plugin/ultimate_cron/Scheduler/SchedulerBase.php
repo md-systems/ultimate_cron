@@ -5,7 +5,10 @@
  * Date: 4/4/14
  * Time: 3:02 PM
  */
-namespace Drupal\ultimate_cron;
+namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler;
+use Drupal\ultimate_cron\CronJob;
+use Drupal\ultimate_cron\CronPlugin;
+
 /**
  * Abstract class for Ultimate Cron schedulers
  *
@@ -22,7 +25,7 @@ namespace Drupal\ultimate_cron;
  *       FALSE if not behind, otherwise the amount of time it's behind
  *       in seconds.
  */
-abstract class Scheduler extends CronPlugin {
+abstract class SchedulerBase extends CronPlugin {
   /**
    * Check job schedule.
    *

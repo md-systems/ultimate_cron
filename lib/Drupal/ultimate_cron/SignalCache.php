@@ -4,7 +4,10 @@
  * File containing functions for Ultimate Cron signal handling using cache.
  */
 
-class UltimateCronSignalCache {
+
+namespace Drupal\ultimate_cron;
+
+class SignalCache {
   /**
    * Get a signal without claiming it.
    *
