@@ -12,13 +12,6 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
   static private $queues = NULL;
 
   /**
-   * Include check of enabled plugin for isValid() check.
-   */
-  public function isValid($job = NULL) {
-    return variable_get($this->key . '_enabled', TRUE) ? parent::isValid($job) : FALSE;
-  }
-
-  /**
    * Get cron queues and static cache them.
    *
    * Works like module_invoke_all('cron_queue_info'), but adds
@@ -50,6 +43,9 @@ class UltimateCronQueueSettings extends UltimateCronTaggedSettings {
    */
   public function cronapi() {
     $items = array();
+    if (!variable_get($this->key . '_enabled', TRUE)) {
+      return $items;
+    }
 
     // Grab the defined cron queues.
     $queues = self::get_queues();
