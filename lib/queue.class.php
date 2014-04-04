@@ -3,7 +3,7 @@
  * @file
  * Queue settings for Ultimate Cron.
  */
-use Drupal\ultimate_cron\CronJob;
+use Drupal\ultimate_cron\Entity\CronJob;
 use Drupal\ultimate_cron\TaggedSettings;
 
 /**

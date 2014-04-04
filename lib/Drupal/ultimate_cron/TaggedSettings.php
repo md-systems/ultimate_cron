@@ -5,7 +5,7 @@
  */
 namespace Drupal\ultimate_cron;
 
-use Drupal\ultimate_cron\CronJob;
+use Drupal\ultimate_cron\Entity\CronJob;
 
 
 /**

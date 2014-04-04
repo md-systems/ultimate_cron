@@ -9,6 +9,7 @@
 
 namespace Drupal\ultimate_cron;
 use Drupal\Core\Plugin\PluginBase;
+use Drupal\ultimate_cron\Entity\CronJob;
 
 /**
  * This is the base class for all Ultimate Cron plugins.

@@ -107,59 +107,6 @@ $plugin = array(
 );
 
 /**
- * Form to edit the settings of an Ultimate Cron job.
- */
-function ultimate_cron_job_ctools_export_ui_form(&$form, &$form_state) {
-  $job = $form_state['item'];
-
-  $form['info']['name'] = array_merge($form['info']['name'], array(
-    '#type' => 'value',
-  ));
-
-  $form['jid'] = array(
-    '#type'  => 'value',
-    '#value' => isset($job->jid) ? $job->jid : '',
-  );
-
-  // Setup vertical tabs.
-  $form['settings_tabs'] = array(
-    '#type' => 'vertical_tabs',
-  );
-  $form['settings'] = array(
-    '#tree' => TRUE,
-  );
-
-  // Base the form on the actual form data, in case of AJAX request.
-  if (isset($form_state['input'])) {
-    $form_state['values'] = $form_state['input'];
-  }
-
-  // Sanitize input values.
-  if (!isset($form_state['values']['settings'])) {
-    $form_state['values']['settings'] = array();
-  }
-  $form_state['values']['settings'] += $job->settings;
-
-  // Load settings for each plugin in its own vertical tab.
-  ctools_include('plugins');
-  $plugin_types = ctools_plugin_get_plugin_type_info();
-  foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
-    $static = $info['defaults']['static'];
-    $class = $static['class'];
-    $class::jobSettingsForm($form, $form_state, $plugin_type, $job);
-  }
-
-  // What the hell?
-  // Why do we need to reset 'input'? Why is it used for the form fields
-  // instead of 'values'?
-  if (isset($form_state['input'])) {
-    $form_state['input'] = $form_state['values'];
-  }
-  $form['#attached']['js'][] = drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.job.js';
-
-}
-
-/**
  * Ajax callback for interchangable plugin settings.
  */
 function ultimate_cron_job_plugin_settings_ajax($form, &$form_state) {

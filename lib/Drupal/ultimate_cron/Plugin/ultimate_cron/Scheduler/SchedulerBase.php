@@ -6,7 +6,7 @@
  * Time: 3:02 PM
  */
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler;
-use Drupal\ultimate_cron\CronJob;
+use Drupal\ultimate_cron\Entity\CronJob;
 use Drupal\ultimate_cron\CronPlugin;
 
 /**
@@ -40,7 +40,7 @@ abstract class SchedulerBase extends CronPlugin {
   /**
    * Check if job is behind schedule.
    *
-   * @param CronJob $job
+   * @param \Drupal\ultimate_cron\Entity\CronJob $job
    *   The job to check schedule for.
    *
    * @return boolean

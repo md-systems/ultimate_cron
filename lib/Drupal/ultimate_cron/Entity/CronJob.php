@@ -4,19 +4,42 @@
  * Job class for Ultimate Cron.
  */
 
-namespace Drupal\ultimate_cron;
-use Drupal\Core\CronInterface;
-use Drupal\ultimate_cron\LogEntry;
-use Exception;
+namespace Drupal\ultimate_cron\Entity;
+
+use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\ultimate_cron\CronPlugin;
+use Drupal\ultimate_cron\LogEntry;
 use Drupal\ultimate_cron\LoggerBase;
+use Exception;
 
 /**
  * Class for handling cron jobs.
  *
  * This class represents the jobs available in the system.
+ *
+ * @ConfigEntityType(
+ *   id = "ultimate_cron_job",
+ *   label = @Translation("Cron Job"),
+ *   controllers = {
+ *     "list_builder" = "Drupal\ultimate_cron\CronJobListBuilder",
+ *     "form" = {
+ *       "default" = "Drupal\ultimate_cron\CronJobFormController",
+ *     }
+ *   },
+ *   config_prefix = "job",
+ *   admin_permission = "administer ultimate cron",
+ *   entity_keys = {
+ *     "id" = "id",
+ *     "label" = "title",
+ *     "status" = "status",
+ *   },
+ *   links = {
+ *     "edit-form" = "ultimate_cron.job_edit"
+ *   }
+ * )
+ * "delete-form" = "ultimate_cron.job_delete",
  */
-class CronJob implements CronInterface {
+class CronJob extends ConfigEntityBase {
   static public $signals;
   static public $currentJob;
   public $progressUpdated = 0;
@@ -25,21 +48,29 @@ class CronJob implements CronInterface {
   private $cacheSettings = NULL;
   private $ids = array();
 
+  public $id;
+  public $uuid;
+  public $status = TRUE;
+  public $title;
+  public $settings = array();
+
   /**
-   * Create an instance of this object with the data from another object.
-   *
-   * @param object $object
-   *   The source object.
-   *
-   * @return CronJob
-   *   Resulting object.
+   * {@inheritdoc}
    */
-  static public function factory($object) {
-    $result = new self();
-    foreach ($object as $key => $value) {
-      $result->$key = $value;
+  public function toArray() {
+    $names = array(
+      'id',
+      'uuid',
+      'title',
+      'status',
+      'settings',
+      'dependencies',
+    );
+    $properties = array();
+    foreach ($names as $name) {
+      $properties[$name] = $this->get($name);
     }
-    return $result;
+    return $properties;
   }
 
   /**
@@ -239,30 +270,6 @@ class CronJob implements CronInterface {
     }
     $this->pluginSettings[$plugin_type] = $settings;
     return $settings;
-  }
-
-  /**
-   * Enable a job.
-   */
-  public function enable() {
-    if (empty($this->hook['immutable'])) {
-      ctools_include('export');
-      ctools_export_crud_enable('ultimate_cron_job', $this);
-      return TRUE;
-    }
-    return FALSE;
-  }
-
-  /**
-   * Disable a job.
-   */
-  public function disable() {
-    if (empty($this->hook['immutable'])) {
-      ctools_include('export');
-      ctools_export_crud_disable('ultimate_cron_job', $this);
-      return TRUE;
-    }
-    return FALSE;
   }
 
   /**

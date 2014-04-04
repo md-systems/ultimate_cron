@@ -1,0 +1,23 @@
+ultimate_cron.job_list:
+  path: '/admin/config/system/cron/jobs'
+  defaults:
+    _entity_list: 'ultimate_cron_job'
+    _title: 'Cron jobs'
+  requirements:
+    _permission: 'administer ultimate cron'
+
+ultimate_cron.job_add:
+  path: '/admin/config/system/cron/jobs/add'
+  defaults:
+    _entity_form: 'ultimate_cron_job.default'
+    _title: 'Add job'
+  requirements:
+    _entity_create_access: 'ultimate_cron_job'
+
+ultimate_cron.job_edit:
+  path: '/admin/config/system/cron/jobs/manage/{ultimate_cron_job}'
+  defaults:
+    _entity_form: 'ultimate_cron_job.default'
+    _title: 'Edit job'
+  requirements:
+    _entity_access: 'ultimate_cron_job.edit'

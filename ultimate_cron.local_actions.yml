@@ -1,0 +1,6 @@
+ultimate_cron.job_add:
+  route_name: ultimate_cron.job_add
+  title: 'Add job'
+  weight: 1
+  appears_on:
+    - ultimate_cron.job_list

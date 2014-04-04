@@ -6,7 +6,7 @@
 
 use Drupal\ultimate_cron\LoggerBase;
 use Drupal\ultimate_cron\CronRule;
-use Drupal\ultimate_cron\CronJob;
+use Drupal\ultimate_cron\Entity\CronJob;
 use Drupal\ultimate_cron\CronPlugin;
 
 include dirname(__FILE__) . '/ultimate_cron.poorman.inc';
