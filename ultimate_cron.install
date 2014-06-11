@@ -191,7 +191,7 @@ function ultimate_cron_schema() {
 /**
  * Implements hook_install().
  */
-function ultimate_cron_enable() {
+function ultimate_cron_install() {
   \Drupal::config('system.cron')->set('threshold.autorun', 0)->save();
 }
 
@@ -205,7 +205,6 @@ function ultimate_cron_requirements($phase) {
       return $response;
 
     case 'runtime':
-      $t = get_t();
       $response['title'] = 'Ultimate Cron';
       $response['value'] = array();
       $response['description'] = array();
@@ -225,27 +224,27 @@ function ultimate_cron_requirements($phase) {
       }
       if ($jobs_behind) {
         $response['severity'] = $response['severity'] > REQUIREMENT_ERROR ? $response['severity'] : REQUIREMENT_ERROR;
-        $response['value'][] = format_plural(
+        $response['value'][] = \Drupal::translation()->formatPlural(
           $jobs_behind,
           '@count job is behind schedule',
           '@count jobs are behind schedule'
         );
-        $response['description'][] = $t(
+        $response['description'][] = t(
           'Some jobs are behind their schedule. Please check if !link is running properly.', array(
-            '!link' => l($t('cron'), 'admin/config/system/cron')
+            '!link' => l(t('cron'), 'admin/config/system/cron')
         ));
       }
 
       // Check for PHP safe mode.
       if (ini_get('safe_mode')) {
         $response['severity'] = $response['severity'] > REQUIREMENT_WARNING ? $response['severity'] : REQUIREMENT_WARNING;
-        $response['value'][] = $t('Safe mode enabled');
-        $response['description'][] = $t('Safe mode enabled. Ultimate Cron is unable to control maximum execution time for cron jobs. This may cause cron jobs to end prematurely.');
+        $response['value'][] = t('Safe mode enabled');
+        $response['description'][] = t('Safe mode enabled. Ultimate Cron is unable to control maximum execution time for cron jobs. This may cause cron jobs to end prematurely.');
       }
 
       // Compose result.
       if (empty($response['value'])) {
-        $response['value'] = $t('Cron is running properly.');
+        $response['value'] = t('Cron is running properly.');
         $response['description'] = '';
       }
       else {
