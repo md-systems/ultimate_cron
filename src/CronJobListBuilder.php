@@ -7,6 +7,7 @@
 
 namespace Drupal\ultimate_cron;
 
+use Drupal\Component\Utility\String;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
 
@@ -37,7 +38,7 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
   public function buildRow(EntityInterface $entity) {
     /* @var \Drupal\ultimate_cron\Entity\CronJob $entity */
     $row['module'] = array(
-      'data' => check_plain($entity->getModuleName()),
+      'data' => String::checkPlain($entity->getModuleName()),
       'class' => array('ctools-export-ui-module'),
       'title' => strip_tags($entity->getModuleDescription()),
     );
@@ -76,7 +77,7 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
 
     // Module.
     $this->rows[$name]['data'][] = array(
-      'data' => check_plain($item->getModuleName()),
+      'data' => String::checkPlain($item->getModuleName()),
       'class' => array('ctools-export-ui-module'),
       'title' => strip_tags($item->getModuleDescription()),
     );
@@ -84,7 +85,7 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
     // If we have an admin title, make it the first row.
     if (!empty($this->plugin['export']['admin_title'])) {
       $this->rows[$name]['data'][] = array(
-        'data' => check_plain($item->{$this->plugin['export']['admin_title']}),
+        'data' => String::checkPlain($item->{$this->plugin['export']['admin_title']}),
         'class' => array('ctools-export-ui-title'),
         'title' => strip_tags($item->name),
       );
@@ -135,7 +136,7 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
 
 
     // Storage.
-    $this->rows[$name]['data'][] = array('data' => check_plain($item->{$schema['export']['export type string']}), 'class' => array('ctools-export-ui-storage'));
+    $this->rows[$name]['data'][] = array('data' => String::checkPlain($item->{$schema['export']['export type string']}), 'class' => array('ctools-export-ui-storage'));
 
   }
 

@@ -4,6 +4,7 @@
  * Ultimate Cron. Extend cron functionality in Drupal.
  */
 
+use Drupal\Component\Utility\String;
 use Drupal\ultimate_cron\LoggerBase;
 use Drupal\ultimate_cron\CronRule;
 use Drupal\ultimate_cron\Entity\CronJob;
@@ -679,7 +680,7 @@ function ultimate_cron_ultimate_cron_job_list() {
     if (empty($string)) {
       $string = $item->$export_key;
     }
-    $list[$item->$export_key] = check_plain($string);
+    $list[$item->$export_key] = String::checkPlain($string);
   }
   return $list;
 }
