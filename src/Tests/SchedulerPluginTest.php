@@ -6,11 +6,16 @@
 
 namespace Drupal\ultimate_cron\Tests;
 
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 use Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler\Crontab;
 use Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler\Simple;
 
-class SchedulerPluginTest extends DrupalUnitTestBase {
+/**
+ * Tests the default scheduler plugins.
+ *
+ * @group ultimate_cron
+ */
+class SchedulerPluginTest extends KernelTestBase {
 
   /**
    * Modules to enable.
@@ -18,17 +23,6 @@ class SchedulerPluginTest extends DrupalUnitTestBase {
    * @var array
    */
   public static $modules = array('ultimate_cron');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Scheduler Plugin tests',
-      'description' => 'Tests the default scheduler plugins',
-      'group' => 'Ultimate Cron',
-    );
-  }
 
   /**
    * Tests that scheduler plugins are discovered correctly.

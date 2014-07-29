@@ -6,10 +6,14 @@
 
 namespace Drupal\ultimate_cron\Tests;
 
-use Drupal\simpletest\DrupalUnitTestBase;
-use Drupal\ultimate_cron\Plugin\ultimate_cron\Launcher\SerialLauncher;
+use Drupal\simpletest\KernelTestBase;
 
-class CronJobUnitTest extends DrupalUnitTestBase {
+/**
+ * Tests CRUD for cron jobs.
+ *
+ * @group ultimate_cron
+ */
+class CronJobUnitTest extends KernelTestBase {
 
   /**
    * Modules to enable.
@@ -17,17 +21,6 @@ class CronJobUnitTest extends DrupalUnitTestBase {
    * @var array
    */
   public static $modules = array('ultimate_cron');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Cron Job tests',
-      'description' => 'Tests CRUD for cron jobs',
-      'group' => 'Ultimate Cron',
-    );
-  }
 
   /**
    * Tests CRUD operations for cron jobs.

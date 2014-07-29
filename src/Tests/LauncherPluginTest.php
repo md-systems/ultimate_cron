@@ -6,10 +6,15 @@
 
 namespace Drupal\ultimate_cron\Tests;
 
-use Drupal\simpletest\DrupalUnitTestBase;
+use Drupal\simpletest\KernelTestBase;
 use Drupal\ultimate_cron\Plugin\ultimate_cron\Launcher\SerialLauncher;
 
-class LauncherPluginTest extends DrupalUnitTestBase {
+/**
+ * Tests the default scheduler plugins.
+ *
+ * @group ultimate_cron
+ */
+class LauncherPluginTest extends KernelTestBase {
 
   /**
    * Modules to enable.
@@ -17,17 +22,6 @@ class LauncherPluginTest extends DrupalUnitTestBase {
    * @var array
    */
   public static $modules = array('ultimate_cron');
-
-  /**
-   * {@inheritdoc}
-   */
-  public static function getInfo() {
-    return array(
-      'name' => 'Launcher Plugin tests',
-      'description' => 'Tests the default scheduler plugins',
-      'group' => 'Ultimate Cron',
-    );
-  }
 
   /**
    * Tests that scheduler plugins are discovered correctly.
