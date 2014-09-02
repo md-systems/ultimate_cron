@@ -20,7 +20,7 @@ use Exception;
  * @ConfigEntityType(
  *   id = "ultimate_cron_job",
  *   label = @Translation("Cron Job"),
- *   controllers = {
+ *   handlers = {
  *     "list_builder" = "Drupal\ultimate_cron\CronJobListBuilder",
  *     "form" = {
  *       "default" = "Drupal\ultimate_cron\CronJobFormController",
@@ -34,10 +34,10 @@ use Exception;
  *     "status" = "status",
  *   },
  *   links = {
- *     "edit-form" = "ultimate_cron.job_edit"
+ *     "edit-form" = "ultimate_cron.job_edit",
+ *     "delete-form" = "ultimate_cron.job_delete",
  *   }
  * )
- * "delete-form" = "ultimate_cron.job_delete",
  */
 class CronJob extends ConfigEntityBase {
   static public $signals;
@@ -53,6 +53,7 @@ class CronJob extends ConfigEntityBase {
   public $status = TRUE;
   public $title;
   public $settings = array();
+  public $hook;
 
   /**
    * {@inheritdoc}

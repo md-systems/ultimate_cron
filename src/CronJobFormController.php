@@ -7,17 +7,18 @@
 
 namespace Drupal\ultimate_cron;
 
-use Drupal\Core\Entity\EntityFormController;
+use Drupal\Core\Entity\EntityForm;
+use Drupal\Core\Form\FormStateInterface;
 
 /**
  * Base form controller for cron job forms.
  */
-class CronJobFormController extends EntityFormController {
+class CronJobFormController extends EntityForm {
 
   /**
    * {@inheritdoc}
    */
-  public function form(array $form, array &$form_state) {
+  public function form(array $form, FormStateInterface $form_state) {
     $form = parent::form($form, $form_state);
     /* @var \Drupal\ultimate_cron\Entity\CronJob $job */
     $job = $this->entity;
@@ -70,16 +71,16 @@ class CronJobFormController extends EntityFormController {
   }
 
   /**
-   * Overrides Drupal\Core\Entity\EntityFormController::validate().
+   * Overrides Drupal\Core\Entity\EntityForm::validate().
    */
-  public function validate(array $form, array &$form_state) {
+  public function validate(array $form, FormStateInterface $form_state) {
     parent::validate($form, $form_state);
   }
 
   /**
-   * Overrides Drupal\Core\Entity\EntityFormController::save().
+   * Overrides Drupal\Core\Entity\EntityForm::save().
    */
-  public function save(array $form, array &$form_state) {
+  public function save(array $form, FormStateInterface $form_state) {
     $category = $this->entity;
     $status = $category->save();
 
