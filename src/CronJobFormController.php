@@ -15,6 +15,7 @@ use Drupal\Core\Form\FormStateInterface;
  */
 class CronJobFormController extends EntityForm {
 
+  protected $selected_option;
   /**
    * {@inheritdoc}
    */
@@ -25,9 +26,11 @@ class CronJobFormController extends EntityForm {
 
     $form['title'] = array(
       '#title' => t('Title'),
+      '#description' => t('This will appear in the administrative interface to easily identify it.'),
       '#type' => 'textfield',
       '#default_value' => $job->title,
     );
+
     $form['id'] = array(
       '#type' => 'machine_name',
       '#default_value' => $job->id(),
@@ -58,11 +61,43 @@ class CronJobFormController extends EntityForm {
     $form_state['values']['settings'] += $job->settings;
 
     // Load settings for each plugin in its own vertical tab.
-    $plugin_types = array();array('launcher', 'logger', 'scheduler');
-    foreach ($plugin_types as $plugin_type => $info) {
-      $static = $info['defaults']['static'];
-      $class = $static['class'];
-      $class::jobSettingsForm($form, $form_state, $plugin_type, $job);
+    $plugin_types = array('Scheduler', 'Launcher', 'Logger');
+    foreach ($plugin_types as $plugin_type) {
+      /* @var \Drupal\Core\Plugin\DefaultPluginManager $manager */
+      $manager = \Drupal::service('plugin.manager.ultimate_cron.' . $plugin_type);
+      $plugins = $manager->getDefinitions();
+
+      // Generate select options.
+      $options = array();
+      foreach($plugins as $value => $key) {
+        if (!empty($key['default']) && $key['default'] == TRUE) {
+          $options = array($value => t('@title (Default)', array('@title' => $key['title']->render()))) + $options;
+          $this->selected_option = $value;
+        } else {
+          $options[$value] = $key['title']->render();
+        }
+      }
+
+      $form[$plugin_type] = array(
+        '#type' => 'details',
+        '#title' => t($plugin_type),
+        '#group' => 'settings_tabs',
+      );
+
+      $form[$plugin_type]['name'] = array(
+          '#type' => 'select',
+          '#title' => t($plugin_type),
+          '#options' => $options,
+          '#default_value' => 2,
+          '#description' => $this->t("Select which @name to use for this job.", array('@name' => $plugin_type)),
+          '#group' => 'settings_tabs',
+      );
+
+      // @TODO: Fix this.
+      /** @var \Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler\Simple $instance */
+      $instance = $manager->createInstance($this->selected_option);
+      $temp_form = array();
+      $form[$plugin_type]['settings'] = $instance->settingsForm($temp_form, $form_state);
     }
 
     $form['#attached']['js'][] = drupal_get_path('module', 'ultimate_cron') . '/js/ultimate_cron.job.js';

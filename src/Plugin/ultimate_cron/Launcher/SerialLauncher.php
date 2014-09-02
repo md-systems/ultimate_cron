@@ -15,6 +15,7 @@ use Exception;
  *   id = "serial",
  *   title = @Translation("Serial"),
  *   description = @Translation("Launches scheduled jobs in the same thread and runs them consecutively."),
+ *   default = TRUE,
  * )
  */
 class SerialLauncher extends LauncherBase {
@@ -48,74 +49,76 @@ class SerialLauncher extends LauncherBase {
    * Settings form for the crontab scheduler.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
-    $elements = & $form['settings'][$this->type][$this->name];
-    $values = & $form_state['values']['settings'][$this->type][$this->name];
+    //$elements = & $form['settings'][$this->type][$this->name];
+    //$values = & $form_state['values']['settings'][$this->type][$this->name];
 
-    $elements['timeouts'] = array(
+    $form['timeouts'] = array(
       '#type' => 'fieldset',
       '#title' => t('Timeouts'),
     );
-    $elements['launcher'] = array(
+    $form['launcher'] = array(
       '#type' => 'fieldset',
       '#title' => t('Launching options'),
     );
 
-    $elements['timeouts']['lock_timeout'] = array(
-      '#parents' => array('settings', $this->type, $this->name, 'lock_timeout'),
+    $form['timeouts']['lock_timeout'] = array(
+      //'#parents' => array('settings', $this->type, $this->name, 'lock_timeout'),
       '#title' => t("Job lock timeout"),
       '#type' => 'textfield',
-      '#default_value' => $values['lock_timeout'],
+      //'#default_value' => $values['lock_timeout'],
       '#description' => t('Number of seconds to keep lock on job.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
 
     if (!$job) {
-      $max_threads = $values['max_threads'];
-      $elements['timeouts']['max_execution_time'] = array(
+      //$max_threads = $values['max_threads'];
+      $form['timeouts']['max_execution_time'] = array(
         '#parents' => array(
           'settings',
-          $this->type,
-          $this->name,
+          //$this->type,
+          //$this->name,
           'max_execution_time'
         ),
         '#title' => t("Maximum execution time"),
         '#type' => 'textfield',
-        '#default_value' => $values['max_execution_time'],
+        //'#default_value' => $values['max_execution_time'],
         '#description' => t('Maximum execution time for a cron run in seconds.'),
         '#fallback' => TRUE,
         '#required' => TRUE,
       );
-      $elements['launcher']['max_threads'] = array(
+      $form['launcher']['max_threads'] = array(
         '#parents' => array(
           'settings',
-          $this->type,
-          $this->name,
+          //$this->type,
+          //$this->name,
           'max_threads'
         ),
         '#title' => t("Maximum number of launcher threads"),
         '#type' => 'textfield',
-        '#default_value' => $max_threads,
+        //'#default_value' => $max_threads,
         '#description' => t('The maximum number of launch threads that can be running at any given time.'),
         '#fallback' => TRUE,
         '#required' => TRUE,
         '#element_validate' => array('element_validate_number'),
         '#weight' => 1,
       );
-      $elements['launcher']['poorman_keepalive'] = array(
+      $form['launcher']['poorman_keepalive'] = array(
         '#parents' => array(
           'settings',
-          $this->type,
-          $this->name,
+          //$this->type,
+          //$this->name,
           'poorman_keepalive'
         ),
         '#title' => t("Poormans cron keepalive"),
         '#type' => 'checkbox',
-        '#default_value' => $values['poorman_keepalive'],
+        //'#default_value' => $values['poorman_keepalive'],
         '#description' => t('Retrigger poormans cron after it has finished. Requires $base_url to be accessible from the webserver.'),
         '#fallback' => TRUE,
         '#weight' => 3,
       );
+
+      return $form;
     }
     else {
       $settings = $this->getDefaultSettings();

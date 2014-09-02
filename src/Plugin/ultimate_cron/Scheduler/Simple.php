@@ -13,6 +13,7 @@ namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler;
  *   id = "simple",
  *   title = @Translation("Simple"),
  *   description = @Translation("Provides a set of predefined intervals for scheduling."),
+ *   default =
  * )
  */
 class Simple extends Crontab {
@@ -63,22 +64,26 @@ class Simple extends Crontab {
    * Settings form for the simple scheduler.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
-    $elements = & $form['settings'][$this->type][$this->name];
-    $values = & $form_state['values']['settings'][$this->type][$this->name];
+    //$elements = & $form['settings'][$this->type][$this->name];
+    //$values = & $form_state['values']['settings'][$this->type][$this->name];
 
-    $rule = is_array($values['rules']) ? reset($values['rules']) : '';
+    //$rule = is_array($values['rules']) ? reset($values['rules']) : '';
 
-    $intervals = drupal_map_assoc($this->presets, 'format_interval');
-    $options = array_combine(array_keys($this->presets), $intervals);
+    //$intervals = drupal_map_assoc($this->presets, 'format_interval');
+    //$intervals = array_map('formatLabel', array_combine($this->presets, $this->presets));
 
-    $elements['rules'] = array(
+    //$options = array_combine(array_keys($this->presets), $intervals);
+
+    $form['rules'] = array(
       '#type' => 'select',
       '#title' => t('Run cron every'),
-      '#default_value' => $rule,
+      '#default_value' => '',
       '#description' => t('Select the interval you wish cron to run on.'),
-      '#options' => $options,
+      '#options' => '',
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
+
+    return $form;
   }
 }

@@ -1,0 +1,6 @@
+system.cron_settings:
+  title: Cron jobs
+  parent: system.admin_config_system
+  description: 'Manage Ultimate Cron jobs.'
+  route_name: ultimate_cron.job_list
+  weight: 20

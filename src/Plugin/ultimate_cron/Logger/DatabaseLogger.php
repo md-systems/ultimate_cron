@@ -19,6 +19,7 @@ use PDO;
  *   id = "database",
  *   title = @Translation("Database"),
  *   description = @Translation("Stores logs in the database."),
+ *   default = TRUE,
  * )
  */
 class DatabaseLogger extends LoggerBase {
@@ -157,16 +158,16 @@ class DatabaseLogger extends LoggerBase {
    * Settings form.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
-    $elements = & $form['settings'][$this->type][$this->name];
-    $defaults = & $form_state['default_values']['settings'][$this->type][$this->name];
-    $values = & $form_state['values']['settings'][$this->type][$this->name];
+    //$elements = & $form['settings'][$this->type][$this->name];
+    //$defaults = & $form_state['default_values']['settings'][$this->type][$this->name];
+    //$values = & $form_state['values']['settings'][$this->type][$this->name];
 
-    $elements['method'] = array(
+    $form['method'] = array(
       '#type' => 'select',
       '#title' => t('Log entry cleanup method'),
       '#description' => t('Select which method to use for cleaning up logs.'),
       '#options' => $this->options['method'],
-      '#default_value' => $values['method'],
+      //'#default_value' => $values['method'],
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
@@ -205,50 +206,52 @@ class DatabaseLogger extends LoggerBase {
       );
     }
 
-    $elements['method_expire'] = array(
+    $form['method_expire'] = array(
         '#type' => 'fieldset',
         '#title' => t('Remove logs older than a specified age'),
       ) + $states['expire'];
-    $elements['method_expire']['expire'] = array(
-        '#parents' => array('settings', $this->type, $this->name, 'expire'),
+    $form['method_expire']['expire'] = array(
+        //'#parents' => array('settings', $this->type, $this->name, 'expire'),
         '#type' => 'textfield',
         '#title' => t('Log entry expiration'),
         '#description' => t('Remove log entries older than X seconds.'),
-        '#default_value' => $values['expire'],
+        //'#default_value' => $values['expire'],
         '#fallback' => TRUE,
         '#required' => TRUE,
       ) + $states['expire'];
 
-    $elements['method_retain'] = array(
+    $form['method_retain'] = array(
         '#type' => 'fieldset',
         '#title' => t('Retain only a specific amount of log entries'),
       ) + $states['retain'];
-    $elements['method_retain']['retain'] = array(
-        '#parents' => array('settings', $this->type, $this->name, 'retain'),
+    $form['method_retain']['retain'] = array(
+        //'#parents' => array('settings', $this->type, $this->name, 'retain'),
         '#type' => 'textfield',
         '#title' => t('Retain logs'),
         '#description' => t('Retain X amount of log entries.'),
-        '#default_value' => $values['retain'],
+        //'#default_value' => $values['retain'],
         '#fallback' => TRUE,
         '#required' => TRUE,
       ) + $states['retain'];
 
     if ($job) {
-      if ($defaults['method'] == static::CLEANUP_METHOD_EXPIRE) {
-        $elements['method_default'] = $elements['method_expire'];
-        $elements['method_default']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
-        $elements['method_default']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
-        $elements['method_default']['expire']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
-        $elements['method_default']['expire']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
-      }
+//      if ($defaults['method'] == static::CLEANUP_METHOD_EXPIRE) {
+//        $form['method_default'] = $elements['method_expire'];
+//        $form['method_default']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+//        $form['method_default']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+//        $form['method_default']['expire']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+//        $form['method_default']['expire']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+//      }
       if ($defaults['method'] == static::CLEANUP_METHOD_RETAIN) {
-        $elements['method_default'] = $elements['method_retain'];
-        $elements['method_default']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
-        $elements['method_default']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
-        $elements['method_default']['retain']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
-        $elements['method_default']['retain']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+        $form['method_default'] = $elements['method_retain'];
+        $form['method_default']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+        $form['method_default']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+        $form['method_default']['retain']['#states']['visible'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
+        $form['method_default']['retain']['#states']['enabled'][':input[name="settings[' . $this->type . '][' . $this->name . '][method]"]']['value'] = '';
       }
     }
+
+    return $form;
   }
 
   /**
