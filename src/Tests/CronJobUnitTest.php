@@ -28,12 +28,14 @@ class CronJobUnitTest extends KernelTestBase {
   function testCRUD() {
     $values = array(
       'id' => 'example',
-      'title' => $this->randomName(),
-      'description' => $this->randomName(),
+      'title' => $this->randomMachineName(),
+      'description' => $this->randomMachineName(),
       'settings' => array(
-        'example' => $this->randomName(),
+        'example' => $this->randomMachineName(),
       ),
     );
+
+    /** @var \Drupal\ultimate_cron\Entity\CronJob $cron_job */
     $cron_job = entity_create('ultimate_cron_job', $values);
     $cron_job->save();
 
