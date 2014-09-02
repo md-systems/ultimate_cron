@@ -32,7 +32,7 @@ class CronJobFormController extends EntityForm {
       '#type' => 'machine_name',
       '#default_value' => $job->id(),
       '#machine_name' => array(
-        'exists' => 'contact_category_load',
+        'exists' => '\Drupal\ultimate_cron\Entity\CronJob::load',
         'source' => array('title'),
       ),
       '#disabled' => !$job->isNew(),

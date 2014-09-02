@@ -35,9 +35,9 @@ use Exception;
  *   },
  *   links = {
  *     "edit-form" = "ultimate_cron.job_edit",
- *     "delete-form" = "ultimate_cron.job_delete",
  *   }
  * )
+ * "delete-form" = "ultimate_cron.job_delete"
  */
 class CronJob extends ConfigEntityBase {
   static public $signals;
