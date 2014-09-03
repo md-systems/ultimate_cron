@@ -69,24 +69,24 @@ class CacheLogger extends LoggerBase {
    * Settings form.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
-    $elements = & $form['settings'][$this->type][$this->name];
-    $values = & $form_state['values']['settings'][$this->type][$this->name];
-
-    $elements['bin'] = array(
+    $form['bin'] = array(
       '#type' => 'textfield',
       '#title' => t('Cache bin'),
       '#description' => t('Select which cache bin to use for storing logs.'),
-      '#default_value' => $values['bin'],
+      //'#default_value' => $values['bin'],
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
-    $elements['timeout'] = array(
+
+    $form['timeout'] = array(
       '#type' => 'textfield',
       '#title' => t('Cache timeout'),
       '#description' => t('Seconds before cache entry expires (0 = never, -1 = on next general cache wipe).'),
-      '#default_value' => $values['timeout'],
+      //'#default_value' => $values['timeout'],
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
+
+    return $form;
   }
 }

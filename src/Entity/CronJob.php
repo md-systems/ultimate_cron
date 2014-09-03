@@ -43,36 +43,51 @@ class CronJob extends ConfigEntityBase {
   static public $signals;
   static public $currentJob;
   public $progressUpdated = 0;
-  private $plugins = array();
-  private $pluginSettings = array();
-  private $cacheSettings = NULL;
-  private $ids = array();
-
-  public $id;
-  public $uuid;
-  public $status = TRUE;
-  public $title;
-  public $settings = array();
-  public $hook;
 
   /**
-   * {@inheritdoc}
+   * @var int
    */
-  public function toArray() {
-    $names = array(
-      'id',
-      'uuid',
-      'title',
-      'status',
-      'settings',
-      'dependencies',
-    );
-    $properties = array();
-    foreach ($names as $name) {
-      $properties[$name] = $this->get($name);
-    }
-    return $properties;
-  }
+  protected $id;
+
+  /**
+   * @var int
+   */
+  protected $uuid;
+
+  /**
+   * @var bool
+   */
+  protected $status = TRUE;
+
+  /**
+   * @var string
+   */
+  protected $title;
+
+  /**
+   * @var string
+   */
+  protected $callback;
+
+  /**
+   * @var string
+   */
+  protected $module;
+
+  /**
+   * @var array
+   */
+  protected $scheduler = array('name' => 'simple');
+
+  /**
+   * @var array
+   */
+  protected $launcher = array('name' => 'serial');
+
+  /**
+   * @var array
+   */
+  protected $logger = array('name' => 'database');
 
   /**
    * Invoke plugin cron_alter().
@@ -586,11 +601,11 @@ class CronJob extends ConfigEntityBase {
    */
   public function getModuleName() {
     static $names = array();
-    if (!isset($names[$this->hook['module']])) {
-      $info = system_get_info('module', $this->hook['module']);
-      $names[$this->hook['module']] = $info && !empty($info['name']) ? $info['name'] : $this->hook['module'];
+    if (!isset($names[$this->module])) {
+      $info = system_get_info('module', $this->module);
+      $names[$this->module] = $info && !empty($info['name']) ? $info['name'] : $this->module;
     }
-    return $names[$this->hook['module']];
+    return $names[$this->module];
   }
 
   /**
@@ -598,11 +613,11 @@ class CronJob extends ConfigEntityBase {
    */
   public function getModuleDescription() {
     static $descs = array();
-    if (!isset($descs[$this->hook['module']])) {
-      $info = system_get_info('module', $this->hook['module']);
-      $descs[$this->hook['module']] = $info && !empty($info['description']) ? $info['description'] : '';
+    if (!isset($descs[$this->module])) {
+      $info = system_get_info('module', $this->module);
+      $descs[$this->module] = $info && !empty($info['description']) ? $info['description'] : '';
     }
-    return $descs[$this->hook['module']];
+    return $descs[$this->module];
   }
 
   /**

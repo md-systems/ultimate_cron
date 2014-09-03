@@ -1,0 +1,29 @@
+
+ultimate_cron.job.*:
+  type: config_entity
+  label: 'Cron Job'
+  mapping:
+    title:
+      type: label
+      label: 'Title'
+    id:
+      type: string
+      label: 'Machine-readable name'
+    module:
+      type: string
+      label: 'Module Name'
+    callback:
+      type: string
+      label: 'Callback'
+    scheduler:
+      name:
+        type: string
+        label: 'Scheduler'
+    launcher:
+      name:
+        type: string
+        label: 'Launcher'
+    logger:
+      name:
+        type: string
+        label: 'Logger'

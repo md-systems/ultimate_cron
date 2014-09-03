@@ -1466,7 +1466,7 @@ function ultimate_cron_get_hooks($reset = FALSE) {
 /**
  * Form element validator for cron rules.
  */
-function ultimate_cron_plugin_crontab_element_validate_rule($element, &$form_state) {
+function ultimate_cron_plugin_crontab_element_validate_rule($element, \Drupal\Core\Form\FormStateInterface $form_state) {
   $rules = array();
   $value = $element['#value'];
   if (!empty($value)) {
@@ -1475,7 +1475,7 @@ function ultimate_cron_plugin_crontab_element_validate_rule($element, &$form_sta
   }
   foreach ($rules as $rule) {
     if (!ultimate_cron_validate_rule($rule)) {
-      form_error($element, t('%name: %rule is not a valid rule.', array('%name' => $element['#title'], '%rule' => $rule)));
+      $form_state->setError($element, t('%name: %rule is not a valid rule.', array('%name' => $element['#title'], '%rule' => $rule)));
     }
   }
 }

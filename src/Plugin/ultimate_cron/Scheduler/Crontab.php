@@ -66,37 +66,37 @@ class Crontab extends SchedulerBase {
    * Settings form for the crontab scheduler.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
-    $elements = & $form['settings'][$this->type][$this->name];
-    $values = & $form_state['values']['settings'][$this->type][$this->name];
-
-    $rules = is_array($values['rules']) ? implode(',', $values['rules']) : '';
-
-    $elements['rules'] = array(
+    $form['rules'] = array(
       '#title' => t("Rules"),
       '#type' => 'textfield',
-      '#default_value' => $rules,
+      //'#default_value' => $rules,
       '#description' => t('Comma separated list of crontab rules.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
       '#element_validate' => array('ultimate_cron_plugin_crontab_element_validate_rule'),
     );
-    $elements['rules_help'] = array(
+
+    $form['rules_help'] = array(
       '#type' => 'fieldset',
       '#title' => t('Rules help'),
       '#collapsible' => TRUE,
       '#collapsed' => TRUE,
     );
-    $elements['rules_help']['info'] = array(
+
+    $form['rules_help']['info'] = array(
       '#markup' => file_get_contents(drupal_get_path('module', 'ultimate_cron') . '/help/rules.html'),
     );
-    $elements['catch_up'] = array(
+
+    $form['catch_up'] = array(
       '#title' => t("Catch up"),
       '#type' => 'textfield',
-      '#default_value' => $values['catch_up'],
+      //'#default_value' => $values['catch_up'],
       '#description' => t("Don't run job after X seconds of rule."),
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
+
+    return $form;
   }
 
   /**

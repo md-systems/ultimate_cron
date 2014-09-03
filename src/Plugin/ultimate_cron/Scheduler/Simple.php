@@ -13,7 +13,6 @@ namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler;
  *   id = "simple",
  *   title = @Translation("Simple"),
  *   description = @Translation("Provides a set of predefined intervals for scheduling."),
- *   default =
  * )
  */
 class Simple extends Crontab {
@@ -70,16 +69,15 @@ class Simple extends Crontab {
     //$rule = is_array($values['rules']) ? reset($values['rules']) : '';
 
     //$intervals = drupal_map_assoc($this->presets, 'format_interval');
-    //$intervals = array_map('formatLabel', array_combine($this->presets, $this->presets));
-
-    //$options = array_combine(array_keys($this->presets), $intervals);
+    $date_formatter = \Drupal::service('date.formatter');
+    $intervals = array_map(array($date_formatter, 'formatInterval'), array_combine($this->presets, $this->presets));
 
     $form['rules'] = array(
       '#type' => 'select',
       '#title' => t('Run cron every'),
       '#default_value' => '',
       '#description' => t('Select the interval you wish cron to run on.'),
-      '#options' => '',
+      '#options' => $intervals,
       '#fallback' => TRUE,
       '#required' => TRUE,
     );

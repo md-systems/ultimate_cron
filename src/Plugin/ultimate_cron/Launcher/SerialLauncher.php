@@ -49,13 +49,11 @@ class SerialLauncher extends LauncherBase {
    * Settings form for the crontab scheduler.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
-    //$elements = & $form['settings'][$this->type][$this->name];
-    //$values = & $form_state['values']['settings'][$this->type][$this->name];
-
     $form['timeouts'] = array(
       '#type' => 'fieldset',
       '#title' => t('Timeouts'),
     );
+
     $form['launcher'] = array(
       '#type' => 'fieldset',
       '#title' => t('Launching options'),
@@ -95,12 +93,11 @@ class SerialLauncher extends LauncherBase {
           'max_threads'
         ),
         '#title' => t("Maximum number of launcher threads"),
-        '#type' => 'textfield',
+        '#type' => 'number',
         //'#default_value' => $max_threads,
         '#description' => t('The maximum number of launch threads that can be running at any given time.'),
         '#fallback' => TRUE,
         '#required' => TRUE,
-        '#element_validate' => array('element_validate_number'),
         '#weight' => 1,
       );
       $form['launcher']['poorman_keepalive'] = array(
