@@ -16,14 +16,32 @@ ultimate_cron.job.*:
       type: string
       label: 'Callback'
     scheduler:
-      name:
-        type: string
-        label: 'Scheduler'
+      type: mapping
+      label: 'Scheduler'
+      mapping:
+        id:
+          type: string
+          label: 'Scheduler'
+        settings:
+          type: mapping
+          label: 'Scheduler settings'
     launcher:
-      name:
-        type: string
-        label: 'Launcher'
+      type: mapping
+      label: 'Scheduler'
+      mapping:
+        id:
+          type: string
+          label: 'Launcher'
+        settings:
+          type: mapping
+          label: 'Scheduler settings'
     logger:
-      name:
-        type: string
-        label: 'Logger'
+      type: mapping
+      label: 'Scheduler'
+      mapping:
+        id:
+          type: string
+          label: 'Logger'
+        settings:
+          type: mapping
+          label: 'Scheduler settings'

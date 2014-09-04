@@ -10,49 +10,6 @@
 function ultimate_cron_schema() {
   $schema = array();
 
-  $schema['ultimate_cron_job'] = array(
-    'description' => 'Cron jobs',
-    'fields' => array(
-      'jid' => array(
-        'description' => 'Job ID',
-        'type' => 'serial',
-        'size' => 'normal',
-        'not null' => TRUE,
-        'no export' => TRUE,
-      ),
-      'name' => array(
-        'description' => 'Name',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-      ),
-      'title' => array(
-        'description' => 'Title',
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'default' => '',
-      ),
-      'settings' => array(
-        'description' => 'Settings',
-        'type' => 'text',
-        'serialize' => TRUE,
-        'not null' => FALSE,
-        'object default' => array(
-          'scheduler' => array(),
-          'launcher' => array(),
-          'logger' => array(),
-          'settings' => array(),
-        ),
-        'export callback' => 'ultimate_cron_job_export_settings',
-      ),
-    ),
-    'primary key' => array('jid'),
-    'unique keys' => array(
-      'machine_name' => array('name')
-    ),
-  );
-
   $schema['ultimate_cron_log'] = array(
     'description' => 'Logs',
     'fields' => array(
@@ -193,6 +150,17 @@ function ultimate_cron_schema() {
  */
 function ultimate_cron_install() {
   \Drupal::config('system.cron')->set('threshold.autorun', 0)->save();
+
+  foreach (\Drupal::moduleHandler()->getImplementations('cron') as $module_name) {
+    $values = array(
+      'title' => $module_name . ' cronjob title',
+      'id' => $module_name . '_job',
+      'module' => $module_name,
+      'callback' => $module_name . '_cron',
+    );
+
+    $job = \Drupal\ultimate_cron\CronJobHelper::createCronJob($values);
+  }
 }
 
 /**
@@ -231,7 +199,7 @@ function ultimate_cron_requirements($phase) {
         );
         $response['description'][] = t(
           'Some jobs are behind their schedule. Please check if !link is running properly.', array(
-            '!link' => l(t('cron'), 'admin/config/system/cron')
+          '!link' => l(t('cron'), 'admin/config/system/cron')
         ));
       }
 

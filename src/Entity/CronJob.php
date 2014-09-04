@@ -7,6 +7,7 @@
 namespace Drupal\ultimate_cron\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\ultimate_cron\CronJobInterface;
 use Drupal\ultimate_cron\CronPlugin;
 use Drupal\ultimate_cron\LogEntry;
 use Drupal\ultimate_cron\LoggerBase;
@@ -39,10 +40,11 @@ use Exception;
  * )
  * "delete-form" = "ultimate_cron.job_delete"
  */
-class CronJob extends ConfigEntityBase {
+class CronJob extends ConfigEntityBase implements CronJobInterface {
   static public $signals;
   static public $currentJob;
   public $progressUpdated = 0;
+  public $settings;
 
   /**
    * @var int
@@ -77,17 +79,19 @@ class CronJob extends ConfigEntityBase {
   /**
    * @var array
    */
-  protected $scheduler = array('name' => 'simple');
+  protected $scheduler = array('id' => 'simple');
 
   /**
    * @var array
    */
-  protected $launcher = array('name' => 'serial');
+  protected $launcher = array('id' => 'serial');
 
   /**
    * @var array
    */
-  protected $logger = array('name' => 'database');
+  protected $logger = array('id' => 'database');
+
+
 
   /**
    * Invoke plugin cron_alter().
@@ -807,5 +811,95 @@ class CronJob extends ConfigEntityBase {
       $final_cells[] = $data;
     }
     return $final_cells;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getTitle() {
+    return $this->title;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getCallback() {
+    return $this->callback;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getModule() {
+    return $this->module;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getSchedulerId() {
+    return $this->scheduler;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getLauncherId() {
+    return $this->launcher['id'];
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getLoggerId() {
+    return $this->logger;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setTitle($title) {
+    $this->set('title', $title);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setCallback($callback) {
+    $this->set('callback', $callback);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setModule($module) {
+    $this->set('module', $module);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setSchedulerId($scheduler_id) {
+    $this->set('scheduler.id', $scheduler_id);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setLauncherId($launcher_id) {
+    $this->set('launcher.id', $launcher_id);
+    return $this;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setLoggerId($logger_id) {
+      $this->set('logger.id', $logger_id);
+      return $this;
   }
 }

@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Contains \Drupal\ultimate_cron\Tests\LauncherPluginTest.php
+ * Contains \Drupal\ultimate_cron\Tests\CronJobUnitTest
  */
 
 namespace Drupal\ultimate_cron\Tests;

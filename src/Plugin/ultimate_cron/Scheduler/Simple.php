@@ -54,6 +54,7 @@ class Simple extends Crontab {
    */
   public function formatLabel($job) {
     $settings = $job->getSettings($this->type);
+    $job->id();
     return t('Every @interval', array(
       '@interval' => format_interval($this->presets[$settings['rules'][0]])
     ));
