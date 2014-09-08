@@ -367,7 +367,7 @@ function ultimate_cron_job_load_all($reset = FALSE) {
     return $cache;
   }
 
-  $raw_jobs = ultimate_cron_job_load_all_raw($reset);
+  //$raw_jobs = ultimate_cron_job_load_all_raw($reset);
   $jobs = array();
 
   foreach (ultimate_cron_get_hooks($reset) as $name => $hook) {
@@ -1662,10 +1662,12 @@ function _ultimate_cron_get_transactional_safe_connection() {
 function _ultimate_cron_get_class($name) {
   static $defaults = array(
     'job' => 'UltimateCronJob',
-    'lock' => 'UltimateCronLock',
+    'lock' => '\Drupal\ultimate_cron\Lock',
     'progress' => 'UltimateCronProgress',
     'signal' => 'UltimateCronSignal',
   );
+  return $defaults[$name];
+  //@TODO: Fix this.
   return variable_get('ultimate_cron_class_' . $name, $defaults[$name]);
 }
 

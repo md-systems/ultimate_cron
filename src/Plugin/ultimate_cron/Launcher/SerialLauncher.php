@@ -15,7 +15,6 @@ use Exception;
  *   id = "serial",
  *   title = @Translation("Serial"),
  *   description = @Translation("Launches scheduled jobs in the same thread and runs them consecutively."),
- *   default = TRUE,
  * )
  */
 class SerialLauncher extends LauncherBase {

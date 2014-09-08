@@ -43,4 +43,8 @@ class LauncherPlugin extends Plugin {
    */
   public $description;
 
+
+
+  public $weight = 0;
+
 }

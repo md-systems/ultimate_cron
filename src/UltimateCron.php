@@ -23,25 +23,24 @@ class UltimateCron extends Cron {
     foreach (CronJob::loadMultiple() as $job) {
       /* @var \Drupal\Core\Plugin\DefaultPluginManager $manager */
       $manager = \Drupal::service('plugin.manager.ultimate_cron.' . 'launcher');
-      //$launcher = $manager->createInstance($job->getLauncherId());
+      $launcher = $manager->createInstance($job->getLauncherId());
+      $launcher_definition = $launcher->getPluginDefinition();
 
-
-      debug($job->getLauncherId(), $job->getTitle());
-
-//      if (!isset($launchers) || in_array($launcher->title, $launchers)) {
-//        $launcher_jobs[$launcher->title]['launcher'] = $launcher;
-//        $launcher_jobs[$launcher->title]['sort'] = array($launcher->weight);
-//        $launcher_jobs[$launcher->title]['jobs'][$job->getTitle()] = $job;
-//        $launcher_jobs[$launcher->title]['jobs'][$job->getTitle()]->sort = array($job->loadLatestLogEntry()->start_time);
-//      }
+      if (!isset($launchers) || in_array($launcher->getPluginId(), $launchers)) {
+        $launcher_jobs[$launcher_definition['id']]['launcher'] = $launcher;
+        $launcher_jobs[$launcher_definition['id']]['sort'] = array($launcher_definition['weight']);
+        $launcher_jobs[$launcher_definition['id']]['jobs'][$job->id()] = $job;
+        // @TODO: Load latest log.
+        //$launcher_jobs[$launcher['id']]->sort = array($job->loadLatestLogEntry()->start_time);
+      }
     }
 
-//    uasort($launcher_jobs, '_ultimate_cron_multi_column_sort');
-//
-//    foreach ($launcher_jobs as $name => $launcher_job) {
-//      uasort($launcher_job['jobs'], '_ultimate_cron_multi_column_sort');
-//      $launcher_job['launcher']->launchJobs($launcher_job['jobs']);
-//    }
+    //uasort($launcher_jobs, '_ultimate_cron_multi_column_sort');
+
+    foreach ($launcher_jobs as $name => $launcher_job) {
+      //uasort($launcher_job['jobs'], '_ultimate_cron_multi_column_sort');
+      $launcher_job['launcher']->launchJobs($launcher_job['jobs']);
+    }
     drupal_set_message('Run Ultimate Cron job');
   }
 }

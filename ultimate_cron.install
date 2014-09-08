@@ -151,6 +151,8 @@ function ultimate_cron_schema() {
 function ultimate_cron_install() {
   \Drupal::config('system.cron')->set('threshold.autorun', 0)->save();
 
+  debug('run install hook');
+
   foreach (\Drupal::moduleHandler()->getImplementations('cron') as $module_name) {
     $values = array(
       'title' => $module_name . ' cronjob title',
@@ -159,7 +161,7 @@ function ultimate_cron_install() {
       'callback' => $module_name . '_cron',
     );
 
-    $job = \Drupal\ultimate_cron\CronJobHelper::createCronJob($values);
+    \Drupal\ultimate_cron\CronJobHelper::createCronJob($values);
   }
 }
 
@@ -168,6 +170,9 @@ function ultimate_cron_install() {
  */
 function ultimate_cron_requirements($phase) {
   $response = array();
+
+  //@TODO: Implement this.
+  return array();
   switch ($phase) {
     case 'install':
       return $response;

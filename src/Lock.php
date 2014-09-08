@@ -1,9 +1,7 @@
 <?php
 /**
  * @file
- * A database-mediated implementation of a locking mechanism.
- *
- * Supports cross request persistance as well as GAP-LOCK mitigation.
+ * Contains \Drupal\ultimate_cron\Lock
  */
 
 namespace Drupal\ultimate_cron;

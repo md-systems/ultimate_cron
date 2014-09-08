@@ -540,7 +540,7 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
    *   The latest log entry for this job.
    */
   public function loadLatestLogEntry($log_types = array(ULTIMATE_CRON_LOG_TYPE_NORMAL)) {
-    return $this->getPlugin('logger')->load($this->name, NULL, $log_types);
+    return $this->getPlugin('logger')->load($this->id(), NULL, $log_types);
   }
 
   /**

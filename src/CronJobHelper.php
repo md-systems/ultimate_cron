@@ -21,6 +21,8 @@ class CronJobHelper {
   public static function createCronJob($values) {
     $job = CronJob::create($values);
 
+    $job->save();
+
     return $job;
   }
 
