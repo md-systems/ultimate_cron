@@ -14,12 +14,20 @@ services:
       factory_service: cache_factory
       arguments: [signal]
   plugin.manager.ultimate_cron.launcher:
-    class: Drupal\ultimate_cron\LauncherManager
+    class: Drupal\ultimate_cron\Launcher\LauncherManager
     parent: default_plugin_manager
   plugin.manager.ultimate_cron.logger:
-    class: Drupal\ultimate_cron\LoggerManager
+    class: Drupal\ultimate_cron\Logger\LoggerManager
     parent: default_plugin_manager
   plugin.manager.ultimate_cron.scheduler:
     class: Drupal\ultimate_cron\SchedulerManager
     parent: default_plugin_manager
-
+  ultimate_cron.lock:
+      class: Drupal\ultimate_cron\Lock\Lock
+      arguments: [@database]
+  ultimate_cron.progress:
+      class: Drupal\ultimate_cron\Progress\Progress
+      arguments: [@keyvalue]
+  ultimate_cron.signal:
+      class: Drupal\ultimate_cron\Signal\SignalCache
+      arguments: [@cache.signal, @lock]

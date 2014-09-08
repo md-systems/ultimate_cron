@@ -1,10 +1,13 @@
 <?php
 /**
  * @file
- * Contains \Drupal\ultimate_cron\Lock
+ * Contains \Drupal\ultimate_cron\Lock\Lock
  */
 
-namespace Drupal\ultimate_cron;
+namespace Drupal\ultimate_cron\Lock;
+
+use Drupal\Core\Database\Connection;
+use Drupal\ultimate_cron\Lock\LockInterface;
 use PDOException;
 use PDO;
 
@@ -13,18 +16,24 @@ use PDO;
  *
  * This is a pseudo namespace really. Should probably be refactored...
  */
-class Lock {
-  private static $locks = NULL;
+class Lock implements LockInterface {
+  public $locks = NULL;
 
-  public static $killable = TRUE;
+  public $killable = TRUE;
+
+  private $connection;
+
+  public function __construct(Connection $connection) {
+    $this->connection = $connection;
+  }
 
   /**
    * Shutdown handler for releasing locks.
    */
-  static public function shutdown() {
-    if (self::$locks) {
-      foreach (array_keys(self::$locks) as $lock_id) {
-        self::unlock($lock_id);
+  public function shutdown() {
+    if ($this->locks) {
+      foreach (array_keys($this->locks) as $lock_id) {
+        $this->unlock($lock_id);
       }
     }
   }
@@ -35,16 +44,16 @@ class Lock {
    * @param string $lock_id
    *   The lock id to persist.
    */
-  static public function persist($lock_id) {
-    if (isset(self::$locks)) {
-      unset(self::$locks[$lock_id]);
+  public function persist($lock_id) {
+    if (isset($this->locks)) {
+      unset($this->locks[$lock_id]);
     }
   }
 
   /**
    * Acquire lock.
    *
-   * @param string $name
+   * @param string $job_id
    *   The name of the lock to acquire.
    * @param float $timeout
    *   The timeout in seconds for the lock.
@@ -52,12 +61,12 @@ class Lock {
    * @return string
    *   The lock id acquired.
    */
-  static public function lock($name, $timeout = 30.0) {
+  public function lock($job_id, $timeout = 30.0) {
     // First, ensure cleanup.
-    if (!isset(self::$locks)) {
-      self::$locks = array();
+    if (!isset($this->locks)) {
+      $this->locks = array();
       ultimate_cron_register_shutdown_function(array(
-        'Drupal\ultimate_cron\Lock',
+        $this,
         'shutdown'
       ));
     }
@@ -67,22 +76,22 @@ class Lock {
     try {
       // First we ensure that previous locks are "removed"
       // if they are expired.
-      self::expire($name);
+      $this->expire($job_id);
 
       // Ensure that the timeout is at least 1 ms.
       $timeout = max($timeout, 0.001);
       $expire = microtime(TRUE) + $timeout;
 
       // Now we try to acquire the lock.
-      $lock_id = db_insert('ultimate_cron_lock', array('target' => $target))
+      $lock_id = $this->connection->insert('ultimate_cron_lock', array('target' => $target))
         ->fields(array(
-          'name' => $name,
+          'name' => $job_id,
           'current' => 0,
           'expire' => $expire,
         ))
-        ->execute();
+      ->execute();
 
-      self::$locks[$lock_id] = TRUE;
+      $this->locks[$lock_id] = TRUE;
 
       return $lock_id;
     } catch (PDOException $e) {
@@ -95,14 +104,14 @@ class Lock {
    *
    * Checks if expiration time has been reached, and releases the lock if so.
    *
-   * @param string $name
+   * @param string $job_id
    *   The name of the lock.
    */
-  static public function expire($name) {
-    if ($lock_id = self::isLocked($name, TRUE)) {
+  public function expire($job_id) {
+    if ($lock_id = $this->isLocked($job_id, TRUE)) {
       $target = _ultimate_cron_get_transactional_safe_connection();
       $now = microtime(TRUE);
-      db_update('ultimate_cron_lock', array('target' => $target))
+      $this->connection->update('ultimate_cron_lock', array('target' => $target))
         ->expression('current', 'lid')
         ->condition('lid', $lock_id)
         ->condition('expire', $now, '<=')
@@ -116,14 +125,14 @@ class Lock {
    * @param string $lock_id
    *   The lock id to release.
    */
-  static public function unlock($lock_id) {
+  public function unlock($lock_id) {
     $target = _ultimate_cron_get_transactional_safe_connection();
-    $unlocked = db_update('ultimate_cron_lock', array('target' => $target))
+    $unlocked = $this->connection->update('ultimate_cron_lock', array('target' => $target))
       ->expression('current', 'lid')
       ->condition('lid', $lock_id)
       ->condition('current', 0)
       ->execute();
-    self::persist($lock_id);
+    $this->persist($lock_id);
     return $unlocked;
   }
 
@@ -138,12 +147,12 @@ class Lock {
    * @return boolean
    *   TRUE if relock was successful.
    */
-  static public function reLock($lock_id, $timeout = 30.0) {
+  public function reLock($lock_id, $timeout = 30.0) {
     $target = _ultimate_cron_get_transactional_safe_connection();
     // Ensure that the timeout is at least 1 ms.
     $timeout = max($timeout, 0.001);
     $expire = microtime(TRUE) + $timeout;
-    return (bool) db_update('ultimate_cron_lock', array('target' => $target))
+    return (bool) $this->connection->update('ultimate_cron_lock', array('target' => $target))
       ->fields(array(
         'expire' => $expire,
       ))
@@ -155,7 +164,7 @@ class Lock {
   /**
    * Check if lock is taken.
    *
-   * @param string $name
+   * @param string $job_id
    *   Name of the lock.
    * @param boolean $ignore_expiration
    *   Ignore expiration, just check if it's present.
@@ -164,12 +173,12 @@ class Lock {
    * @return mixed
    *   The lock id if found, otherwise FALSE.
    */
-  static public function isLocked($name, $ignore_expiration = FALSE) {
+  public function isLocked($job_id, $ignore_expiration = FALSE) {
     $target = _ultimate_cron_get_transactional_safe_connection();
     $now = microtime(TRUE);
-    $result = db_select('ultimate_cron_lock', 'l', array('target' => $target))
+    $result = $this->connection->select('ultimate_cron_lock', 'l', array('target' => $target))
       ->fields('l', array('lid', 'expire'))
-      ->condition('name', $name)
+      ->condition('name', $job_id)
       ->condition('current', 0)
       ->execute()
       ->fetchObject();
@@ -179,27 +188,27 @@ class Lock {
   /**
    * Check multiple locks.
    *
-   * @param array $names
+   * @param array $job_ids
    *   The names of the locks to check.
    *
    * @return array
    *   Array of lock ids.
    */
-  static public function isLockedMultiple($names) {
+  public function isLockedMultiple($job_ids) {
     $target = _ultimate_cron_get_transactional_safe_connection();
     $now = microtime(TRUE);
-    $result = db_select('ultimate_cron_lock', 'l', array('target' => $target))
+    $result = $this->connection->select('ultimate_cron_lock', 'l', array('target' => $target))
       ->fields('l', array('lid', 'name', 'expire'))
-      ->condition('name', $names, 'IN')
+      ->condition('name', $job_ids, 'IN')
       ->condition('current', 0)
       ->execute()
       ->fetchAllAssoc('name');
-    foreach ($names as $name) {
-      if (!isset($result[$name])) {
-        $result[$name] = FALSE;
+    foreach ($job_ids as $job_id) {
+      if (!isset($result[$job_id])) {
+        $result[$job_id] = FALSE;
       }
       else {
-        $result[$name] = $result[$name]->expire > $now ? $result[$name]->lid : FALSE;
+        $result[$job_id] = $result[$job_id]->expire > $now ? $result[$job_id]->lid : FALSE;
       }
     }
     return $result;
@@ -208,26 +217,28 @@ class Lock {
   /**
    * Cleanup expired locks.
    */
-  static public function cleanup() {
+  public function cleanup() {
     $target = _ultimate_cron_get_transactional_safe_connection();
     $count = 0;
     $class = _ultimate_cron_get_class('job');
     $now = microtime(TRUE);
-    db_update('ultimate_cron_lock', array('target' => $target))
+
+    $this->connection->update('ultimate_cron_lock', array('target' => $target))
       ->expression('current', 'lid')
       ->condition('expire', $now, '<=')
       ->execute();
 
     do {
-      $lids = db_select('ultimate_cron_lock', 'l', array('target' => $target))
+      $lids = $this->connection->select('ultimate_cron_lock', 'l', array('target' => $target))
         ->fields('l', array('lid'))
         ->where('l.current = l.lid')
         ->range(0, 100)
         ->execute()
         ->fetchAll(PDO::FETCH_COLUMN);
+
       if ($lids) {
         $count += count($lids);
-        db_delete('ultimate_cron_lock', array('target' => $target))
+        $this->connection->delete('ultimate_cron_lock', array('target' => $target))
           ->condition('lid', $lids, 'IN')
           ->execute();
       }

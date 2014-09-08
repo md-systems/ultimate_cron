@@ -6,7 +6,7 @@
 
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Logger;
 
-use Drupal\ultimate_cron\LoggerBase;
+use Drupal\ultimate_cron\Logger\LoggerBase;
 
 /**
  * Cache Logger.

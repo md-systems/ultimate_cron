@@ -6,7 +6,7 @@
  * Supports cross request persistance.
  */
 
-namespace Drupal\ultimate_cron;
+namespace Drupal\ultimate_cron\Lock;
 /**
  * Class for handling lock functions.
  *
@@ -54,7 +54,7 @@ class LockMemcache {
     if (!isset(self::$locks)) {
       self::$locks = array();
       ultimate_cron_register_shutdown_function(array(
-        'Drupal\ultimate_cron\LockMemcache',
+        'Drupal\ultimate_cron\Lock\LockMemcache',
         'shutdown'
       ));
     }

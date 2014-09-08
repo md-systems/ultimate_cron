@@ -5,7 +5,7 @@
  */
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Launcher;
 
-use Drupal\ultimate_cron\LauncherBase;
+use Drupal\ultimate_cron\Launcher\LauncherBase;
 use Exception;
 
 /**
@@ -25,8 +25,8 @@ class SerialLauncher extends LauncherBase {
    * Implements hook_cron_alter().
    */
   public function cron_alter(&$jobs) {
-    $class = _ultimate_cron_get_class('lock');
-    if (!empty($class::$killable)) {
+    $lock = \Drupal::service('ultimate_cron.lock');
+    if (!empty($lock->{$killable})) {
       $jobs['ultimate_cron_plugin_launcher_serial_cleanup']->hook['tags'][] = 'killable';
     }
   }
@@ -163,8 +163,8 @@ class SerialLauncher extends LauncherBase {
     $settings = $job->getSettings('launcher')['serial'];
     $timeout = $settings['lock_timeout'];
 
-    $class = _ultimate_cron_get_class('lock');
-    if ($lock_id = $class::lock($job->id(), $timeout)) {
+    $lock = \Drupal::service('ultimate_cron.lock');
+    if ($lock_id = $lock->lock($job->id(), $timeout)) {
       $lock_id = $this->getPluginId() . '-' . $lock_id;
       return $lock_id;
     }
@@ -176,16 +176,16 @@ class SerialLauncher extends LauncherBase {
    */
   public function unlock($lock_id, $manual = FALSE) {
     list($launcher, $lock_id) = explode('-', $lock_id, 2);
-    $class = _ultimate_cron_get_class('lock');
-    return $class::unlock($lock_id);
+    $lock = \Drupal::service('ultimate_cron.lock');
+    return $lock->unlock($lock_id);
   }
 
   /**
    * Check if job is locked.
    */
   public function isLocked($job) {
-    $class = _ultimate_cron_get_class('lock');
-    $lock_id = $class::isLocked($job->id());
+    $lock = \Drupal::service('ultimate_cron.lock');
+    $lock_id = $lock->isLocked($job->id());
     return $lock_id ? $this->name . '-' . $lock_id : $lock_id;
   }
 
@@ -197,8 +197,8 @@ class SerialLauncher extends LauncherBase {
     foreach ($jobs as $job) {
       $names[] = $job->id();
     }
-    $class = _ultimate_cron_get_class('lock');
-    $lock_ids = $class::isLockedMultiple($names);
+    $lock = \Drupal::service('ultimate_cron.lock');
+    $lock_ids = $lock->isLockedMultiple($names);
     foreach ($lock_ids as &$lock_id) {
       $lock_id = $lock_id ? $this->name . '-' . $lock_id : $lock_id;
     }
@@ -209,8 +209,8 @@ class SerialLauncher extends LauncherBase {
    * Cleanup.
    */
   public function cleanup() {
-    $class = _ultimate_cron_get_class('lock');
-    $class::cleanup();
+    $lock = \Drupal::service('ultimate_cron.lock');
+    $lock->cleanup();
   }
 
   /**
@@ -266,14 +266,14 @@ class SerialLauncher extends LauncherBase {
     $delay = $timeout * 1000000;
     $sleep = 25000;
 
-    $class = _ultimate_cron_get_class('lock');
+    $lock_service = \Drupal::service('ultimate_cron.lock');
     do {
       for ($thread = 1; $thread <= $settings['max_threads']; $thread++) {
         if ($thread != $this->currentThread) {
           $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
-          if (!$class::isLocked($lock_name)) {
+          if (!$lock_service->isLocked($lock_name)) {
             if ($lock) {
-              if ($lock_id = $class::lock($lock_name, $lock_timeout)) {
+              if ($lock_id = $lock_service->lock($lock_name, $lock_timeout)) {
                 return array($thread, $lock_id);
               }
             }
@@ -298,7 +298,7 @@ class SerialLauncher extends LauncherBase {
    * Launch manager.
    */
   public function launchJobs($jobs) {
-    $class = _ultimate_cron_get_class('lock');
+    $lock = \Drupal::service('ultimate_cron.lock');
     $settings = $this->getDefaultSettings();
 
     // Set proper max execution time.
@@ -321,8 +321,8 @@ class SerialLauncher extends LauncherBase {
 
       $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
       $lock_id = NULL;
-      if (!$class::isLocked($lock_name)) {
-        $lock_id = $class::lock($lock_name, $lock_timeout);
+      if (!$lock->isLocked($lock_name)) {
+        $lock_id = $lock->lock($lock_name, $lock_timeout);
       }
       if (!$lock_id) {
         watchdog('serial_launcher', "Thread @thread is already running", array(
@@ -348,7 +348,7 @@ class SerialLauncher extends LauncherBase {
     watchdog('serial_launcher', "Cron thread %thread started", array('%thread' => $thread), WATCHDOG_INFO);
 
     $this->runThread($lock_id, $thread, $jobs);
-    $class::unlock($lock_id);
+    $lock->unlock($lock_id);
   }
 
   /**
@@ -362,7 +362,7 @@ class SerialLauncher extends LauncherBase {
    *   The UltimateCronJobs to run.
    */
   public function runThread($lock_id, $thread, $jobs) {
-    $class = _ultimate_cron_get_class('lock');
+    $lock = \Drupal::service('ultimate_cron.lock');
     $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
     foreach ($jobs as $job) {
       $settings = $job->settings;
@@ -380,14 +380,14 @@ class SerialLauncher extends LauncherBase {
         // Be friendly, and check if someone else has taken the lock.
         // If they have, bail out, since someone else is now handling
         // this thread.
-        if ($current_lock_id = $class::isLocked($lock_name)) {
+        if ($current_lock_id = $lock->isLocked($lock_name)) {
           if ($current_lock_id !== $lock_id) {
             return;
           }
         }
         else {
           // If lock is free, then take the lock again.
-          $lock_id = $class::lock($lock_name);
+          $lock_id = $lock->lock($lock_name);
           if (!$lock_id) {
             // Race-condition, someone beat us to it.
             return;
@@ -401,14 +401,14 @@ class SerialLauncher extends LauncherBase {
    * Poormans cron launcher.
    */
   public function launchPoorman() {
-    $class = _ultimate_cron_get_class('lock');
+    $lock = \Drupal::service('ultimate_cron.lock');
     $settings = $this->getDefaultSettings();
     // Is it time to run cron?
     $cron_last = variable_get('cron_last', 0);
     $cron_next = floor(($cron_last + 60) / 60) * 60;
     $time = time();
     if ($time < $cron_next) {
-      if ($settings['poorman_keepalive'] && $lock_id = $class::lock('ultimate_cron_poorman_serial', 60)) {
+      if ($settings['poorman_keepalive'] && $lock_id = $lock->lock('ultimate_cron_poorman_serial', 60)) {
         ultimate_cron_poorman_page_flush();
         $sleep = $cron_next - $time;
         sleep($sleep);
@@ -419,7 +419,7 @@ class SerialLauncher extends LauncherBase {
         }
         /**/
         ultimate_cron_poorman_trigger();
-        $class::unLock($lock_id);
+        $lock->unLock($lock_id);
       }
       return;
     }
@@ -441,7 +441,7 @@ class SerialLauncher extends LauncherBase {
     }
 
     $settings = $this->getDefaultSettings();
-    if ($settings['poorman_keepalive'] && $lock_id = $class::lock('ultimate_cron_poorman_serial', 60)) {
+    if ($settings['poorman_keepalive'] && $lock_id = $lock->lock('ultimate_cron_poorman_serial', 60)) {
       // Is it time to run cron? If not wait before re-launching.
       $cron_last = variable_get('cron_last', 0);
       $cron_next = floor(($cron_last + 60) / 60) * 60;
@@ -457,7 +457,7 @@ class SerialLauncher extends LauncherBase {
         /**/
       }
 
-      $class::unLock($lock_id);
+      $lock->unLock($lock_id);
       ultimate_cron_poorman_trigger();
     }
   }

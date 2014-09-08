@@ -1,12 +1,13 @@
 <?php
+namespace Drupal\ultimate_cron\Progress;
+use Drupal\ultimate_cron\Progress;
+
 /**
  * @file
- * Contains \Drupal\ultimate_cron\Progress.
+ * Pseudo namespace for progress functions.
  */
 
-namespace Drupal\ultimate_cron;
-
-class Progress {
+class ProgressMemcache {
   public $name;
   public $progressUpdated = 0;
   public $interval = 1;
@@ -38,7 +39,7 @@ class Progress {
    */
   static public function factory($name, $interval = 1) {
     if (!isset(self::$instances[$name])) {
-      self::$instances[$name] = new Progress($name, $interval);
+      self::$instances[$name] = new ProgressMemcache($name, $interval);
     }
     self::$instances[$name]->interval = $interval;
     return self::$instances[$name];
@@ -52,8 +53,8 @@ class Progress {
    */
   public function getProgress() {
     $name = 'uc-progress:' . $this->name;
-    $value = \Drupal::keyValue('uc-progress')->get($name);
-    return $value;
+    $bin = variable_get('ultimate_cron_progress_memcache_bin', 'progress');
+    return dmemcache_get($name, $bin);
   }
 
   /**
@@ -66,9 +67,18 @@ class Progress {
    *   Progress of jobs, keyed by job name.
    */
   static public function getProgressMultiple($names) {
-    $values = \Drupal::keyValue('uc-progress')->getMultiple($names);
+    $keys = array();
+    foreach ($names as $name) {
+      $keys[] = 'uc-progress:' . $name;
+    }
+    $bin = variable_get('ultimate_cron_progress_memcache_bin', 'progress');
+    $values = dmemcache_get_multi($keys, $bin);
 
-    return $values;
+    $result = array();
+    foreach ($names as $name) {
+      $result[$name] = isset($values['uc-progress:' . $name]) ? $values['uc-progress:' . $name] : FALSE;
+    }
+    return $result;
   }
 
   /**
@@ -80,9 +90,8 @@ class Progress {
   public function setProgress($progress) {
     if (microtime(TRUE) >= $this->progressUpdated + $this->interval) {
       $name = 'uc-progress:' . $this->name;
-
-      \Drupal::keyValue('uc-progress')->set($name, $progress);
-
+      $bin = variable_get('ultimate_cron_progress_memcache_bin', 'progress');
+      dmemcache_set($name, $progress, 0, $bin);
       $this->progressUpdated = microtime(TRUE);
       return TRUE;
     }

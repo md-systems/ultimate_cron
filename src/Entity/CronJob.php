@@ -10,8 +10,8 @@ use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\ultimate_cron\CronJobHelper;
 use Drupal\ultimate_cron\CronJobInterface;
 use Drupal\ultimate_cron\CronPlugin;
-use Drupal\ultimate_cron\LogEntry;
-use Drupal\ultimate_cron\LoggerBase;
+use Drupal\ultimate_cron\Logger\LogEntry;
+use Drupal\ultimate_cron\Logger\LoggerBase;
 use Exception;
 
 /**
@@ -127,8 +127,8 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
     if (isset(self::$signals[$this->id()][$signal])) {
       return TRUE;
     }
-    $class = _ultimate_cron_get_class('signal');
-    return $class::peek($this->id(), $signal);
+    $signal = \Drupal::service('ultimate_cron.signal');;
+    return $signal->peek($this->id(), $signal);
   }
 
   /**
@@ -141,8 +141,8 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
       unset(self::$signals[$this->id()][$signal]);
       return TRUE;
     }
-    $class = _ultimate_cron_get_class('signal');
-    return $class::get($this->id(), $signal);
+    $signal = \Drupal::service('ultimate_cron.signal');;
+    return $signal->get($this->id(), $signal);
   }
 
   /**
@@ -152,8 +152,8 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
    */
   public function sendSignal($signal, $persist = FALSE) {
     if ($persist) {
-      $class = _ultimate_cron_get_class('signal');
-      $class::set($this->id(), $signal);
+      $signal = \Drupal::service('ultimate_cron.signal');;
+      $signal->set($this->id(), $signal);
     }
     else {
       self::$signals[$this->id()][$signal] = TRUE;
@@ -167,8 +167,8 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
    */
   public function clearSignal($signal) {
     unset(self::$signals[$this->id()][$signal]);
-    $class = _ultimate_cron_get_class('signal');
-    $class::clear($this->id(), $signal);
+    $signal = \Drupal::service('ultimate_cron.signal');;
+    $signal->clear($this->id(), $signal);
   }
 
   /**
@@ -178,8 +178,8 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
    */
   public function clearSignals() {
     unset(self::$signals[$this->id()]);
-    $class = _ultimate_cron_get_class('signal');
-    $class::flush($this->id());
+    $signal = \Drupal::service('ultimate_cron.signal');;
+    $signal->flush($this->id());
   }
 
   /**

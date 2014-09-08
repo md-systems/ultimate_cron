@@ -1,11 +1,10 @@
 <?php
 /**
  * @file
- * Contains \Drupal\ultimate_cron\LogEntry.
+ * Contains \Drupal\ultimate_cron\Logger\LogEntry.
  */
 
-namespace Drupal\ultimate_cron;
-use CronLogger;
+namespace Drupal\ultimate_cron\Logger;
 
 /**
  * Abstract class for Ultimate Cron log entries.
@@ -54,7 +53,7 @@ abstract class LogEntry {
    *
    * @param string $name
    *   Name of log.
-   * @param \Drupal\ultimate_cron\LoggerBase $logger
+   * @param \Drupal\ultimate_cron\Logger\LoggerBase $logger
    *   A logger object.
    */
   public function __construct($name, $logger, $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL) {

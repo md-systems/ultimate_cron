@@ -1,6 +1,8 @@
 <?php
 namespace Drupal\ultimate_cron;
 
+use Drupal\ultimate_cron\Logger\LogEntry;
+
 class CacheLogEntry extends LogEntry {
   /**
    * Save log entry.

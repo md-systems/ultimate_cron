@@ -367,7 +367,7 @@ class CronPlugin extends PluginBase {
    *   Verbosely formatted label.
    */
   public function formatLabelVerbose($job) {
-    return $job->title;
+    return $job->getTitle();
   }
 
   /**

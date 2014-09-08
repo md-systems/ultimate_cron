@@ -42,5 +42,7 @@ class UltimateCron extends Cron {
       $launcher_job['launcher']->launchJobs($launcher_job['jobs']);
     }
     drupal_set_message('Run Ultimate Cron job');
+
+    return TRUE;
   }
 }

@@ -9,7 +9,7 @@ namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Logger;
 
 use Database;
 use Drupal\ultimate_cron\DatabaseLogEntry;
-use Drupal\ultimate_cron\LoggerBase;
+use Drupal\ultimate_cron\Logger\LoggerBase;
 use PDO;
 
 /**

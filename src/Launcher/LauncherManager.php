@@ -2,10 +2,10 @@
 
 /**
  * @file
- * Contains \Drupal\ultimate_cron\LauncherManager.
+ * Contains \Drupal\ultimate_cron\Launcher\LauncherManager.
  */
 
-namespace Drupal\ultimate_cron;
+namespace Drupal\ultimate_cron\Launcher;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;

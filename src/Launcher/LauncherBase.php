@@ -6,8 +6,9 @@
  * Time: 3:03 PM
  */
 
-namespace Drupal\ultimate_cron;
+namespace Drupal\ultimate_cron\Launcher;
 
+use Drupal\ultimate_cron\CronPlugin;
 use Drupal\ultimate_cron\Entity\CronJob;
 use Exception;
 
@@ -223,8 +224,7 @@ abstract class LauncherBase extends CronPlugin {
    *   Job to initialize progress for.
    */
   public function initializeProgress($job) {
-    $class = _ultimate_cron_get_class('progress');
-    return $class::factory($job->id())->setProgress(FALSE);
+    \Drupal::service('ultimate_cron.progress')->setProgress($job->id(), FALSE);
   }
 
   /**
@@ -234,8 +234,7 @@ abstract class LauncherBase extends CronPlugin {
    *   Job to finish progress for.
    */
   public function finishProgress($job) {
-    $class = _ultimate_cron_get_class('progress');
-    return $class::factory($job->id())->setProgress(FALSE);
+    \Drupal::service('ultimate_cron.progress')->setProgress($job->id(), FALSE);
   }
 
   /**
@@ -248,8 +247,7 @@ abstract class LauncherBase extends CronPlugin {
    *   Progress for the job.
    */
   public function getProgress($job) {
-    $class = _ultimate_cron_get_class('progress');
-    return $class::factory($job->id())->getProgress();
+    return \Drupal::service('ultimate_cron.progress')->getProgress($job->id());
   }
 
   /**
@@ -262,8 +260,7 @@ abstract class LauncherBase extends CronPlugin {
    *   Progresses, keyed by job name.
    */
   public function getProgressMultiple($jobs) {
-    $class = _ultimate_cron_get_class('progress');
-    return $class::getProgressMultiple(array_keys($jobs));
+    return \Drupal::service('ultimate_cron.progress')->getProgressMultiple(array_keys($jobs));
   }
 
   /**
@@ -275,8 +272,7 @@ abstract class LauncherBase extends CronPlugin {
    *   Progress (0-1).
    */
   public function setProgress($job, $progress) {
-    $class = _ultimate_cron_get_class('progress');
-    return $class::factory($job->id())->setProgress($progress);
+    \Drupal::service('ultimate_cron.progress')->setProgress($job->id(), $progress);
   }
 
 }

@@ -2,10 +2,10 @@
 
 /**
  * @file
- * Contains \Drupal\ultimate_cron\LoggerManager.
+ * Contains \Drupal\ultimate_cron\Logger\LoggerManager.
  */
 
-namespace Drupal\ultimate_cron;
+namespace Drupal\ultimate_cron\Logger;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;

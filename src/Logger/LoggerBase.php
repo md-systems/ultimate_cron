@@ -1,10 +1,11 @@
 <?php
 /**
  * @file
- * Contains \Drupal\ultimate_cron\LoggerBase.
+ * Contains \Drupal\ultimate_cron\Logger\LoggerBase.
  */
-namespace Drupal\ultimate_cron;
-use Drupal\ultimate_cron\LogEntry;
+namespace Drupal\ultimate_cron\Logger;
+use Drupal\ultimate_cron\CronPlugin;
+use Drupal\ultimate_cron\Logger\LogEntry;
 
 /**
  * Abstract class for Ultimate Cron loggers
@@ -86,7 +87,7 @@ abstract class LoggerBase extends CronPlugin {
    *
    * Effectively disables the shutdown function for the given log entry.
    *
-   * @param LogEntry $log_entry
+   * @param \Drupal\ultimate_cron\Logger\LogEntry $log_entry
    *   The log entry.
    */
   public function unCatchMessages($log_entry) {
@@ -192,7 +193,7 @@ abstract class LoggerBase extends CronPlugin {
    * @param string $lock_id
    *   Specific lock id.
    *
-   * @return LogEntry
+   * @return \Drupal\ultimate_cron\Logger\LogEntry
    *   Log entry
    */
   abstract public function load($name, $lock_id = NULL, $log_types = array(ULTIMATE_CRON_LOG_TYPE_NORMAL));

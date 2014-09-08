@@ -6,6 +6,8 @@
 
 namespace Drupal\ultimate_cron;
 
+use Drupal\ultimate_cron\Logger\LogEntry;
+
 class DatabaseLogEntry extends LogEntry {
 
   /**
