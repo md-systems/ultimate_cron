@@ -269,12 +269,13 @@ function ultimate_cron_plugin_load_all($type, $reset = FALSE) {
   if (!$reset && isset($cache[$type])) {
     return $cache[$type];
   }
-  ctools_include('plugins');
-  $plugin_infos = ctools_get_plugins('ultimate_cron', $type);
-  $plugins = array();
-  foreach ($plugin_infos as $name => $plugin) {
-    if ($object = ultimate_cron_ctools_plugin_instance($name, $plugin)) {
-      $plugins[$name] = $object;
+  /* @var \Drupal\Core\Plugin\DefaultPluginManager $manager */
+  $manager = \Drupal::service('plugin.manager.ultimate_cron.' . $type);
+  $plugins = $manager->getDefinitions();
+
+  foreach ($plugins as $plugin_id => $definition) {
+    if ($object = $manager->createInstance($plugin_id)) {
+      $plugins[$plugin_id] = $object;
     }
   }
   $cache[$type] = $plugins;
@@ -400,7 +401,7 @@ function ultimate_cron_prepare_job($name, $hook, $job = NULL) {
 
   if (!$job) {
     $job = ctools_export_crud_new('ultimate_cron_job');
-    $job->name = $name;
+    $job->id = $name;
     $job->title = $hook['title'];
     $job->description = $hook['description'];
     $job->table = 'ultimate_cron_job';
@@ -464,8 +465,8 @@ function ultimate_cron_job_set_status($object, $status) {
   }
 
   if (empty($object->dont_log)) {
-    $log_entry = $job->startLog(uniqid($job->name, TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
-    $log_entry->log($job->name, 'Job @status by ' . $log_entry->formatUser(), array(
+    $log_entry = $job->startLog(uniqid($job->id(), TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
+    $log_entry->log($job->id(), 'Job @status by ' . $log_entry->formatUser(), array(
       '@status' => $status ? t('disabled') : t('enabled'),
     ), WATCHDOG_INFO);
     $log_entry->finish();
@@ -632,7 +633,7 @@ function ultimate_cron_job_import($code) {
     $job = clone $jobs[$item->name];
     $job->disabled = $item->disabled;
     $job->api_version = $item->api_version;
-    $job->name = $item->name;
+    $job->id = $item->name;
     $job->title = $item->title;
     $job->settings = $item->settings;
     $item = $job;
@@ -1046,7 +1047,7 @@ function ultimate_cron_cron_run_compatibility() {
     $lock_id = $job->lock();
     if (!$lock_id) {
       throw new Exception(t('Could not acquire lock for @name', array(
-        '@name' => $job->name,
+        '@name' => $job->id(),
       )));
     }
     $job->startLog($lock_id, 'Launched by Drupal core');
@@ -1054,79 +1055,6 @@ function ultimate_cron_cron_run_compatibility() {
 }
 
 // ---------- HELPER FUNCTIONS ----------
-
-/**
- * Load a variable by-passing the cache.
- *
- * We update the the cron_last variable once a minute. In order to avoid
- * clearing the variable cache every minute, we handle that variable
- * directly.
- *
- * @param string $name
- *   Name of variable to load.
- *
- * @return mixed
- *   Value of the variable. The value is also stored in the global static
- *   variables array, so variable_get() may retrieve the correct data
- *   afterwards.
- */
-function _ultimate_cron_variable_load($name, $default = NULL) {
-  if ($value = db_query("SELECT value FROM {variable} WHERE name = :name", array(':name' => $name))->fetchField()) {
-    $value = unserialize($value);
-  }
-  else {
-    $value = $default;
-  }
-  global $conf;
-  $conf[$name] = $value;
-  return $value;
-}
-
-/**
- * Load multiple variables by-passing the cache.
- *
- * We update the the cron_last variable once a minute. In order to avoid
- * clearing the variable cache every minute, we handle that variable
- * directly.
- *
- * @param array $names
- *   Names of variables to load.
- *
- * @return array
- *   Values of the variables. The values are also stored in the global static
- *   variables array, so variable_get() may retrieve the correct data
- *   afterwards.
- */
-function _ultimate_cron_variable_load_multiple($names, $default = NULL) {
-  $values = array();
-  $result = db_query("SELECT name, value FROM {variable} WHERE name IN (:names)", array(':names' => $names))->fetchAllKeyed();
-  global $conf;
-  foreach ($names as $name) {
-    $conf[$name] = $values[$name] = isset($result[$name]) ? unserialize($result[$name]) : $default;
-  }
-  return $values;
-}
-
-/**
- * Variable set with cache by-pass.
- *
- * We update the the cron_last variable once a minute. In order to avoid
- * clearing the variable cache every minute, we handle that variable
- * directly.
- *
- * The global static variables array is also updated, so variable_get()
- * may retrieve the correct data afterwards.
- *
- * @param string $name
- *   Name of variables to save.
- * @param mixed $value
- *   Value of the variable.
- */
-function _ultimate_cron_variable_save($name, $value) {
-  global $conf;
-  db_merge('variable')->key(array('name' => $name))->fields(array('value' => serialize($value)))->execute();
-  $conf[$name] = $value;
-}
 
 /**
  * Cron easy hooks.
@@ -1560,8 +1488,8 @@ function ultimate_cron_run_launchers($launchers = NULL) {
     if (!isset($launchers) || in_array($launcher->name, $launchers)) {
       $launcher_jobs[$launcher->name]['launcher'] = $launcher;
       $launcher_jobs[$launcher->name]['sort'] = array($launcher->weight);
-      $launcher_jobs[$launcher->name]['jobs'][$job->name] = $job;
-      $launcher_jobs[$launcher->name]['jobs'][$job->name]->sort = array($job->loadLatestLogEntry()->start_time);
+      $launcher_jobs[$launcher->name]['jobs'][$job->id()] = $job;
+      $launcher_jobs[$launcher->name]['jobs'][$job->id()]->sort = array($job->loadLatestLogEntry()->start_time);
     }
   }
 
@@ -1647,7 +1575,7 @@ function _ultimate_cron_multi_column_sort($a, $b) {
  *   Connection target.
  */
 function _ultimate_cron_get_transactional_safe_connection() {
-  return !variable_get('ultimate_cron_bypass_transactional_safe_connection') && Database::getConnection()->inTransaction() ? 'ultimate_cron' : 'default';
+  return !\Drupal::config('ultimate_cron.settings')->get('bypass_transactional_safe_connection') && \Drupal\Core\Database\Database::getConnection()->inTransaction() ? 'ultimate_cron' : 'default';
 }
 
 /**
@@ -1663,8 +1591,8 @@ function _ultimate_cron_get_class($name) {
   static $defaults = array(
     'job' => 'UltimateCronJob',
     'lock' => '\Drupal\ultimate_cron\Lock',
-    'progress' => 'UltimateCronProgress',
-    'signal' => 'UltimateCronSignal',
+    'progress' => '\Drupal\ultimate_cron\Progress',
+    'signal' => '\Drupal\ultimate_cron\SignalCache',
   );
   return $defaults[$name];
   //@TODO: Fix this.

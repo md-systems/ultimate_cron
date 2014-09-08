@@ -1,10 +1,9 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: berdir
- * Date: 4/4/14
- * Time: 3:03 PM
+ * @file
+ * Contains \Drupal\ultimate_cron\LogEntry.
  */
+
 namespace Drupal\ultimate_cron;
 use CronLogger;
 
@@ -63,8 +62,7 @@ abstract class LogEntry {
     $this->logger = $logger;
     $this->log_type = $log_type;
     if (!isset($this->uid)) {
-      global $user;
-      $this->uid = $user->uid;
+      $this->uid = \Drupal::currentUser()->id();
     }
   }
 

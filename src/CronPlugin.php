@@ -117,9 +117,8 @@ class CronPlugin extends PluginBase {
    * Invoke hook_cron_pre_schedule() on plugins.
    */
   final static public function hook_cron_pre_schedule($job) {
-    ctools_include('plugins');
-    $plugin_types = ctools_plugin_get_plugin_type_info();
-    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+    $plugin_types = CronJobHelper::getPluginTypes();
+    foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
         if ($plugin->isValid($job)) {
@@ -133,9 +132,8 @@ class CronPlugin extends PluginBase {
    * Invoke hook_cron_post_schedule() on plugins.
    */
   final static public function hook_cron_post_schedule($job, &$result) {
-    ctools_include('plugins');
-    $plugin_types = ctools_plugin_get_plugin_type_info();
-    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+    $plugin_types = CronJobHelper::getPluginTypes();
+    foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
         if ($plugin->isValid($job)) {
@@ -149,9 +147,8 @@ class CronPlugin extends PluginBase {
    * Invoke hook_cron_pre_launch() on plugins.
    */
   final static public function hook_cron_pre_launch($job) {
-    ctools_include('plugins');
-    $plugin_types = ctools_plugin_get_plugin_type_info();
-    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+    $plugin_types = CronJobHelper::getPluginTypes();
+    foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
         if ($plugin->isValid($job)) {
@@ -165,9 +162,8 @@ class CronPlugin extends PluginBase {
    * Invoke hook_cron_post_launch() on plugins.
    */
   final static public function hook_cron_post_launch($job) {
-    ctools_include('plugins');
-    $plugin_types = ctools_plugin_get_plugin_type_info();
-    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+    $plugin_types = CronJobHelper::getPluginTypes();
+    foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
         if ($plugin->isValid($job)) {
@@ -181,9 +177,8 @@ class CronPlugin extends PluginBase {
    * Invoke hook_cron_pre_run() on plugins.
    */
   final static public function hook_cron_pre_run($job) {
-    ctools_include('plugins');
-    $plugin_types = ctools_plugin_get_plugin_type_info();
-    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+    $plugin_types = CronJobHelper::getPluginTypes();
+    foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
         if ($plugin->isValid($job)) {
@@ -197,9 +192,8 @@ class CronPlugin extends PluginBase {
    * Invoke hook_cron_post_run() on plugins.
    */
   final static public function hook_cron_post_run($job) {
-    ctools_include('plugins');
-    $plugin_types = ctools_plugin_get_plugin_type_info();
-    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+    $plugin_types = CronJobHelper::getPluginTypes();
+    foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
         if ($plugin->isValid($job)) {
@@ -213,9 +207,8 @@ class CronPlugin extends PluginBase {
    * Invoke hook_cron_pre_invoke() on plugins.
    */
   final static public function hook_cron_pre_invoke($job) {
-    ctools_include('plugins');
-    $plugin_types = ctools_plugin_get_plugin_type_info();
-    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+    $plugin_types = CronJobHelper::getPluginTypes();
+    foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
         if ($plugin->isValid($job)) {
@@ -229,9 +222,8 @@ class CronPlugin extends PluginBase {
    * Invoke hook_cron_post_invoke() on plugins.
    */
   final static public function hook_cron_post_invoke($job) {
-    ctools_include('plugins');
-    $plugin_types = ctools_plugin_get_plugin_type_info();
-    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
+    $plugin_types = CronJobHelper::getPluginTypes();
+    foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
         if ($plugin->isValid($job)) {
@@ -319,9 +311,9 @@ class CronPlugin extends PluginBase {
    */
   public function getDefaultSettings($job = NULL) {
     $settings = array();
-    if ($job && !empty($job->hook[$this->type][$this->name])) {
-      $settings += $job->hook[$this->type][$this->name];
-    }
+//    if ($job && !empty($job->hook[$this->type][$this->name])) {
+//      $settings += $job->hook[$this->type][$this->name];
+//    }
     $settings += $this->settings + $this->defaultSettings();
     return $settings;
   }
@@ -362,7 +354,7 @@ class CronPlugin extends PluginBase {
    *   Formatted label.
    */
   public function formatLabel($job) {
-    return $job->name;
+    return $job->id();
   }
 
   /**

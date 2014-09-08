@@ -228,9 +228,9 @@ function drush_ultimate_cron_cron_list() {
       $print_legend = TRUE;
     }
 
-    $job->lock_id = $lock_ids[$job->name];
-    $job->log_entry = $log_entries[$job->name];
-    $job->progress = $progresses[$job->name];
+    $job->lock_id = $lock_ids[$job->id()];
+    $job->log_entry = $log_entries[$job->id()];
+    $job->progress = $progresses[$job->id()];
 
     if ($job->log_entry->lid && $job->lock_id && $job->log_entry->lid !== $job->lock_id) {
       $job->log_entry = $job->loadLogEntry($job->lock_id);
@@ -264,7 +264,7 @@ function drush_ultimate_cron_cron_list() {
 
     $table[$name][] = $legend;
     $table[$name][] = $job->getModuleName();
-    $table[$name][] = $showname ? $job->name : $job->title;
+    $table[$name][] = $showname ? $job->id() : $job->title;
     $table[$name][] = $job->getPlugin('scheduler')->formatLabel($job);
     $table[$name][] = $job->log_entry->formatStartTime();
     $table[$name][] = $job->log_entry->formatDuration() . ' ' . $progress;
@@ -273,7 +273,7 @@ function drush_ultimate_cron_cron_list() {
     if ($extended) {
       $table['extended:' . $name][] = '';
       $table['extended:' . $name][] = '';
-      $table['extended:' . $name][] = $job->name;
+      $table['extended:' . $name][] = $job->id();
       $table['extended:' . $name][] = $job->getPlugin('scheduler')->formatLabelVerbose($job);
       $table['extended:' . $name][] = $job->log_entry->init_message;
       $table['extended:' . $name][] = $job->log_entry->message;
@@ -450,7 +450,7 @@ function drush_ultimate_cron_cron_enable($name = NULL) {
       return drush_set_error(dt('No job specified?'));
     }
     foreach (ultimate_cron_job_load_all() as $job) {
-      drush_ultimate_cron_cron_enable($job->name);
+      drush_ultimate_cron_cron_enable($job->id());
     }
     return;
   }
@@ -469,7 +469,7 @@ function drush_ultimate_cron_cron_disable($name = NULL) {
       return drush_set_error(dt('No job specified?'));
     }
     foreach (ultimate_cron_job_load_all() as $job) {
-      drush_ultimate_cron_cron_disable($job->name);
+      drush_ultimate_cron_cron_disable($job->id());
     }
     return;
   }
@@ -489,7 +489,7 @@ function drush_ultimate_cron_cron_unlock($name = NULL) {
     }
     foreach (ultimate_cron_job_load_all() as $job) {
       if ($job->isLocked()) {
-        drush_ultimate_cron_cron_unlock($job->name);
+        drush_ultimate_cron_cron_unlock($job->id());
       }
     }
     return;
@@ -509,7 +509,7 @@ function drush_ultimate_cron_cron_unlock($name = NULL) {
     $log_entry = $job->resumeLog($lock_id);
     global $user;
     watchdog('ultimate_cron', '@name manually unlocked by user @username (@uid)', array(
-      '@name' => $job->name,
+      '@name' => $job->id(),
       '@username' => $user->name,
       '@uid' => $user->uid,
     ), WATCHDOG_WARNING);

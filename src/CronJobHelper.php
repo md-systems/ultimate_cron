@@ -48,5 +48,14 @@ class CronJobHelper {
 
       return $update;
   }
+
+
+  public static function getPluginTypes() {
+    return array(
+      'scheduler' => t('Scheduler'),
+      'launcher' => t('Launcher'),
+      'logger' => t('Logger')
+    );
+  }
 }
 

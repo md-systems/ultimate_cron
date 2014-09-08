@@ -48,6 +48,7 @@ class CronJobUnitTest extends KernelTestBase {
 
     $cron_job = \Drupal::entityManager()->getStorage('ultimate_cron_job')->load('example');
     $this->assertEqual($cron_job->id(), 'example');
+    debug($cron_job);
     $this->assertEqual($cron_job->settings, $values['settings']);
     $this->assertFalse($cron_job->status());
   }

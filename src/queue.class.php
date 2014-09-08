@@ -164,9 +164,9 @@ class QueueSettings extends TaggedSettings {
       if (isset($settings['settings']['queue']['name'])) {
         if ($settings['settings']['queue']['throttle']) {
           for ($i = 2; $i <= $settings['settings']['queue']['threads']; $i++) {
-            $name = $job->name . '_' . $i;
+            $name = $job->id() . '_' . $i;
             $hook = $job->hook;
-            $hook['settings']['queue']['master'] = $job->name;
+            $hook['settings']['queue']['master'] = $job->id();
             $hook['settings']['queue']['thread'] = $i;
             $hook['name'] = $name;
             $hook['title'] .= " (#$i)";
@@ -187,8 +187,8 @@ class QueueSettings extends TaggedSettings {
   public function cron_pre_schedule($job) {
     $queue_name = !empty($job->hook['settings']['queue']['name']) ? $job->hook['settings']['queue']['name'] : FALSE;
     if ($queue_name) {
-      if (empty(self::$throttled[$job->name])) {
-        self::$throttled[$job->name] = TRUE;
+      if (empty(self::$throttled[$job->id()])) {
+        self::$throttled[$job->id()] = TRUE;
         $this->throttle($job);
       }
     }
@@ -360,8 +360,8 @@ class QueueSettings extends TaggedSettings {
       $new_status = !$status ? TRUE : FALSE;
       $old_status = ultimate_cron_job_get_status($name) ? TRUE : FALSE;
       if ($old_status !== $new_status) {
-        $log_entry = $job->startLog(uniqid($job->name, TRUE), 'throttling', ULTIMATE_CRON_LOG_TYPE_ADMIN);
-        $log_entry->log($job->name, 'Job @status by queue throttling (items:@items, boundary:@boundary, threshold:@threshold)', array(
+        $log_entry = $job->startLog(uniqid($job->id(), TRUE), 'throttling', ULTIMATE_CRON_LOG_TYPE_ADMIN);
+        $log_entry->log($job->id(), 'Job @status by queue throttling (items:@items, boundary:@boundary, threshold:@threshold)', array(
           '@status' => $new_status ? t('disabled') : t('enabled'),
           '@items' => $items,
           '@boundary' => ($thread - 1) * $settings['queue']['threshold'],

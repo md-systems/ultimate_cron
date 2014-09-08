@@ -28,7 +28,7 @@ class GeneralSettings extends Settings {
       if (in_array('killable', $job->hook['tags']) && !$job->peekSignal('kill')) {
         $allowed_operations['kill'] = array(
           'title' => t('Kill'),
-          'href' => 'admin/config/system/cron/jobs/list/' . $job->name . '/signal/' . $this->type . '/' . $this->name . '/kill',
+          'href' => 'admin/config/system/cron/jobs/list/' . $job->id() . '/signal/' . $this->type . '/' . $this->name . '/kill',
           'attributes' => array('class' => array('use-ajax')),
           'query' => array('token' => drupal_get_token('signal')),
         );

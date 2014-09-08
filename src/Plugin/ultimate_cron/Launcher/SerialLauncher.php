@@ -160,12 +160,12 @@ class SerialLauncher extends LauncherBase {
    * Lock job.
    */
   public function lock($job) {
-    $settings = $job->getSettings($this->type);
+    $settings = $job->getSettings('launcher')['serial'];
     $timeout = $settings['lock_timeout'];
 
     $class = _ultimate_cron_get_class('lock');
-    if ($lock_id = $class::lock($job->name, $timeout)) {
-      $lock_id = $this->name . '-' . $lock_id;
+    if ($lock_id = $class::lock($job->id(), $timeout)) {
+      $lock_id = $this->getPluginId() . '-' . $lock_id;
       return $lock_id;
     }
     return FALSE;
@@ -185,7 +185,7 @@ class SerialLauncher extends LauncherBase {
    */
   public function isLocked($job) {
     $class = _ultimate_cron_get_class('lock');
-    $lock_id = $class::isLocked($job->name);
+    $lock_id = $class::isLocked($job->id());
     return $lock_id ? $this->name . '-' . $lock_id : $lock_id;
   }
 
@@ -195,7 +195,7 @@ class SerialLauncher extends LauncherBase {
   public function isLockedMultiple($jobs) {
     $names = array();
     foreach ($jobs as $job) {
-      $names[] = $job->name;
+      $names[] = $job->id();
     }
     $class = _ultimate_cron_get_class('lock');
     $lock_ids = $class::isLockedMultiple($names);
@@ -234,7 +234,7 @@ class SerialLauncher extends LauncherBase {
     $log_entry = $job->startLog($lock_id, $init_message);
 
     drupal_set_message(t('@name: @init_message', array(
-      '@name' => $job->name,
+      '@name' => $job->id(),
       '@init_message' => $init_message,
     )));
 
@@ -243,7 +243,7 @@ class SerialLauncher extends LauncherBase {
       $job->run();
     } catch (Exception $e) {
       watchdog('serial_launcher', 'Error executing %job: @error', array(
-        '%job' => $job->name,
+        '%job' => $job->id(),
         '@error' => $e->getMessage()
       ), WATCHDOG_ERROR);
       $log_entry->finish();
@@ -365,7 +365,7 @@ class SerialLauncher extends LauncherBase {
     $class = _ultimate_cron_get_class('lock');
     $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
     foreach ($jobs as $job) {
-      $settings = $job->getSettings($this->type);
+      $settings = $job->settings;
       switch ($settings['thread']) {
         case 'any':
           $settings['thread'] = $thread;

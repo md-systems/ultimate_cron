@@ -1,11 +1,10 @@
 <?php
-namespace Drupal\ultimate_cron;
-use PDO;
-
 /**
  * @file
- * Pseudo namespace for progress functions.
+ * Contains \Drupal\ultimate_cron\Progress.
  */
+
+namespace Drupal\ultimate_cron;
 
 class Progress {
   public $name;
@@ -53,13 +52,7 @@ class Progress {
    */
   public function getProgress() {
     $name = 'uc-progress:' . $this->name;
-    $target = _ultimate_cron_get_transactional_safe_connection();
-    $value = db_select('variable', 'v', array('target' => $target))
-      ->fields('v', array('value'))
-      ->condition('v.name', $name)
-      ->execute()
-      ->fetchField();
-    $value = $value ? unserialize($value) : FALSE;
+    $value = \Drupal::keyValue('uc-progress')->get($name);
     return $value;
   }
 
@@ -73,22 +66,9 @@ class Progress {
    *   Progress of jobs, keyed by job name.
    */
   static public function getProgressMultiple($names) {
-    $keys = array();
-    foreach ($names as $name) {
-      $keys[] = 'uc-progress:' . $name;
-    }
-    $target = _ultimate_cron_get_transactional_safe_connection();
-    $values = db_select('variable', 'v', array('target' => $target))
-      ->fields('v', array('name', 'value'))
-      ->condition('v.name', $keys, 'IN')
-      ->execute()
-      ->fetchAllAssoc('name', PDO::FETCH_OBJ);
+    $values = \Drupal::keyValue('uc-progress')->getMultiple($names);
 
-    $result = array();
-    foreach ($names as $name) {
-      $result[$name] = isset($values['uc-progress:' . $name]) ? unserialize($values['uc-progress:' . $name]->value) : FALSE;
-    }
-    return $result;
+    return $values;
   }
 
   /**
@@ -100,11 +80,9 @@ class Progress {
   public function setProgress($progress) {
     if (microtime(TRUE) >= $this->progressUpdated + $this->interval) {
       $name = 'uc-progress:' . $this->name;
-      $target = _ultimate_cron_get_transactional_safe_connection();
-      db_merge('variable', array('target' => $target))
-        ->key(array('name' => $name))
-        ->fields(array('value' => serialize($progress)))
-        ->execute();
+
+      \Drupal::keyValue('uc-progress')->set($name, $progress);
+
       $this->progressUpdated = microtime(TRUE);
       return TRUE;
     }

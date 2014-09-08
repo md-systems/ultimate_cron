@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Database logger for Ultimate Cron.
+ * Contains \Drupal\ultimate_cron\DatabaseLogEntry.
  */
 
 namespace Drupal\ultimate_cron;
@@ -32,7 +32,7 @@ class DatabaseLogEntry extends LogEntry {
           'severity' => $this->severity
         ))
         ->execute();
-    } catch (\PDOException $e) {
+    } catch (\Exception $e) {
       // Row already exists. Let's update it, if we can.
       $updated = db_update('ultimate_cron_log')
         ->fields(array(

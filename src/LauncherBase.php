@@ -133,13 +133,13 @@ abstract class LauncherBase extends CronPlugin {
    */
   public function run($job) {
     // Prevent session information from being saved while cron is running.
-    $original_session_saving = drupal_save_session();
-    drupal_save_session(FALSE);
+//    $original_session_saving = drupal_save_session();
+//    drupal_save_session(FALSE);
 
     // Force the current user to anonymous to ensure consistent permissions on
     // cron runs.
-    $original_user = $GLOBALS['user'];
-    $GLOBALS['user'] = drupal_anonymous_user();
+//    $original_user = $GLOBALS['user'];
+//    $GLOBALS['user'] = drupal_anonymous_user();
 
     $php_self = NULL;
     try {
@@ -159,13 +159,13 @@ abstract class LauncherBase extends CronPlugin {
       }
 
       watchdog('ultimate_cron', 'Error running @name: @error', array(
-        '@name' => $job->name,
+        '@name' => $job->id(),
         '@error' => $e->getMessage(),
       ), WATCHDOG_ERROR);
     }
     // Restore the user.
-    $GLOBALS['user'] = $original_user;
-    drupal_save_session($original_session_saving);
+//    $GLOBALS['user'] = $original_user;
+//    drupal_save_session($original_session_saving);
   }
 
   /**
@@ -224,7 +224,7 @@ abstract class LauncherBase extends CronPlugin {
    */
   public function initializeProgress($job) {
     $class = _ultimate_cron_get_class('progress');
-    return $class::factory($job->name)->setProgress(FALSE);
+    return $class::factory($job->id())->setProgress(FALSE);
   }
 
   /**
@@ -235,7 +235,7 @@ abstract class LauncherBase extends CronPlugin {
    */
   public function finishProgress($job) {
     $class = _ultimate_cron_get_class('progress');
-    return $class::factory($job->name)->setProgress(FALSE);
+    return $class::factory($job->id())->setProgress(FALSE);
   }
 
   /**
@@ -249,7 +249,7 @@ abstract class LauncherBase extends CronPlugin {
    */
   public function getProgress($job) {
     $class = _ultimate_cron_get_class('progress');
-    return $class::factory($job->name)->getProgress();
+    return $class::factory($job->id())->getProgress();
   }
 
   /**
@@ -276,7 +276,7 @@ abstract class LauncherBase extends CronPlugin {
    */
   public function setProgress($job, $progress) {
     $class = _ultimate_cron_get_class('progress');
-    return $class::factory($job->name)->setProgress($progress);
+    return $class::factory($job->id())->setProgress($progress);
   }
 
 }

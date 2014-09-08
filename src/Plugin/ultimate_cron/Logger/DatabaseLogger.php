@@ -24,7 +24,7 @@ use PDO;
  */
 class DatabaseLogger extends LoggerBase {
   public $options = array();
-  public $log_entry_class = 'UltimateCronDatabaseLogEntry';
+  public $log_entry_class = '\Drupal\ultimate_cron\DatabaseLogEntry';
 
   const CLEANUP_METHOD_DISABLED = 1;
   const CLEANUP_METHOD_EXPIRE = 2;
@@ -97,7 +97,7 @@ class DatabaseLogger extends LoggerBase {
       case static::CLEANUP_METHOD_RETAIN:
         $expire = 0;
         $max = db_query("SELECT COUNT(lid) FROM {ultimate_cron_log} WHERE name = :name", array(
-          ':name' => $job->name,
+          ':name' => $job->id(),
         ))->fetchField();
         $max -= $settings['retain'];
         if ($max <= 0) {
@@ -118,7 +118,7 @@ class DatabaseLogger extends LoggerBase {
     do {
       $lids = db_select('ultimate_cron_log', 'l')
         ->fields('l', array('lid'))
-        ->condition('l.name', $job->name)
+        ->condition('l.name', $job->id())
         ->condition('l.start_time', microtime(TRUE) - $expire, '<')
         ->range(0, $chunk)
         ->orderBy('l.start_time', 'ASC')
@@ -137,7 +137,7 @@ class DatabaseLogger extends LoggerBase {
     if ($count) {
       watchdog('database_logger', '@count log entries removed for job @name', array(
         '@count' => $count,
-        '@name' => $job->name,
+        '@name' => $job->id(),
       ), WATCHDOG_INFO);
     }
   }
@@ -252,7 +252,7 @@ class DatabaseLogger extends LoggerBase {
         ->orderBy('l.end_time', 'DESC')
         ->range(0, 1)
         ->execute()
-        ->fetchObject('UltimateCronDatabaseLogEntry', array($name, $this));
+        ->fetchObject($this->log_entry_class, array($name, $this));
     }
     if ($log_entry) {
       $log_entry->finished = TRUE;

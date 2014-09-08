@@ -6,6 +6,13 @@ services:
     factory_method: get
     factory_service: cache_factory
     arguments: [ultimate_cron]
+  cache.signal:
+      class: Drupal\Core\Cache\CacheBackendInterface
+      tags:
+        - { name: cache.bin }
+      factory_method: get
+      factory_service: cache_factory
+      arguments: [signal]
   plugin.manager.ultimate_cron.launcher:
     class: Drupal\ultimate_cron\LauncherManager
     parent: default_plugin_manager
@@ -15,3 +22,4 @@ services:
   plugin.manager.ultimate_cron.scheduler:
     class: Drupal\ultimate_cron\SchedulerManager
     parent: default_plugin_manager
+

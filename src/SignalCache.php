@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * File containing functions for Ultimate Cron signal handling using cache.
+ * Contains \Drupal\ultimate_cron\SignalCache.
  */
 
 
@@ -20,10 +20,12 @@ class SignalCache {
    *   The signal if any.
    */
   static public function peek($name, $signal) {
-    $bin = variable_get('ultimate_cron_signal_cache_bin', 'signal');
-    $cache = cache_get("signal-$name-$signal", $bin);
+    //$bin = variable_get('ultimate_cron_signal_cache_bin', 'signal');
+    $bin = 'signal';
+    //$cache = cache_get("signal-$name-$signal", $bin);
+    $cache = \Drupal::cache($bin)->get("signal-$name-$signal");
     if ($cache) {
-      $flushed = cache_get("flushed-$name", $bin);
+      $flushed = \Drupal::cache($bin)->get("flushed-$name");
       if (!$flushed || $cache->created > $flushed->created) {
         return $cache->data;
       }
@@ -44,10 +46,10 @@ class SignalCache {
    *   cannot be claimed again.
    */
   static public function get($name, $signal) {
-    if (lock_acquire("signal-$name-$signal")) {
+    if (\Drupal::lock()->acquire("signal-$name-$signal")) {
       $result = self::peek($name, $signal);
       self::clear($name, $signal);
-      lock_release("signal-$name-$signal");
+      \Drupal::lock()->release("signal-$name-$signal");
       return $result;
     }
     return FALSE;
@@ -65,8 +67,10 @@ class SignalCache {
    *   TRUE if the signal was set.
    */
   static public function set($name, $signal) {
-    $bin = variable_get('ultimate_cron_signal_cache_bin', 'signal');
-    cache_set("signal-$name-$signal", TRUE, $bin);
+    //$bin = variable_get('ultimate_cron_signal_cache_bin', 'signal');
+
+    $bin = 'signal';
+    \Drupal::cache($bin)->set("signal-$name-$signal", TRUE);
   }
 
   /**
@@ -78,8 +82,10 @@ class SignalCache {
    *   The name of the signal.
    */
   static public function clear($name, $signal) {
-    $bin = variable_get('ultimate_cron_signal_cache_bin', 'signal');
-    cache_clear_all("signal-$name-$signal", $bin);
+//    $bin = variable_get('ultimate_cron_signal_cache_bin', 'signal');
+
+    $bin = 'signal';
+    \Drupal::cache($bin)->delete("signal-$name-$signal");
   }
 
   /**
@@ -89,7 +95,9 @@ class SignalCache {
    *   The name of the job.
    */
   static public function flush($name) {
-    $bin = variable_get('ultimate_cron_signal_cache_bin', 'signal');
-    cache_set("flushed-$name", microtime(TRUE), $bin);
+//    $bin = variable_get('ultimate_cron_signal_cache_bin', 'signal');
+
+    $bin = 'signal';
+    \Drupal::cache($bin)->set("flushed-$name", microtime(TRUE));
   }
 }

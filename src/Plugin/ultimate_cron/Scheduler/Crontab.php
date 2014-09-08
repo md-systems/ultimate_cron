@@ -115,7 +115,7 @@ class Crontab extends SchedulerBase {
    * Schedule handler.
    */
   public function isScheduled($job) {
-    $settings = $job->getSettings($this->type);
+    $settings = $job->getSettings('scheduler')['crontab'];
     $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
     $skew = $this->getSkew($job);
     $class = get_class($this);
@@ -155,10 +155,10 @@ class Crontab extends SchedulerBase {
     $job_last_ran = $log_entry->start_time;
     if (!$job_last_ran) {
       $registered = variable_get('ultimate_cron_hooks_registered', array());
-      if (empty($registered[$job->name])) {
+      if (empty($registered[$job->id()])) {
         return FALSE;
       }
-      $job_last_ran = $registered[$job->name];
+      $job_last_ran = $registered[$job->id()];
     }
 
     $settings = $job->getSettings($this->type);

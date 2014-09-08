@@ -63,11 +63,7 @@ class CronJobFormController extends EntityForm {
     );
 
     // Load settings for each plugin in its own vertical tab.
-    $plugin_types = array(
-      'scheduler' => t('Scheduler'),
-      'launcher' => t('Launcher'),
-      'logger' => t('Logger')
-    );
+    $plugin_types = CronJobHelper::getPluginTypes();
     foreach ($plugin_types as $plugin_type => $plugin_label) {
       /* @var \Drupal\Core\Plugin\DefaultPluginManager $manager */
       $manager = \Drupal::service('plugin.manager.ultimate_cron.' . $plugin_type);

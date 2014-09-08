@@ -1,9 +1,7 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: berdir
- * Date: 4/4/14
- * Time: 3:03 PM
+ * @file
+ * Contains \Drupal\ultimate_cron\LoggerBase.
  */
 namespace Drupal\ultimate_cron;
 use Drupal\ultimate_cron\LogEntry;
@@ -25,7 +23,7 @@ use Drupal\ultimate_cron\LogEntry;
  */
 abstract class LoggerBase extends CronPlugin {
   static public $log_entries = NULL;
-  public $log_entry_class = 'UltimateCronLogEntry';
+  public $log_entry_class = '\Drupal\ultimate_cron\LogEntry';
 
   /**
    * Factory method for creating a new unsaved log entry object.
@@ -58,7 +56,7 @@ abstract class LoggerBase extends CronPlugin {
     $log_entry->lid = $lock_id;
     $log_entry->start_time = microtime(TRUE);
     $log_entry->init_message = $init_message;
-    $log_entry->save();
+    //$log_entry->save();
     return $log_entry;
   }
 
@@ -181,7 +179,7 @@ abstract class LoggerBase extends CronPlugin {
   public function loadLatestLogEntries($jobs, $log_types) {
     $logs = array();
     foreach ($jobs as $job) {
-      $logs[$job->name] = $job->loadLatestLogEntry($log_types);
+      $logs[$job->id()] = $job->loadLatestLogEntry($log_types);
     }
     return $logs;
   }
