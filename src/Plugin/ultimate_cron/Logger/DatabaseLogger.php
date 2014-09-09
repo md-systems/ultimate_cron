@@ -8,7 +8,7 @@
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Logger;
 
 use Database;
-use Drupal\ultimate_cron\DatabaseLogEntry;
+use Drupal\ultimate_cron\Logger\DatabaseLogEntry;
 use Drupal\ultimate_cron\Logger\LoggerBase;
 use PDO;
 
@@ -24,7 +24,7 @@ use PDO;
  */
 class DatabaseLogger extends LoggerBase {
   public $options = array();
-  public $log_entry_class = '\Drupal\ultimate_cron\DatabaseLogEntry';
+  public $log_entry_class = '\Drupal\ultimate_cron\Logger\DatabaseLogEntry';
 
   const CLEANUP_METHOD_DISABLED = 1;
   const CLEANUP_METHOD_EXPIRE = 2;

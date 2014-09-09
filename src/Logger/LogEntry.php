@@ -157,7 +157,7 @@ abstract class LogEntry {
       'uid' => $user_uid,
       'request_uri' => $base_root . request_uri(),
       'referer' => isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '',
-      'ip' => ip_address(),
+      //'ip' => ip_address(), @todo: Check this
       // Request time isn't accurate for long processes, use time() instead.
       'timestamp' => time(),
     );

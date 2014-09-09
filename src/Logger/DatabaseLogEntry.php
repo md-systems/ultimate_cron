@@ -1,10 +1,10 @@
 <?php
 /**
  * @file
- * Contains \Drupal\ultimate_cron\DatabaseLogEntry.
+ * Contains \Drupal\ultimate_cron\Logger\DatabaseLogEntry.
  */
 
-namespace Drupal\ultimate_cron;
+namespace Drupal\ultimate_cron\Logger;
 
 use Drupal\ultimate_cron\Logger\LogEntry;
 

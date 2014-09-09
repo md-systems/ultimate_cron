@@ -1,5 +1,5 @@
 <?php
-namespace Drupal\ultimate_cron;
+namespace Drupal\ultimate_cron\Logger;
 
 use Drupal\ultimate_cron\Logger\LogEntry;
 

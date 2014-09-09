@@ -7,6 +7,7 @@
 namespace Drupal\ultimate_cron\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
+use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\ultimate_cron\CronJobHelper;
 use Drupal\ultimate_cron\CronJobInterface;
 use Drupal\ultimate_cron\CronPlugin;
@@ -25,7 +26,7 @@ use Exception;
  *   handlers = {
  *     "list_builder" = "Drupal\ultimate_cron\CronJobListBuilder",
  *     "form" = {
- *       "default" = "Drupal\ultimate_cron\CronJobFormController",
+ *       "default" = "Drupal\ultimate_cron\Form\CronJobForm",
  *     }
  *   },
  *   config_prefix = "job",
@@ -93,6 +94,14 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
   protected $logger = array('id' => 'database');
 
 
+  public function postSave(EntityStorageInterface $storage, $update = TRUE) {
+  parent::postSave($storage, $update);
+    if ($update && empty($this->dont_log)) {
+      $log = $this->startLog(uniqid($this->id(), TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
+      $log->log($this->id(), 'Job modified by ' . $log->formatUser(), array(), WATCHDOG_INFO);
+      $log->finish();
+    }
+}
 
   /**
    * Invoke plugin cron_alter().
@@ -744,6 +753,17 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
       );
       nodejs_send_content_channel_message($message);
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies() {
+    parent::calculateDependencies();
+
+    $this->addDependency('module', $this->getModule());
+
+    return $this->dependencies;
   }
 
   /**

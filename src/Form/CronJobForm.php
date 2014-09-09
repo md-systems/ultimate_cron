@@ -2,19 +2,20 @@
 
 /**
  * @file
- * Contains \Drupal\ultimate_cron\CronJobFormController.
+ * Contains \Drupal\ultimate_cron\Form\CronJobForm.
  */
 
-namespace Drupal\ultimate_cron;
+namespace Drupal\ultimate_cron\Form;
 
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\ultimate_cron\CronJobHelper;
 use Drupal\ultimate_cron\Entity\CronJob;
 
 /**
  * Base form controller for cron job forms.
  */
-class CronJobFormController extends EntityForm {
+class CronJobForm extends EntityForm {
 
   protected $selected_option;
 
@@ -163,14 +164,15 @@ class CronJobFormController extends EntityForm {
    * Overrides Drupal\Core\Entity\EntityForm::save().
    */
   public function save(array $form, FormStateInterface $form_state) {
-    $category = $this->entity;
-    $status = $category->save();
+    //@todo: catogery rename to job
+    $job = $this->entity;
+    $status = $job->save();
 
     if ($status == SAVED_UPDATED) {
-      drupal_set_message(t('job %label has been updated.', array('%label' => $category->label())));
+      drupal_set_message(t('job %label has been updated.', array('%label' => $job->label())));
     }
     else {
-      drupal_set_message(t('job %label has been added.', array('%label' => $category->label())));
+      drupal_set_message(t('job %label has been added.', array('%label' => $job->label())));
     }
 
     $form_state['redirect_route']['route_name'] = 'ultimate_cron.job_list';
