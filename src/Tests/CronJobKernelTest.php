@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Contains \Drupal\ultimate_cron\Tests\CronJobUnitTest
+ * Contains \Drupal\ultimate_cron\Tests\CronJobKernelTest
  */
 
 namespace Drupal\ultimate_cron\Tests;
@@ -13,7 +13,7 @@ use Drupal\simpletest\KernelTestBase;
  *
  * @group ultimate_cron
  */
-class CronJobUnitTest extends KernelTestBase {
+class CronJobKernelTest extends KernelTestBase {
 
   /**
    * Modules to enable.
@@ -22,17 +22,20 @@ class CronJobUnitTest extends KernelTestBase {
    */
   public static $modules = array('ultimate_cron');
 
+  protected function setup() {
+    parent::setUp();
+
+    $this->installSchema('ultimate_cron', 'ultimate_cron_log');
+  }
+
   /**
    * Tests CRUD operations for cron jobs.
    */
-  function testCRUD() {
+  public function testCRUD() {
     $values = array(
       'id' => 'example',
       'title' => $this->randomMachineName(),
       'description' => $this->randomMachineName(),
-      'settings' => array(
-        'example' => $this->randomMachineName(),
-      ),
     );
 
     /** @var \Drupal\ultimate_cron\Entity\CronJob $cron_job */
@@ -48,8 +51,6 @@ class CronJobUnitTest extends KernelTestBase {
 
     $cron_job = \Drupal::entityManager()->getStorage('ultimate_cron_job')->load('example');
     $this->assertEqual($cron_job->id(), 'example');
-    debug($cron_job);
-    $this->assertEqual($cron_job->settings, $values['settings']);
     $this->assertFalse($cron_job->status());
   }
 }

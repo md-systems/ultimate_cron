@@ -96,7 +96,7 @@ class CronJobForm extends EntityForm {
         '#options' => $options,
         '#plugin_type' => $plugin_type,
         '#default_value' => $plugin_settings['id'],
-        '#description' => $this->t("Select which @name to use for this job.", array('@name' => $plugin_type)),
+        '#description' => $this->t("Select which @plugin to use for this job.", array('@plugin' => $plugin_type)),
         '#group' => 'settings_tabs',
         '#executes_submit_callback' => TRUE,
         '#ajax' => array(
@@ -119,9 +119,9 @@ class CronJobForm extends EntityForm {
 
       // @TODO: Fix this.
       /** @var \Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler\Simple $instance */
-      $instance = $manager->createInstance($plugin_settings['id']);
+      $plugin = $job->getPlugin($plugin_type);
       $temp_form = array();
-      $form[$plugin_type]['settings'] = $instance->settingsForm($temp_form, $form_state);
+      $form[$plugin_type]['settings'] = $plugin->settingsForm($temp_form, $form_state);
       $form[$plugin_type]['settings']['#prefix'] = '<div id="' . $plugin_type . '_settings' . '">';
       $form[$plugin_type]['settings']['#suffix'] = '</div>';
     }

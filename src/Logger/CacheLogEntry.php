@@ -1,7 +1,10 @@
 <?php
+/**
+ * @file
+ * Contains \Drupal\ultimate_cron\Logger\CacheLogEntry.
+ */
 namespace Drupal\ultimate_cron\Logger;
 
-use Drupal\ultimate_cron\Logger\LogEntry;
 
 class CacheLogEntry extends LogEntry {
   /**

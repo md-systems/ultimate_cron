@@ -240,9 +240,10 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
     if ($name) {
       return ultimate_cron_plugin_load($plugin_type, $name);
     }
-    if (isset($this->plugins[$plugin_type])) {
-      return $this->plugins[$plugin_type];
-    }
+    // @todo: enable static cache, needs unset when values change.
+//    if (isset($this->plugins[$plugin_type])) {
+//      return $this->plugins[$plugin_type];
+//    }
 
     if ($name) {
     }
@@ -252,7 +253,9 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
     else {
       $name = $this->hook[$plugin_type]['name'];
     }
-    $this->plugins[$plugin_type] = ultimate_cron_plugin_load($plugin_type, $name);
+    /* @var \Drupal\Core\Plugin\DefaultPluginManager $manager */
+    $manager = \Drupal::service('plugin.manager.ultimate_cron.' . $plugin_type);
+    $this->plugins[$plugin_type] = $manager->createInstance($name, isset($this->{$plugin_type}['settings']) ? $this->{$plugin_type}['settings'] : array());
     return $this->plugins[$plugin_type];
   }
 

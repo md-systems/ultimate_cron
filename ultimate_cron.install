@@ -184,40 +184,41 @@ function ultimate_cron_modules_installed($modules) {
  * Implements hook_requirements().
  */
 function ultimate_cron_requirements($phase) {
-  $response = array();
+  $requirements = array();
 
-  //@TODO: Implement this.
-  return array();
   switch ($phase) {
     case 'install':
-      return $response;
+      return $requirements;
 
     case 'runtime':
-      $response['title'] = 'Ultimate Cron';
-      $response['value'] = array();
-      $response['description'] = array();
-      $response['severity'] = REQUIREMENT_OK;
+      $requirements['title'] = 'Ultimate Cron';
+      $requirements['value'] = array();
+      $requirements['description'] = array();
+      $requirements['severity'] = REQUIREMENT_OK;
 
+      // @todo: port this
       // Check if any jobs are behind.
-      $jobs_behind = 0;
-      $jobs = ultimate_cron_job_load_all();
-      $class = _ultimate_cron_get_class('job');
-      $log_entries = $class::loadLatestLogEntries($jobs);
+      $jobs_behind = FALSE;
+//      $jobs_behind = 0;
+//      $jobs = ultimate_cron_job_load_all();
+//      $class = _ultimate_cron_get_class('job');
+//      $log_entries = $class::loadLatestLogEntries($jobs);
+//
+//      foreach ($jobs as $job) {
+//        $job->log_entry = $log_entries[$job->id()];
+//        if ($job->isBehindSchedule()) {
+//          $jobs_behind++;
+//        }
+//      }
 
-      foreach ($jobs as $job) {
-        $job->log_entry = $log_entries[$job->id()];
-        if ($job->isBehindSchedule()) {
-          $jobs_behind++;
-        }
-      }
       if ($jobs_behind) {
-        $response['severity'] = $response['severity'] > REQUIREMENT_ERROR ? $response['severity'] : REQUIREMENT_ERROR;
-        $response['value'][] = \Drupal::translation()->formatPlural(
+        $requirements['severity'] = $requirements['severity'] > REQUIREMENT_ERROR ? $requirements['severity'] : REQUIREMENT_ERROR;
+        $requirements['value'][] = \Drupal::translation()->formatPlural(
           $jobs_behind,
           '@count job is behind schedule',
           '@count jobs are behind schedule'
         );
-        $response['description'][] = t(
+        $requirements['description'][] = t(
           'Some jobs are behind their schedule. Please check if !link is running properly.', array(
           '!link' => l(t('cron'), 'admin/config/system/cron')
         ));
@@ -225,22 +226,22 @@ function ultimate_cron_requirements($phase) {
 
       // Check for PHP safe mode.
       if (ini_get('safe_mode')) {
-        $response['severity'] = $response['severity'] > REQUIREMENT_WARNING ? $response['severity'] : REQUIREMENT_WARNING;
-        $response['value'][] = t('Safe mode enabled');
-        $response['description'][] = t('Safe mode enabled. Ultimate Cron is unable to control maximum execution time for cron jobs. This may cause cron jobs to end prematurely.');
+        $requirements['severity'] = $requirements['severity'] > REQUIREMENT_WARNING ? $requirements['severity'] : REQUIREMENT_WARNING;
+        $requirements['value'][] = t('Safe mode enabled');
+        $requirements['description'][] = t('Safe mode enabled. Ultimate Cron is unable to control maximum execution time for cron jobs. This may cause cron jobs to end prematurely.');
       }
 
       // Compose result.
-      if (empty($response['value'])) {
-        $response['value'] = t('Cron is running properly.');
-        $response['description'] = '';
+      if (empty($requirements['value'])) {
+        $requirements['value'] = t('Cron is running properly.');
+        $requirements['description'] = '';
       }
       else {
-        $response['value'] = implode(', ', $response['value']);
-        $response['description'] = implode('<br/>', $response['description']);
+        $requirements['value'] = implode(', ', $requirements['value']);
+        $requirements['description'] = implode('<br/>', $requirements['description']);
       }
       $result = array();
-      $result['ultimate_cron'] = $response;
+      $result['ultimate_cron'] = $requirements;
       return $result;
   }
 }

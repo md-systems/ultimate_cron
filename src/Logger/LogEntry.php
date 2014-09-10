@@ -6,6 +6,8 @@
 
 namespace Drupal\ultimate_cron\Logger;
 
+use Drupal\Component\Utility\String;
+
 /**
  * Abstract class for Ultimate Cron log entries.
  *
@@ -235,7 +237,7 @@ abstract class LogEntry {
     $username = t('anonymous') . ' (0)';
     if ($this->uid) {
       $user = user_load($this->uid);
-      $username = $user ? $user->name . " ($user->uid)" : t('N/A');
+      $username = $user ? String::format('@username (@uid)', array('@username' => $user->getUsername(), '@uid' => $user->id())) : t('N/A');
     }
     return $username;
   }

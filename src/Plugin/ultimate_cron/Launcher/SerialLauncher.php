@@ -62,7 +62,7 @@ class SerialLauncher extends LauncherBase {
       //'#parents' => array('settings', $this->type, $this->name, 'lock_timeout'),
       '#title' => t("Job lock timeout"),
       '#type' => 'textfield',
-      //'#default_value' => $values['lock_timeout'],
+      '#default_value' => empty($this->configuration['timeouts']['lock_timeout']) ? $this->defaultSettings()['lock_timeout'] : $this->configuration['timeouts']['lock_timeout'],
       '#description' => t('Number of seconds to keep lock on job.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
@@ -71,44 +71,26 @@ class SerialLauncher extends LauncherBase {
     if (!$job) {
       //$max_threads = $values['max_threads'];
       $form['timeouts']['max_execution_time'] = array(
-        '#parents' => array(
-          'settings',
-          //$this->type,
-          //$this->name,
-          'max_execution_time'
-        ),
         '#title' => t("Maximum execution time"),
         '#type' => 'textfield',
-        //'#default_value' => $values['max_execution_time'],
+        '#default_value' => empty($this->configuration['timeouts']['max_execution_time']) ? $this->defaultSettings()['max_execution_time'] : $this->configuration['timeouts']['max_execution_time'],
         '#description' => t('Maximum execution time for a cron run in seconds.'),
         '#fallback' => TRUE,
         '#required' => TRUE,
       );
       $form['launcher']['max_threads'] = array(
-        '#parents' => array(
-          'settings',
-          //$this->type,
-          //$this->name,
-          'max_threads'
-        ),
         '#title' => t("Maximum number of launcher threads"),
         '#type' => 'number',
-        //'#default_value' => $max_threads,
+        '#default_value' => empty($this->configuration['launcher']['max_threads']) ? $this->defaultSettings()['max_threads'] : $this->configuration['launcher']['max_threads'],
         '#description' => t('The maximum number of launch threads that can be running at any given time.'),
         '#fallback' => TRUE,
         '#required' => TRUE,
         '#weight' => 1,
       );
       $form['launcher']['poorman_keepalive'] = array(
-        '#parents' => array(
-          'settings',
-          //$this->type,
-          //$this->name,
-          'poorman_keepalive'
-        ),
         '#title' => t("Poormans cron keepalive"),
         '#type' => 'checkbox',
-        //'#default_value' => $values['poorman_keepalive'],
+        '#default_value' => empty($this->configuration['launcher']['poorman_keepalive']) ? $this->defaultSettings()['poorman_keepalive'] : $this->configuration['launcher']['poorman_keepalive'],
         '#description' => t('Retrigger poormans cron after it has finished. Requires $base_url to be accessible from the webserver.'),
         '#fallback' => TRUE,
         '#weight' => 3,
@@ -128,6 +110,8 @@ class SerialLauncher extends LauncherBase {
     for ($i = 1; $i <= $max_threads; $i++) {
       $options[$i] = $i;
     }
+
+
     $elements['launcher']['thread'] = array(
       '#parents' => array('settings', $this->type, $this->name, 'thread'),
       '#title' => t("Run in thread"),

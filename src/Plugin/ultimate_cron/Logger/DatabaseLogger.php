@@ -24,7 +24,7 @@ use PDO;
  */
 class DatabaseLogger extends LoggerBase {
   public $options = array();
-  public $log_entry_class = '\Drupal\ultimate_cron\Logger\DatabaseLogEntry';
+  public $logEntryClass = '\Drupal\ultimate_cron\Logger\DatabaseLogEntry';
 
   const CLEANUP_METHOD_DISABLED = 1;
   const CLEANUP_METHOD_EXPIRE = 2;
@@ -163,15 +163,14 @@ class DatabaseLogger extends LoggerBase {
       '#title' => t('Log entry cleanup method'),
       '#description' => t('Select which method to use for cleaning up logs.'),
       '#options' => $this->options['method'],
-      //'#default_value' => $values['method'],
+      '#default_value' => empty($this->configuration['method']) ? $this->defaultSettings()['method'] : $this->configuration['method'],
     );
 
     $form['expire'] = array(
-      //'#parents' => array('settings', $this->type, $this->name, 'expire'),
       '#type' => 'textfield',
       '#title' => t('Log entry expiration'),
       '#description' => t('Remove log entries older than X seconds.'),
-      //'#default_value' => $values['expire'],
+      '#default_value' => empty($this->configuration['expire']) ? $this->defaultSettings()['expire'] : $this->configuration['expire'],
       '#fallback' => TRUE,
       '#states' => array(
         'visible' => array(
@@ -184,11 +183,10 @@ class DatabaseLogger extends LoggerBase {
     );
 
     $form['retain'] = array(
-      //'#parents' => array('settings', $this->type, $this->name, 'retain'),
       '#type' => 'textfield',
       '#title' => t('Retain logs'),
       '#description' => t('Retain X amount of log entries.'),
-      //'#default_value' => $values['retain'],
+      '#default_value' => empty($this->configuration['retain']) ? $this->defaultSettings()['retain'] : $this->configuration['retain'],
       '#fallback' => TRUE,
       '#states' => array(
         'visible' => array(
@@ -241,7 +239,7 @@ class DatabaseLogger extends LoggerBase {
         ->fields('l')
         ->condition('l.lid', $lock_id)
         ->execute()
-        ->fetchObject('UltimateCronDatabaseLogEntry', array($name, $this));
+        ->fetchObject($this->logEntryClass, array($name, $this));
     }
     else {
       $log_entry = db_select('ultimate_cron_log', 'l')
@@ -252,7 +250,7 @@ class DatabaseLogger extends LoggerBase {
         ->orderBy('l.end_time', 'DESC')
         ->range(0, 1)
         ->execute()
-        ->fetchObject($this->log_entry_class, array($name, $this));
+        ->fetchObject($this->logEntryClass, array($name, $this));
     }
     if ($log_entry) {
       $log_entry->finished = TRUE;
@@ -288,13 +286,13 @@ class DatabaseLogger extends LoggerBase {
     $log_entries = array();
     while ($object = $result->fetchObject()) {
       if (isset($jobs[$object->name])) {
-        $log_entries[$object->name] = new $this->log_entry_class($object->name, $this);
+        $log_entries[$object->name] = new $this->logEntryClass($object->name, $this);
         $log_entries[$object->name]->setData((array) $object);
       }
     }
     foreach ($jobs as $name => $job) {
       if (!isset($log_entries[$name])) {
-        $log_entries[$name] = new $this->log_entry_class($name, $this);
+        $log_entries[$name] = new $this->logEntryClass($name, $this);
       }
     }
 
@@ -315,7 +313,7 @@ class DatabaseLogger extends LoggerBase {
       ->execute();
 
     $log_entries = array();
-    while ($object = $result->fetchObject($this->log_entry_class, array(
+    while ($object = $result->fetchObject($this->logEntryClass, array(
       $name,
       $this
     ))) {

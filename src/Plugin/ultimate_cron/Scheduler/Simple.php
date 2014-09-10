@@ -63,19 +63,13 @@ class Simple extends Crontab {
    * Settings form for the simple scheduler.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
-    //$elements = & $form['settings'][$this->type][$this->name];
-    //$values = & $form_state['values']['settings'][$this->type][$this->name];
-
-    //$rule = is_array($values['rules']) ? reset($values['rules']) : '';
-
-    //$intervals = drupal_map_assoc($this->presets, 'format_interval');
     $date_formatter = \Drupal::service('date.formatter');
     $intervals = array_map(array($date_formatter, 'formatInterval'), array_combine($this->presets, $this->presets));
 
     $form['rules'] = array(
       '#type' => 'select',
       '#title' => t('Run cron every'),
-      '#default_value' => '',
+      '#default_value' => isset($this->configuration['rules']) ? $this->configuration['rules'] : '',
       '#description' => t('Select the interval you wish cron to run on.'),
       '#options' => $intervals,
       '#fallback' => TRUE,

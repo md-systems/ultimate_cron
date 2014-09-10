@@ -69,11 +69,12 @@ class Crontab extends SchedulerBase {
     $form['rules'] = array(
       '#title' => t("Rules"),
       '#type' => 'textfield',
-      //'#default_value' => $rules,
+      '#default_value' => empty($this->configuration['rules']) ? $this->defaultSettings()['rules'] : $this->configuration['rules'],
       '#description' => t('Comma separated list of crontab rules.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
-      '#element_validate' => array('ultimate_cron_plugin_crontab_element_validate_rule'),
+      // @todo: check this out.
+      //'#element_validate' => array('ultimate_cron_plugin_crontab_element_validate_rule'),
     );
 
     $form['rules_help'] = array(
@@ -90,7 +91,7 @@ class Crontab extends SchedulerBase {
     $form['catch_up'] = array(
       '#title' => t("Catch up"),
       '#type' => 'textfield',
-      //'#default_value' => $values['catch_up'],
+      '#default_value' => empty($this->configuration['catch_up']) ? $this->defaultSettings()['catch_up'] : $this->configuration['catch_up'],
       '#description' => t("Don't run job after X seconds of rule."),
       '#fallback' => TRUE,
       '#required' => TRUE,

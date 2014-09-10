@@ -30,15 +30,14 @@ class UltimateCron extends Cron {
         $launcher_jobs[$launcher_definition['id']]['launcher'] = $launcher;
         $launcher_jobs[$launcher_definition['id']]['sort'] = array($launcher_definition['weight']);
         $launcher_jobs[$launcher_definition['id']]['jobs'][$job->id()] = $job;
-        // @TODO: Load latest log.
-        //$launcher_jobs[$launcher['id']]->sort = array($job->loadLatestLogEntry()->start_time);
+        $launcher_jobs[$launcher_definition['id']]['jobs'][$job->id()]->sort = array($job->loadLatestLogEntry()->start_time);
       }
     }
 
-    //uasort($launcher_jobs, '_ultimate_cron_multi_column_sort');
+    uasort($launcher_jobs, '_ultimate_cron_multi_column_sort');
 
     foreach ($launcher_jobs as $name => $launcher_job) {
-      //uasort($launcher_job['jobs'], '_ultimate_cron_multi_column_sort');
+      uasort($launcher_job['jobs'], '_ultimate_cron_multi_column_sort');
       $launcher_job['launcher']->launchJobs($launcher_job['jobs']);
     }
     drupal_set_message('Run Ultimate Cron job');

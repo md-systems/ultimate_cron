@@ -19,12 +19,12 @@ use Drupal\ultimate_cron\Logger\LogEntry;
  *       load the latest log entry for $name.
  *
  * "Abstract" properties:
- *   $log_entry_class
+ *   $logEntryClass
  *     - The class name of the log entry class associated with this logger.
  */
 abstract class LoggerBase extends CronPlugin {
   static public $log_entries = NULL;
-  public $log_entry_class = '\Drupal\ultimate_cron\LogEntry';
+  public $logEntryClass = '\Drupal\ultimate_cron\Logger\LogEntry';
 
   /**
    * Factory method for creating a new unsaved log entry object.
@@ -36,7 +36,7 @@ abstract class LoggerBase extends CronPlugin {
    *   The log entry.
    */
   public function factoryLogEntry($name) {
-    return new $this->log_entry_class($name, $this);
+    return new $this->logEntryClass($name, $this);
   }
 
   /**
@@ -53,7 +53,8 @@ abstract class LoggerBase extends CronPlugin {
    *   The log entry created.
    */
   public function create($name, $lock_id, $init_message = '', $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL) {
-    $log_entry = new $this->log_entry_class($name, $this, $log_type);
+    $log_entry = new $this->logEntryClass($name, $this, $log_type);
+
     $log_entry->lid = $lock_id;
     $log_entry->start_time = microtime(TRUE);
     $log_entry->init_message = $init_message;

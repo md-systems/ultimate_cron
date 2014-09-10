@@ -19,8 +19,7 @@ use Drupal\ultimate_cron\Logger\LoggerBase;
  */
 class CacheLogger extends LoggerBase {
 
-
-  public $log_entry_class = 'UltimateCronCacheLogEntry';
+  public $logEntryClass = '\Drupal\ultimate_cron\Logger\CacheLogEntry';
 
   /**
    * Default settings.
@@ -36,7 +35,7 @@ class CacheLogger extends LoggerBase {
    * Load log entry.
    */
   public function load($name, $lock_id = NULL, $log_types = array(ULTIMATE_CRON_LOG_TYPE_NORMAL)) {
-    $log_entry = new $this->log_entry_class($name, $this);
+    $log_entry = new $this->logEntryClass($name, $this);
 
     $job = ultimate_cron_job_load($name);
     $settings = $job->getSettings('logger');
@@ -73,7 +72,7 @@ class CacheLogger extends LoggerBase {
       '#type' => 'textfield',
       '#title' => t('Cache bin'),
       '#description' => t('Select which cache bin to use for storing logs.'),
-      //'#default_value' => $values['bin'],
+      '#default_value' => empty($this->configuration['bin']) ? $this->defaultSettings()['bin'] : $this->configuration['bin'],
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
@@ -82,7 +81,7 @@ class CacheLogger extends LoggerBase {
       '#type' => 'textfield',
       '#title' => t('Cache timeout'),
       '#description' => t('Seconds before cache entry expires (0 = never, -1 = on next general cache wipe).'),
-      //'#default_value' => $values['timeout'],
+      '#default_value' => empty($this->configuration['timeout']) ? $this->defaultSettings()['timeout'] : $this->configuration['timeout'],
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
