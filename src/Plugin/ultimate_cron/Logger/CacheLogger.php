@@ -24,7 +24,7 @@ class CacheLogger extends LoggerBase {
   /**
    * Default settings.
    */
-  public function defaultSettings() {
+  public function defaultConfiguration() {
     return array(
       'bin' => 'cache_ultimate_cron',
       'timeout' => 0,

@@ -20,7 +20,7 @@ class Crontab extends SchedulerBase {
   /**
    * Default settings.
    */
-  public function defaultSettings() {
+  public function defaultConfiguration() {
     return array(
       'rules' => array('*/10+@ * * * *'),
       'catch_up' => '300',

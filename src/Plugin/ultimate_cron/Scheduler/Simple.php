@@ -32,10 +32,10 @@ class Simple extends Crontab {
   /**
    * Default settings.
    */
-  public function defaultSettings() {
+  public function defaultConfiguration() {
     return array(
       'rules' => array('*/15+@ * * * *'),
-    ) + parent::defaultSettings();
+    ) + parent::defaultConfiguration();
   }
 
   /**

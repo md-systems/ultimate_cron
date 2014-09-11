@@ -57,7 +57,7 @@ abstract class LauncherBase extends CronPlugin {
   /**
    * Default settings.
    */
-  public function defaultSettings() {
+  public function defaultConfiguration() {
     return array();
   }
 

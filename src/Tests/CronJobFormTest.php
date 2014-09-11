@@ -54,7 +54,7 @@ class CronJobFormTest extends WebTestBase {
     $this->assertResponse('200');
 
     // Set new job configuration.
-    $this->job_name = $this->randomMachineName();
+    $this->job_name = 'initial job name';
     $this->job_id = strtolower($this->randomMachineName());
     $edit = array(
       'title' => $this->job_name,
@@ -72,12 +72,12 @@ class CronJobFormTest extends WebTestBase {
     $this->assertText($this->job_name);
 
     // Start editing added job.
-    $this->clickLink(t('Edit'));
+    $this->drupalGet('admin/config/system/cron/jobs/manage/' . $this->job_id);
     $this->assertResponse('200');
 
     // Set new cron job configuration and save the old job name.
     $old_job_name = $this->job_name;
-    $this->job_name = $this->randomMachineName();
+    $this->job_name = 'edited job name';
     $edit = array('title' => $this->job_name,);
 
     // Save the new job.

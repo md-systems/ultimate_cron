@@ -108,7 +108,7 @@ function ultimate_cron_exit($dest = NULL) {
     return;
   }
 
-  $settings = $poorman->getDefaultSettings();
+  $settings = $poorman->getDefaultConfiguration();
   if (!$settings['launcher']) {
     return;
   }

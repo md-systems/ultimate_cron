@@ -8,7 +8,12 @@
 
 
 namespace Drupal\ultimate_cron;
+use Drupal\Component\Plugin\ConfigurablePluginInterface;
+use Drupal\Component\Plugin\PluginInspectionInterface;
+use Drupal\Component\Utility\NestedArray;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\PluginBase;
+use Drupal\Core\Plugin\PluginFormInterface;
 use Drupal\ultimate_cron\Entity\CronJob;
 
 /**
@@ -17,33 +22,71 @@ use Drupal\ultimate_cron\Entity\CronJob;
  * This class handles all the load/save settings for a plugin as well as the
  * forms, etc.
  */
-class CronPlugin extends PluginBase {
-  public $plugin;
-  public $settings = array();
+class CronPlugin extends PluginBase implements PluginInspectionInterface, ConfigurablePluginInterface, PluginFormInterface {
   static public $multiple = FALSE;
   static public $instances = array();
   public $weight = 0;
   static public $globalOptions = array();
 
   /**
-   * Constructor.
-   *
-   * Setup object.
-   *
-   * @param string $name
-   *   Name of plugin.
-   * @param array $plugin
-   *   The plugin definition.
+   * {@inheritdoc}
    */
-  /*public function __construct($name, $plugin) {
-    $this->plugin = $plugin;
-    $this->title = $plugin['title'];
-    $this->description = $plugin['description'];
-    $this->name = $name;
-    $this->type = $plugin['plugin type'];
-    $this->key = 'ultimate_cron_plugin_' . $plugin['plugin type'] . '_' . $name . '_settings';
-    $this->settings = variable_get($this->key, array());
-  }*/
+  public function __construct(array $configuration, $plugin_id, $plugin_definition) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
+    $this->setConfiguration($configuration);
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getConfiguration() {
+    return $this->configuration;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function setConfiguration(array $configuration) {
+    $this->configuration = NestedArray::mergeDeep(
+      $this->defaultConfiguration(),
+      $configuration
+    );
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function defaultConfiguration() {
+    return array();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function calculateDependencies() {
+    return array();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
+
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
+    return array();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function submitConfigurationForm(array &$form, FormStateInterface $form_state) {
+
+  }
 
   /**
    * Get global plugin option.
@@ -95,22 +138,6 @@ class CronPlugin extends PluginBase {
    */
   static public function unsetGlobalOptions() {
     static::$globalOptions = array();
-  }
-
-  /**
-   * Invoke hook_cron_alter() on plugins.
-   */
-  final static public function hook_cron_alter(&$jobs) {
-    ctools_include('plugins');
-    $plugin_types = ctools_plugin_get_plugin_type_info();
-    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
-      $plugins = ultimate_cron_plugin_load_all($plugin_type);
-      foreach ($plugins as $plugin) {
-        if ($plugin->isValid()) {
-          $plugin->cron_alter($jobs);
-        }
-      }
-    }
   }
 
   /**
@@ -307,32 +334,6 @@ class CronPlugin extends PluginBase {
   }
 
   /**
-   * Get default settings.
-   */
-  public function getDefaultSettings($job = NULL) {
-    $settings = array();
-//    if ($job && !empty($job->hook[$this->type][$this->name])) {
-//      $settings += $job->hook[$this->type][$this->name];
-//    }
-    $settings += $this->settings + $this->defaultSettings();
-    return $settings;
-  }
-
-  /**
-   * Save settings to db.
-   */
-  public function setSettings() {
-    variable_set($this->key, $this->settings);
-  }
-
-  /**
-   * Default settings.
-   */
-  public function defaultSettings() {
-    return array();
-  }
-
-  /**
    * Get label for a specific setting.
    */
   public function settingsLabel($name, $value) {
@@ -457,175 +458,6 @@ class CronPlugin extends PluginBase {
       '#title' => t('Default @plugin_type', array('@plugin_type' => $static['title singular'])),
     );
     $form = system_settings_form($form);
-  }
-
-  /**
-   * Job settings form.
-   */
-  static public function jobSettingsForm(&$form, &$form_state, $plugin_type, $job) {
-    // Check valid plugins.
-    $plugins = ultimate_cron_plugin_load_all($plugin_type);
-    foreach ($plugins as $name => $plugin) {
-      if (!$plugin->isValid($job)) {
-        unset($plugins[$name]);
-      }
-    }
-
-    // No plugins = no settings = no vertical tabs for you mister!
-    if (empty($plugins)) {
-      continue;
-    }
-
-    ctools_include('plugins');
-    $plugin_types = ctools_plugin_get_plugin_type_info();
-    $plugin_info = $plugin_types['ultimate_cron'][$plugin_type];
-    $static = $plugin_info['defaults']['static'];
-
-    // Find plugin selected on this page.
-    // If "0" (meaning default) use the one defined in the hook.
-    if (empty($form_state['values']['settings'][$plugin_type]['name'])) {
-      $form_state['values']['settings'][$plugin_type]['name'] = 0;
-      $current_plugin = $plugins[$job->hook[$plugin_type]['name']];
-    }
-    else {
-      $current_plugin = $plugins[$form_state['values']['settings'][$plugin_type]['name']];
-    }
-    $form_state['previous_plugin'][$plugin_type] = $current_plugin->name;
-
-    // Determine original plugin.
-    $original_plugin = !empty($job->settings[$plugin_type]['name']) ? $job->settings[$plugin_type]['name'] : $job->hook[$plugin_type]['name'];
-
-    // Ensure blank array.
-    if (empty($form_state['values']['settings'][$plugin_type][$current_plugin->name])) {
-      $form_state['values']['settings'][$plugin_type][$current_plugin->name] = array();
-    }
-
-    // Default values for current selection. If selection differs from current job, then
-    // take the job into account.
-    $defaults = $current_plugin->name == $original_plugin ? $job->settings : array();
-    $defaults += $current_plugin->getDefaultSettings($job);
-
-    // Plugin settings fieldset with vertical tab reference.
-    $form['settings'][$plugin_type] = array(
-      '#type' => 'fieldset',
-      '#title' => $static['title singular proper'],
-      '#group' => 'settings_tabs',
-      '#collapsible' => TRUE,
-      '#collapsed' => TRUE,
-      '#tree' => TRUE,
-    );
-
-    // Ajax wrapper.
-    $wrapper = 'wrapper-plugin-' . $plugin_type . '-settings';
-
-    // Setup plugin selector.
-    $options = array();
-    $options[''] = t('Default (@default)', array(
-      '@default' => $plugins[$job->hook[$plugin_type]['name']]->title,
-    ));
-    foreach ($plugins as $name => $plugin) {
-      $options[$name] = $plugin->title;
-    }
-    $form['settings'][$plugin_type]['name'] = array(
-      '#weight' => -10,
-      '#type' => 'select',
-      '#options' => $options,
-      '#default_value' => $form_state['values']['settings'][$plugin_type]['name'],
-      '#title' => $static['title singular proper'],
-      '#description' => t('Select which @plugin to use for this job.', array(
-        '@plugin' => $static['title singular'],
-      )),
-      '#ajax' => array(
-        'callback' => 'ultimate_cron_job_plugin_settings_ajax',
-        'wrapper' => $wrapper,
-        'method' => 'replace',
-        'effect' => 'none',
-      ),
-    );
-
-    $default_settings_link = l(
-      t('(change default settings)'),
-      'admin/config/system/cron/' . $current_plugin->type . '/' . $current_plugin->name
-    );
-
-    // Plugin specific settings wrapper for ajax replace.
-    $form['settings'][$plugin_type][$current_plugin->name] = array(
-      '#tree' => TRUE,
-      '#type' => 'fieldset',
-      '#title' => $current_plugin->title,
-      '#description' => $current_plugin->description,
-      '#prefix' => '<div id="' . $wrapper . '">',
-      '#suffix' => '</div>',
-    );
-
-    $form_state['default_values']['settings'][$plugin_type][$current_plugin->name] = $defaults;
-    if (
-      $current_plugin->name == $original_plugin &&
-      isset($job->settings[$plugin_type][$current_plugin->name]) &&
-      is_array($job->settings[$plugin_type][$current_plugin->name])
-    ) {
-      $form_state['values']['settings'][$plugin_type][$current_plugin->name] += $job->settings[$plugin_type][$current_plugin->name];
-    }
-    $form_state['values']['settings'][$plugin_type][$current_plugin->name] += ultimate_cron_blank_values($defaults);
-
-    $current_plugin->settingsForm($form, $form_state, $job);
-    if (empty($form['settings'][$plugin_type][$current_plugin->name]['no_settings'])) {
-      $current_plugin->fallbackalize(
-        $form['settings'][$plugin_type][$current_plugin->name],
-        $form_state['values']['settings'][$plugin_type][$current_plugin->name],
-        $form_state['default_values']['settings'][$plugin_type][$current_plugin->name],
-        FALSE
-      );
-      $form['settings'][$plugin_type][$current_plugin->name]['#description'] .= ' ' . $default_settings_link . '.';
-    }
-  }
-
-  /**
-   * Job settings form validate handler.
-   */
-  static public function jobSettingsFormValidate($form, &$form_state, $plugin_type, $job = NULL) {
-    $name = !empty($form_state['values']['settings'][$plugin_type]['name']) ? $form_state['values']['settings'][$plugin_type]['name'] : $job->hook[$plugin_type]['name'];
-    $plugin = ultimate_cron_plugin_load($plugin_type, $name);
-    $plugin->settingsFormValidate($form, $form_state, $job);
-  }
-
-  /**
-   * Job settings form submit handler.
-   */
-  static public function jobSettingsFormSubmit($form, &$form_state, $plugin_type, $job = NULL) {
-    $name = !empty($form_state['values']['settings'][$plugin_type]['name']) ? $form_state['values']['settings'][$plugin_type]['name'] : $job->hook[$plugin_type]['name'];
-    $plugin = ultimate_cron_plugin_load($plugin_type, $name);
-    $plugin->settingsFormSubmit($form, $form_state, $job);
-
-    // Weed out blank values that have fallbacks.
-    $elements = & $form['settings'][$plugin_type][$name];
-    $values = & $form_state['values']['settings'][$plugin_type][$name];;
-    $plugin->cleanForm($elements, $values, array(
-      'settings',
-      $plugin_type,
-      $name
-    ));
-  }
-
-  /**
-   * Settings form.
-   */
-  public function settingsForm(&$form, &$form_state, $job = NULL) {
-    $form['settings'][$this->type][$this->name]['no_settings'] = array(
-      '#markup' => '<p>' . t('This plugin has no settings.') . '</p>',
-    );
-  }
-
-  /**
-   * Settings form validate handler.
-   */
-  public function settingsFormValidate(&$form, &$form_state, $job = NULL) {
-  }
-
-  /**
-   * Settings form submit handler.
-   */
-  public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
   }
 
   /**

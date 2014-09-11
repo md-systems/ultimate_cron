@@ -44,21 +44,20 @@ class CronJobInstallTest extends WebTestBase {
     $this->admin_user = $this->drupalCreateUser(array('administer ultimate cron'));
     $this->drupalLogin($this->admin_user);
 
+    // Check default modules
     $this->drupalGet('admin/config/system/cron/jobs');
-
     $this->assertText('field cronjob title');
     $this->assertText('system cronjob title');
     $this->assertNoText('file cronjob title');
 
-//    // enable core module
+    // Install new module.
     $this->moduleHandler->install(array('file'));
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertText('file cronjob title');
 
+    // Uninstall new module.
     $this->moduleHandler->uninstall(array('file'));
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertNoText('file cronjob title');
-
-    // uninstall it
   }
 }

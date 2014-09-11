@@ -33,8 +33,8 @@ class DatabaseLogger extends LoggerBase {
   /**
    * Constructor.
    */
-  public function __construct($name, $plugin, $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL) {
-    parent::__construct($name, $plugin, $log_type);
+  public function __construct(array $configuration, $plugin_id, $plugin_definition) {
+    parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->options['method'] = array(
       static::CLEANUP_METHOD_DISABLED => t('Disabled'),
       static::CLEANUP_METHOD_EXPIRE => t('Remove logs older than a specified age'),
@@ -45,7 +45,7 @@ class DatabaseLogger extends LoggerBase {
   /**
    * Default settings.
    */
-  public function defaultSettings() {
+  public function defaultConfiguration() {
     return array(
       'method' => static::CLEANUP_METHOD_RETAIN,
       'expire' => 86400 * 14,

@@ -33,7 +33,7 @@ function ultimate_cron_plugin_settings($form, &$form_state, $plugin_type, $name)
   if (!isset($form_state['values']['settings'][$plugin_type][$name])) {
     $form_state['values']['settings'][$plugin_type][$name] = array();
   }
-  $form_state['values']['settings'][$plugin_type][$name] += $plugin->getDefaultSettings();
+  $form_state['values']['settings'][$plugin_type][$name] += $plugin->getDefaultConfiguration();
   $form_state['default_values']['settings'][$plugin_type][$name] = $form_state['values']['settings'][$plugin_type][$name];
 
   $form['settings']['#tree'] = TRUE;

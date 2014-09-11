@@ -34,14 +34,18 @@ class SerialLauncher extends LauncherBase {
   /**
    * Default settings.
    */
-  public function defaultSettings() {
+  public function defaultConfiguration() {
     return array(
-      'max_execution_time' => 3600,
-      'max_threads' => 1,
-      'thread' => 'any',
-      'lock_timeout' => 3600,
-      'poorman_keepalive' => FALSE,
-    ) + parent::defaultSettings();
+      'timeouts' => array(
+        'lock_timeout' => 3600,
+        'max_execution_time' => 3600,
+      ),
+      'launcher' => array(
+        'max_threads' => 1,
+        'thread' => 'any',
+        'poorman_keepalive' => FALSE,
+      ),
+    ) + parent::defaultConfiguration();
   }
 
   /**
@@ -59,21 +63,19 @@ class SerialLauncher extends LauncherBase {
     );
 
     $form['timeouts']['lock_timeout'] = array(
-      //'#parents' => array('settings', $this->type, $this->name, 'lock_timeout'),
       '#title' => t("Job lock timeout"),
       '#type' => 'textfield',
-      '#default_value' => empty($this->configuration['timeouts']['lock_timeout']) ? $this->defaultSettings()['lock_timeout'] : $this->configuration['timeouts']['lock_timeout'],
+      '#default_value' => $this->configuration['timeouts']['lock_timeout'],
       '#description' => t('Number of seconds to keep lock on job.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
 
     if (!$job) {
-      //$max_threads = $values['max_threads'];
       $form['timeouts']['max_execution_time'] = array(
         '#title' => t("Maximum execution time"),
         '#type' => 'textfield',
-        '#default_value' => empty($this->configuration['timeouts']['max_execution_time']) ? $this->defaultSettings()['max_execution_time'] : $this->configuration['timeouts']['max_execution_time'],
+        '#default_value' => $this->configuration['timeouts']['max_execution_time'],
         '#description' => t('Maximum execution time for a cron run in seconds.'),
         '#fallback' => TRUE,
         '#required' => TRUE,
@@ -81,7 +83,7 @@ class SerialLauncher extends LauncherBase {
       $form['launcher']['max_threads'] = array(
         '#title' => t("Maximum number of launcher threads"),
         '#type' => 'number',
-        '#default_value' => empty($this->configuration['launcher']['max_threads']) ? $this->defaultSettings()['max_threads'] : $this->configuration['launcher']['max_threads'],
+        '#default_value' => $this->configuration['launcher']['max_threads'],
         '#description' => t('The maximum number of launch threads that can be running at any given time.'),
         '#fallback' => TRUE,
         '#required' => TRUE,
@@ -90,7 +92,7 @@ class SerialLauncher extends LauncherBase {
       $form['launcher']['poorman_keepalive'] = array(
         '#title' => t("Poormans cron keepalive"),
         '#type' => 'checkbox',
-        '#default_value' => empty($this->configuration['launcher']['poorman_keepalive']) ? $this->defaultSettings()['poorman_keepalive'] : $this->configuration['launcher']['poorman_keepalive'],
+        '#default_value' => $this->configuration['launcher']['poorman_keepalive'],
         '#description' => t('Retrigger poormans cron after it has finished. Requires $base_url to be accessible from the webserver.'),
         '#fallback' => TRUE,
         '#weight' => 3,
@@ -99,7 +101,7 @@ class SerialLauncher extends LauncherBase {
       return $form;
     }
     else {
-      $settings = $this->getDefaultSettings();
+      $settings = $this->getConfiguration();
       $max_threads = $settings['max_threads'];
     }
 
@@ -244,7 +246,7 @@ class SerialLauncher extends LauncherBase {
    * Find a free thread for running cron jobs.
    */
   public function findFreeThread($lock, $lock_timeout = NULL, $timeout = 3) {
-    $settings = $this->getDefaultSettings();
+    $settings = $this->getConfiguration();
 
     // Find a free thread, try for 3 seconds.
     $delay = $timeout * 1000000;
@@ -283,7 +285,7 @@ class SerialLauncher extends LauncherBase {
    */
   public function launchJobs($jobs) {
     $lock = \Drupal::service('ultimate_cron.lock');
-    $settings = $this->getDefaultSettings();
+    $settings = $this->getConfiguration();
 
     // Set proper max execution time.
     $max_execution_time = ini_get('max_execution_time');
@@ -386,7 +388,7 @@ class SerialLauncher extends LauncherBase {
    */
   public function launchPoorman() {
     $lock = \Drupal::service('ultimate_cron.lock');
-    $settings = $this->getDefaultSettings();
+    $settings = $this->getConfiguration();
     // Is it time to run cron?
     $cron_last = variable_get('cron_last', 0);
     $cron_next = floor(($cron_last + 60) / 60) * 60;
@@ -419,12 +421,12 @@ class SerialLauncher extends LauncherBase {
       return;
     }
 
-    $settings = $poorman->getDefaultSettings();
+    $settings = $poorman->getConfiguration();
     if (!$settings['launcher'] || $settings['launcher'] !== $this->name) {
       return;
     }
 
-    $settings = $this->getDefaultSettings();
+    $settings = $this->getConfiguration();
     if ($settings['poorman_keepalive'] && $lock_id = $lock->lock('ultimate_cron_poorman_serial', 60)) {
       // Is it time to run cron? If not wait before re-launching.
       $cron_last = variable_get('cron_last', 0);
