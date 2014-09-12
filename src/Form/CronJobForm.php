@@ -104,7 +104,7 @@ class CronJobForm extends EntityForm {
           'wrapper' => $plugin_type . '_settings',
           'method' => 'replace',
         ),
-        '#submit' => array('::submit', '::rebuild'),
+        '#submit' => array('::submitForm', '::rebuild'),
         '#limit_validation_errors' => array(array($plugin_type, 'id')),
       );
 
@@ -112,7 +112,7 @@ class CronJobForm extends EntityForm {
         '#type' => 'submit',
         '#name' => $plugin_type . '_select',
         '#value' => t('Select'),
-        '#submit' => array('::submit', '::rebuild'),
+        '#submit' => array('::submitForm', '::rebuild'),
         '#limit_validation_errors' => array(array($plugin_type, 'id')),
         '#attributes' => array('class' => array('js-hide')),
       );
