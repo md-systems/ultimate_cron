@@ -69,7 +69,7 @@ class Simple extends Crontab {
     $form['rules'] = array(
       '#type' => 'select',
       '#title' => t('Run cron every'),
-      '#default_value' => isset($this->configuration['rules']) ? $this->configuration['rules'] : '',
+      '#default_value' => $this->configuration['rules'],
       '#description' => t('Select the interval you wish cron to run on.'),
       '#options' => $intervals,
       '#fallback' => TRUE,

@@ -8,6 +8,7 @@
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler;
 use Drupal\ultimate_cron\Entity\CronJob;
 use Drupal\ultimate_cron\CronPlugin;
+use Drupal\ultimate_cron\Scheduler\SchedulerInterface;
 
 /**
  * Abstract class for Ultimate Cron schedulers
@@ -25,7 +26,7 @@ use Drupal\ultimate_cron\CronPlugin;
  *       FALSE if not behind, otherwise the amount of time it's behind
  *       in seconds.
  */
-abstract class SchedulerBase extends CronPlugin {
+abstract class SchedulerBase extends CronPlugin implements SchedulerInterface {
   /**
    * Check job schedule.
    *

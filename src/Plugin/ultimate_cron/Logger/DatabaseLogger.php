@@ -163,14 +163,14 @@ class DatabaseLogger extends LoggerBase {
       '#title' => t('Log entry cleanup method'),
       '#description' => t('Select which method to use for cleaning up logs.'),
       '#options' => $this->options['method'],
-      '#default_value' => empty($this->configuration['method']) ? $this->defaultSettings()['method'] : $this->configuration['method'],
+      '#default_value' => empty($this->configuration['method']) ? $this->defaultConfiguration()['method'] : $this->configuration['method'],
     );
 
     $form['expire'] = array(
       '#type' => 'textfield',
       '#title' => t('Log entry expiration'),
       '#description' => t('Remove log entries older than X seconds.'),
-      '#default_value' => empty($this->configuration['expire']) ? $this->defaultSettings()['expire'] : $this->configuration['expire'],
+      '#default_value' => empty($this->configuration['expire']) ? $this->defaultConfiguration()['expire'] : $this->configuration['expire'],
       '#fallback' => TRUE,
       '#states' => array(
         'visible' => array(
@@ -186,7 +186,7 @@ class DatabaseLogger extends LoggerBase {
       '#type' => 'textfield',
       '#title' => t('Retain logs'),
       '#description' => t('Retain X amount of log entries.'),
-      '#default_value' => empty($this->configuration['retain']) ? $this->defaultSettings()['retain'] : $this->configuration['retain'],
+      '#default_value' => empty($this->configuration['retain']) ? $this->defaultConfiguration()['retain'] : $this->configuration['retain'],
       '#fallback' => TRUE,
       '#states' => array(
         'visible' => array(

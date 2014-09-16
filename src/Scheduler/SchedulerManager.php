@@ -2,18 +2,20 @@
 
 /**
  * @file
- * Contains \Drupal\ultimate_cron\SchedulerManager.
+ * Contains \Drupal\ultimate_cron\Scheduler\SchedulerManager.
  */
 
-namespace Drupal\ultimate_cron;
+namespace Drupal\ultimate_cron\Scheduler;
 
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Core\Language\LanguageManager;
 use Drupal\Core\Plugin\DefaultPluginManager;
+use Drupal\payment\Plugin\Payment\OperationsProviderPluginManagerTrait;
 
 /**
  * A plugin manager for scheduler plugins.
+ *
+ *  @see \Drupal\ultimate_cron\Scheduler\SchedulerInterface
  */
 class SchedulerManager extends DefaultPluginManager {
 
@@ -29,7 +31,7 @@ class SchedulerManager extends DefaultPluginManager {
    *   The module handler to invoke the alter hook with.
    */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler) {
-    parent::__construct('Plugin/ultimate_cron/Scheduler', $namespaces, $module_handler, 'Drupal\ultimate_cron\Annotation\SchedulerPlugin');
+    parent::__construct('Plugin/ultimate_cron/Scheduler', $namespaces, $module_handler, '\Drupal\ultimate_cron\Scheduler\SchedulerInterface', 'Drupal\ultimate_cron\Annotation\SchedulerPlugin');
     $this->alterInfo('ultimate_cron_scheduler_info');
     $this->setCacheBackend($cache_backend, 'ultimate_cron_scheduler');
   }

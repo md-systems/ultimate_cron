@@ -52,7 +52,7 @@ use Exception;
  *       provide a poormans cron launching mechanism. It is assumed that
  *       the poormans cron launcher handles locking wrt concurrency, etc.
  */
-abstract class LauncherBase extends CronPlugin {
+abstract class LauncherBase extends CronPlugin implements LauncherInterface {
 
   /**
    * Default settings.

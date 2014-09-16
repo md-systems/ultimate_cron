@@ -29,7 +29,7 @@ class LoggerManager extends DefaultPluginManager {
    *   The module handler to invoke the alter hook with.
    */
   public function __construct(\Traversable $namespaces, CacheBackendInterface $cache_backend, ModuleHandlerInterface $module_handler) {
-    parent::__construct('Plugin/ultimate_cron/Logger', $namespaces, $module_handler, 'Drupal\ultimate_cron\Annotation\LoggerPlugin');
+    parent::__construct('Plugin/ultimate_cron/Logger', $namespaces, $module_handler, '\Drupal\ultimate_cron\Logger\LoggerInterface', 'Drupal\ultimate_cron\Annotation\LoggerPlugin');
     $this->alterInfo('ultimate_cron_logger_info');
     $this->setCacheBackend($cache_backend, 'ultimate_cron_logger');
   }

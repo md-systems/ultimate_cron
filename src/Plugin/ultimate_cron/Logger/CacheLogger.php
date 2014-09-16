@@ -72,7 +72,7 @@ class CacheLogger extends LoggerBase {
       '#type' => 'textfield',
       '#title' => t('Cache bin'),
       '#description' => t('Select which cache bin to use for storing logs.'),
-      '#default_value' => empty($this->configuration['bin']) ? $this->defaultSettings()['bin'] : $this->configuration['bin'],
+      '#default_value' => empty($this->configuration['bin']) ? $this->defaultConfiguration()['bin'] : $this->configuration['bin'],
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
@@ -81,7 +81,7 @@ class CacheLogger extends LoggerBase {
       '#type' => 'textfield',
       '#title' => t('Cache timeout'),
       '#description' => t('Seconds before cache entry expires (0 = never, -1 = on next general cache wipe).'),
-      '#default_value' => empty($this->configuration['timeout']) ? $this->defaultSettings()['timeout'] : $this->configuration['timeout'],
+      '#default_value' => empty($this->configuration['timeout']) ? $this->defaultConfiguration()['timeout'] : $this->configuration['timeout'],
       '#fallback' => TRUE,
       '#required' => TRUE,
     );

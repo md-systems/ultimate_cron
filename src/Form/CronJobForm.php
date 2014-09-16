@@ -118,7 +118,6 @@ class CronJobForm extends EntityForm {
       );
 
       // @TODO: Fix this.
-      /** @var \Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler\Simple $instance */
       $plugin = $job->getPlugin($plugin_type);
       $temp_form = array();
       $form[$plugin_type]['settings'] = $plugin->settingsForm($temp_form, $form_state);

@@ -22,7 +22,7 @@ use Drupal\ultimate_cron\Logger\LogEntry;
  *   $logEntryClass
  *     - The class name of the log entry class associated with this logger.
  */
-abstract class LoggerBase extends CronPlugin {
+abstract class LoggerBase extends CronPlugin implements LoggerInterface {
   static public $log_entries = NULL;
   public $logEntryClass = '\Drupal\ultimate_cron\Logger\LogEntry';
 

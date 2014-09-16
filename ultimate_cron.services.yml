@@ -20,7 +20,7 @@ services:
     class: Drupal\ultimate_cron\Logger\LoggerManager
     parent: default_plugin_manager
   plugin.manager.ultimate_cron.scheduler:
-    class: Drupal\ultimate_cron\SchedulerManager
+    class: Drupal\ultimate_cron\Scheduler\SchedulerManager
     parent: default_plugin_manager
   ultimate_cron.lock:
       class: Drupal\ultimate_cron\Lock\Lock
