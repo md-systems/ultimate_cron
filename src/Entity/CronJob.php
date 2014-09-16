@@ -295,7 +295,7 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
           $settings[$name] = array();
         }
         if ($plugin->isValid($this)) {
-          $settings[$name] += $plugin->getDefaultSettings($this);
+          $settings[$name] += $plugin->defaultConfiguration($this);
         }
       }
 //    }

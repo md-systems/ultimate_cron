@@ -146,8 +146,8 @@ class SerialLauncher extends LauncherBase {
    * Lock job.
    */
   public function lock($job) {
-    $settings = $job->getSettings('launcher')['serial'];
-    $timeout = $settings['lock_timeout'];
+    $configuration = $job->getSettings('launcher')['serial'];
+    $timeout = $configuration['timeouts']['lock_timeout'];
 
     $lock = \Drupal::service('ultimate_cron.lock');
     if ($lock_id = $lock->lock($job->id(), $timeout)) {
@@ -246,7 +246,7 @@ class SerialLauncher extends LauncherBase {
    * Find a free thread for running cron jobs.
    */
   public function findFreeThread($lock, $lock_timeout = NULL, $timeout = 3) {
-    $settings = $this->getConfiguration();
+    $configuration = $this->getConfiguration();
 
     // Find a free thread, try for 3 seconds.
     $delay = $timeout * 1000000;
@@ -254,7 +254,7 @@ class SerialLauncher extends LauncherBase {
 
     $lock_service = \Drupal::service('ultimate_cron.lock');
     do {
-      for ($thread = 1; $thread <= $settings['max_threads']; $thread++) {
+      for ($thread = 1; $thread <= $configuration['launcher']['max_threads']; $thread++) {
         if ($thread != $this->currentThread) {
           $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
           if (!$lock_service->isLocked($lock_name)) {
