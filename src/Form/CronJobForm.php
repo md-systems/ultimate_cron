@@ -23,6 +23,7 @@ class CronJobForm extends EntityForm {
    * {@inheritdoc}
    */
   public function form(array $form, FormStateInterface $form_state) {
+    //kint(entity_load_multiple('ultimate_cron_job'));
     $form = parent::form($form, $form_state);
     /* @var \Drupal\ultimate_cron\Entity\CronJob $job */
     $job = $this->entity;

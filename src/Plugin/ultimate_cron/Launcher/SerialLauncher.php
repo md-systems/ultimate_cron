@@ -285,11 +285,11 @@ class SerialLauncher extends LauncherBase {
    */
   public function launchJobs($jobs) {
     $lock = \Drupal::service('ultimate_cron.lock');
-    $settings = $this->getConfiguration();
+    $configuration = $this->getConfiguration();
 
     // Set proper max execution time.
     $max_execution_time = ini_get('max_execution_time');
-    $lock_timeout = max($max_execution_time, $settings['max_execution_time']);
+    $lock_timeout = max($max_execution_time, $configuration['timeouts']['max_execution_time']);
 
     // We only lock for 55 seconds at a time, to give room for other cron
     // runs.
@@ -300,7 +300,7 @@ class SerialLauncher extends LauncherBase {
     }
 
     if ($thread = intval(self::getGlobalOption('thread'))) {
-      if ($thread < 1 || $thread > $settings['max_threads']) {
+      if ($thread < 1 || $thread > $configuration['launcher']['max_threads']) {
         watchdog('serial_launcher', "Invalid thread available for starting launch thread", array(), WATCHDOG_WARNING);
         return;
       }
@@ -327,8 +327,8 @@ class SerialLauncher extends LauncherBase {
       return;
     }
 
-    if ($max_execution_time && $max_execution_time < $settings['max_execution_time']) {
-      set_time_limit($settings['max_execution_time']);
+    if ($max_execution_time && $max_execution_time < $configuration['timeouts']['max_execution_time']) {
+      set_time_limit($configuration['timeouts']['max_execution_time']);
     }
 
     watchdog('serial_launcher', "Cron thread %thread started", array('%thread' => $thread), WATCHDOG_INFO);

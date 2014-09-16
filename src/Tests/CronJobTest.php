@@ -1,19 +1,20 @@
 <?php
 /**
  * @file
- * Contains \Drupal\ultimate_cron\Tests\CronJobFormTest.
+ * Contains \Drupal\ultimate_cron\Tests\CronJobTest.
  */
 
 namespace Drupal\ultimate_cron\Tests;
 
 use Drupal\simpletest\WebTestBase;
+use Drupal\ultimate_cron\Entity\CronJob;
 
 /**
  * Cron Job Form Testing
  *
  * @group ultimate_cron
  */
-class CronJobFormTest extends WebTestBase {
+class CronJobTest extends WebTestBase {
   public static $modules = array('ultimate_cron');
 
   /**
@@ -42,7 +43,7 @@ class CronJobFormTest extends WebTestBase {
    */
   function testManageJob() {
     // Create user with correct permission.
-    $this->admin_user = $this->drupalCreateUser(array('administer ultimate cron'));
+    $this->admin_user = $this->drupalCreateUser(array('administer ultimate cron', 'administer site configuration'));
     $this->drupalLogin($this->admin_user);
 
     // Cron Jobs overview.
@@ -56,13 +57,16 @@ class CronJobFormTest extends WebTestBase {
     // Set new job configuration.
     $this->job_name = 'initial job name';
     $this->job_id = strtolower($this->randomMachineName());
-    $edit = array(
+    $job_configuration = array(
       'title' => $this->job_name,
       'id' => $this->job_id,
+      'scheduler[settings][rules]' => '604800',
+      'launcher[settings][timeouts][lock_timeout]' => '3601',
+      'logger[settings][expire]' => '1209601',
     );
 
     // Save new job.
-    $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->drupalPostForm(NULL, $job_configuration, t('Save'));
 
     // Assert drupal_set_message for successful added job.
     $this->assertText(t('job @name has been added.', array('@name' => $this->job_name)));
@@ -90,5 +94,16 @@ class CronJobFormTest extends WebTestBase {
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertNoText($old_job_name);
     $this->assertText($this->job_name);
+
+    // Check Entity Configuration
+    $job_entity = entity_load('ultimate_cron_job', $this->job_id)->toArray();
+    $this->assertEqual($job_entity['scheduler']['settings']['rules'], $job_configuration['scheduler[settings][rules]']);
+    $this->assertEqual($job_entity['launcher']['settings']['timeouts']['lock_timeout'], $job_configuration['launcher[settings][timeouts][lock_timeout]']);
+    $this->assertEqual($job_entity['logger']['settings']['expire'], $job_configuration['logger[settings][expire]']);
+
+    debug(CronJob::load($this->job_id)->loadLatestLogEntry(), 'load latest log entry before');
+    $this->drupalPostForm('admin/config/system/cron', array(), t('Run cron'));
+    debug(CronJob::load($this->job_id)->loadLatestLogEntry(), 'load latest log entry after');
+    // Load Latest Entry
   }
 }
