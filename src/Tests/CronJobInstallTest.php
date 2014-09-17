@@ -45,6 +45,8 @@ class CronJobInstallTest extends WebTestBase {
     $this->drupalLogin($this->admin_user);
 
     // Check default modules
+    $this->moduleHandler->install(array('field'));
+    $this->moduleHandler->install(array('system'));
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertText('field cronjob title');
     $this->assertText('system cronjob title');

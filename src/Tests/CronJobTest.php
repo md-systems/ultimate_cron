@@ -60,8 +60,8 @@ class CronJobTest extends WebTestBase {
     $job_configuration = array(
       'title' => $this->job_name,
       'id' => $this->job_id,
-      'scheduler[settings][rules]' => '604800',
-      'launcher[settings][timeouts][lock_timeout]' => '3601',
+      'scheduler[settings][rules]' => '60',
+      'launcher[settings][timeouts][lock_timeout]' => '60',
       'logger[settings][expire]' => '1209601',
     );
 

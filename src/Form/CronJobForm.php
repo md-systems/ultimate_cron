@@ -174,8 +174,8 @@ class CronJobForm extends EntityForm {
     else {
       drupal_set_message(t('job %label has been added.', array('%label' => $job->label())));
     }
+    $form_state->setRedirect('ultimate_cron.job_list');
 
-    $form_state['redirect_route']['route_name'] = 'ultimate_cron.job_list';
   }
 
 }
