@@ -293,6 +293,7 @@ class SerialLauncher extends LauncherBase {
 
     // We only lock for 55 seconds at a time, to give room for other cron
     // runs.
+    // @todo: Why hard-code this?
     $lock_timeout = 55;
 
     if (!empty($_GET['thread'])) {
@@ -344,24 +345,24 @@ class SerialLauncher extends LauncherBase {
    *   The lock id.
    * @param string $thread
    *   The tread number.
-   * @param array $jobs
+   * @param \Drupal\ultimate_cron\Entity\CronJob[] $jobs
    *   The UltimateCronJobs to run.
    */
   public function runThread($lock_id, $thread, $jobs) {
     $lock = \Drupal::service('ultimate_cron.lock');
     $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
     foreach ($jobs as $job) {
-      $settings = $job->settings;
-      switch ($settings['thread']) {
+      $configuration = $job->getConfiguration('launcher');
+      switch ($configuration['launcher']['thread']) {
         case 'any':
-          $settings['thread'] = $thread;
+          $configuration['launcher']['thread'] = $thread;
           break;
 
         case 'fixed':
-          $settings['thread'] = ($job->getUniqueID() % $settings['max_threads']) + 1;
+          $configuration['launcher']['thread'] = ($job->getUniqueID() % $configuration['launcher']['max_threads']) + 1;
           break;
       }
-      if ((!self::getGlobalOption('thread') || $settings['thread'] == $thread) && $job->isScheduled()) {
+      if ((!self::getGlobalOption('thread') || $configuration['launcher']['thread'] == $thread) && $job->isScheduled()) {
         $job->launch();
         // Be friendly, and check if someone else has taken the lock.
         // If they have, bail out, since someone else is now handling

@@ -93,15 +93,14 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
    */
   protected $logger = array('id' => 'database');
 
-
   public function postSave(EntityStorageInterface $storage, $update = TRUE) {
-  parent::postSave($storage, $update);
+    parent::postSave($storage, $update);
     if ($update && empty($this->dont_log)) {
       $log = $this->startLog(uniqid($this->id(), TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
       $log->log($this->id(), 'Job modified by ' . $log->formatUser(), array(), WATCHDOG_INFO);
       $log->finish();
     }
-}
+  }
 
   /**
    * Invoke plugin cron_alter().
@@ -255,8 +254,16 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
     }
     /* @var \Drupal\Core\Plugin\DefaultPluginManager $manager */
     $manager = \Drupal::service('plugin.manager.ultimate_cron.' . $plugin_type);
-    $this->plugins[$plugin_type] = $manager->createInstance($name, isset($this->{$plugin_type}['settings']) ? $this->{$plugin_type}['settings'] : array());
+    $this->plugins[$plugin_type] = $manager->createInstance($name, isset($this->{$plugin_type}['configuration']) ? $this->{$plugin_type}['configuration'] : array());
     return $this->plugins[$plugin_type];
+  }
+
+  public function getConfiguration($plugin_type) {
+    if(!isset($this->{$plugin_type}['configuration'])) {
+      $this->{$plugin_type}['configuration'] = $this->getPlugin($plugin_type)->defaultConfiguration();
+    }
+
+    return $this->{$plugin_type}['configuration'];
   }
 
   /**

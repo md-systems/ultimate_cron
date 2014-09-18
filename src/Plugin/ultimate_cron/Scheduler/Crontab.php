@@ -132,8 +132,9 @@ class Crontab extends SchedulerBase {
       $cron = CronRule::factory($rule, $time, $skew);
       $cron_last_ran = $cron->getLastSchedule();
 
+      // @todo: Right now second test is failing randomly on low $catch_up value.
       if ($job_last_ran < $cron_last_ran && $cron_last_ran <= $time) {
-        if ($time <= $cron_last_ran + $catch_up) {
+        if ($time <= $cron_last_ran + $catch_up || $catch_up == 0) {
           return $time - $job_last_ran;
         }
       }
