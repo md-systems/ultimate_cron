@@ -120,6 +120,13 @@ function ultimate_cron_plugin_load($type, $name) {
   return $cache[$type][$name];
 }
 
+
+function ultimate_cron_fake_cron() {
+  $counter = \Drupal::state()->get('ultimate_cron.cron_run_counter', 0);
+  $counter++;
+  \Drupal::state()->set('ultimate_cron.cron_run_counter', $counter);
+}
+
 /**
  * Load all callback for plugins.
  *
@@ -137,6 +144,7 @@ function ultimate_cron_plugin_load_all($type, $reset = FALSE) {
   /* @var \Drupal\Core\Plugin\DefaultPluginManager $manager */
   $manager = \Drupal::service('plugin.manager.ultimate_cron.' . $type);
   $plugins = $manager->getDefinitions();
+
 
   foreach ($plugins as $plugin_id => $definition) {
     if ($object = $manager->createInstance($plugin_id)) {

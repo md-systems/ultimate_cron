@@ -5,7 +5,9 @@
  */
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler;
 
+use Drupal\ultimate_cron\CronJobInterface;
 use Drupal\ultimate_cron\CronRule;
+use Drupal\ultimate_cron\Entity\CronJob;
 
 /**
  * Crontab scheduler.
@@ -19,11 +21,12 @@ use Drupal\ultimate_cron\CronRule;
 class Crontab extends SchedulerBase {
   /**
    * Default settings.
+   * @todo: $catch_up is randomly failing when value is low in some situation. 0 value is ignoring catch_up checks.
    */
   public function defaultConfiguration() {
     return array(
       'rules' => array('*/10+@ * * * *'),
-      'catch_up' => '300',
+      'catch_up' => '0',
     );
   }
 
@@ -116,7 +119,7 @@ class Crontab extends SchedulerBase {
    * Schedule handler.
    */
   public function isScheduled($job) {
-    $settings = $job->getSettings('scheduler')['crontab'];
+    $settings = $job->getSettings('scheduler')[$this->getPluginId()];
     $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
     $skew = $this->getSkew($job);
     $class = get_class($this);
@@ -180,7 +183,7 @@ class Crontab extends SchedulerBase {
   /**
    * Get a "unique" skew for a job.
    */
-  protected function getSkew($job) {
+  protected function getSkew(CronJob $job) {
     return $job->getUniqueID() & 0xff;
   }
 }
