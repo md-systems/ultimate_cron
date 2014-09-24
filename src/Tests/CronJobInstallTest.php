@@ -48,18 +48,18 @@ class CronJobInstallTest extends WebTestBase {
     $this->moduleHandler->install(array('field'));
     $this->moduleHandler->install(array('system'));
     $this->drupalGet('admin/config/system/cron/jobs');
-    $this->assertText('field cronjob title');
-    $this->assertText('system cronjob title');
-    $this->assertNoText('file cronjob title');
+    $this->assertText('Purges deleted Field API data');
+    $this->assertText('Cleanup (caches, batch, flood, temp-files, etc.)');
+    $this->assertNoText('Deletes temporary files');
 
     // Install new module.
     $this->moduleHandler->install(array('file'));
     $this->drupalGet('admin/config/system/cron/jobs');
-    $this->assertText('file cronjob title');
+    $this->assertText('Deletes temporary files');
 
     // Uninstall new module.
     $this->moduleHandler->uninstall(array('file'));
     $this->drupalGet('admin/config/system/cron/jobs');
-    $this->assertNoText('file cronjob title');
+    $this->assertNoText('Deletes temporary files');
   }
 }
