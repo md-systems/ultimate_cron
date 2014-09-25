@@ -871,7 +871,7 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
    * {@inheritdoc}
    */
   public function setSchedulerId($scheduler_id) {
-    $this->set('scheduler.id', $scheduler_id);
+    $this->scheduler['id'] = $scheduler_id;
     return $this;
   }
 
@@ -879,7 +879,7 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
    * {@inheritdoc}
    */
   public function setLauncherId($launcher_id) {
-    $this->set('launcher.id', $launcher_id);
+    $this->launcher['id'] = $launcher_id;
     return $this;
   }
 
@@ -887,7 +887,7 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
    * {@inheritdoc}
    */
   public function setLoggerId($logger_id) {
-      $this->set('logger.id', $logger_id);
+    $this->launcher['id'] = $logger_id;
       return $this;
   }
 }
