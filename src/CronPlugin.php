@@ -47,7 +47,7 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
    * {@inheritdoc}
    */
   public function setConfiguration(array $configuration) {
-    $this->configuration = NestedArray::mergeDeep(
+    $this->configuration = array_merge(
       $this->defaultConfiguration(),
       $configuration
     );

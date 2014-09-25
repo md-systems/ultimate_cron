@@ -19,6 +19,7 @@ class Simple extends Crontab {
 
   public $presets = array(
     '* * * * *' => 60,
+    '*/5+@ * * * *' => 300,
     '*/15+@ * * * *' => 900,
     '*/30+@ * * * *' => 1800,
     '0+@ * * * *' => 3600,
@@ -69,7 +70,7 @@ class Simple extends Crontab {
     $form['rules'][0] = array(
       '#type' => 'select',
       '#title' => t('Run cron every'),
-      '#default_value' => $this->configuration['rules'],
+      '#default_value' => $this->configuration['rules'][0],
       '#description' => t('Select the interval you wish cron to run on.'),
       '#options' => $intervals,
       '#fallback' => TRUE,

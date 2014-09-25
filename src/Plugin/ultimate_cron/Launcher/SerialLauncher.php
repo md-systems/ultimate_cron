@@ -131,8 +131,8 @@ class SerialLauncher extends LauncherBase {
    * Settings form validator.
    */
   public function settingsFormValidate(&$form, &$form_state, $job = NULL) {
-    $elements = & $form['settings'][$this->type][$this->name];
-    $values = & $form_state['values']['settings'][$this->type][$this->name];
+    $elements = & $form['configuration'][$this->type][$this->name];
+    $values = & $form_state['values']['configuration'][$this->type][$this->name];
     if (!$job) {
       if (intval($values['max_threads']) <= 0) {
         form_set_error("settings[$this->type][$this->name", t('%title must be greater than 0', array(

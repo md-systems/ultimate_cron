@@ -22,9 +22,9 @@ ultimate_cron.job.*:
         id:
           type: string
           label: 'Scheduler'
-        settings:
+        configuration:
           type: mapping
-          label: 'Scheduler settings'
+          label: 'Scheduler configuration'
     launcher:
       type: mapping
       label: 'Scheduler'
@@ -32,9 +32,9 @@ ultimate_cron.job.*:
         id:
           type: string
           label: 'Launcher'
-        settings:
+        configuration:
           type: mapping
-          label: 'Scheduler settings'
+          label: 'Scheduler configuration'
     logger:
       type: mapping
       label: 'Scheduler'
@@ -42,6 +42,6 @@ ultimate_cron.job.*:
         id:
           type: string
           label: 'Logger'
-        settings:
+        configuration:
           type: mapping
-          label: 'Scheduler settings'
+          label: 'Scheduler configuration'

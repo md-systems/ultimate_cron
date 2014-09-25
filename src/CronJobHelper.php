@@ -14,18 +14,31 @@ class CronJobHelper {
   /**
    * Creates a new cron job with specific values.
    *
-   * @param array $values
-   *   Values equal to schema.
-   * @return array/boolean
+   * @param $module_name
+   *   Module name.
    */
-  public static function createCronJob($values) {
-    $job = CronJob::create($values);
+  public static function ensureCronJobExists($module_name) {
+    $id = $module_name . "_job";
+    $job = NULL;
 
-    $job->save();
+    $module_titles = CronJobHelper::getJobTitle();
 
-    return $job;
+    if (!CronJob::load($id)) {
+      $callback = $module_name . '_cron';
+      $title = isset($module_titles[$callback]) ? $module_titles[$callback]['title'] : 'Default cron handler';
+
+      $values = array(
+        'title' => $title,
+        'id' => $id,
+        'module' => $module_name,
+        'callback' => $callback,
+      );
+
+      $job = CronJob::create($values);
+
+      $job->save();
+    }
   }
-
 
   public static function getJobTitle() {
     $update = array();

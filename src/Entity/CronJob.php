@@ -102,6 +102,10 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
     }
   }
 
+  public function setConfiguration($plugin_type, $configuration) {
+    $this->{$plugin_type}['configuration'] = $configuration;
+  }
+
   /**
    * Invoke plugin cron_alter().
    *
