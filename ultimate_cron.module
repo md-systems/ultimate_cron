@@ -329,26 +329,6 @@ function ultimate_cron_help($route_name, \Drupal\Core\Routing\RouteMatchInterfac
 }
 
 /**
- * Implements hook_permission().
- */
-function ultimate_cron_permission() {
-  return array(
-    'administer ultimate cron' => array(
-      'title' => t('Administer Ultimate Cron'),
-      'description' => t('Lets you configure everything in Ultimate Cron'),
-    ),
-    'view cron jobs' => array(
-      'title' => t('View cron jobs'),
-      'description' => t('Lets you view cron jobs and their logs'),
-    ),
-    'run cron jobs' => array(
-      'title' => t('Run cron jobs'),
-      'description' => t('Lets you run cron jobs'),
-    ),
-  );
-}
-
-/**
  * Implements hook_cron_queue_info().
  *
  * Used for code injection in order to hijack cron runs.
