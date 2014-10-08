@@ -118,7 +118,7 @@ class SerialLauncher extends LauncherBase {
       '#parents' => array('settings', $this->type, $this->name, 'thread'),
       '#title' => t("Run in thread"),
       '#type' => 'select',
-      '#default_value' => $values['thread'],
+      '#default_value' => $this->configuration['thread'],
       '#options' => $options,
       '#description' => t('Which thread to run in when invoking with ?thread=N. Note: This setting only has an effect when cron is run through cron.php with an argument ?thread=N or through Drush with --options=thread=N.'),
       '#fallback' => TRUE,
@@ -353,6 +353,9 @@ class SerialLauncher extends LauncherBase {
     $lock_name = 'ultimate_cron_serial_launcher_' . $thread;
     foreach ($jobs as $job) {
       $configuration = $job->getConfiguration('launcher');
+      $configuration['launcher'] += array(
+        'thread' => 'any',
+      );
       switch ($configuration['launcher']['thread']) {
         case 'any':
           $configuration['launcher']['thread'] = $thread;
