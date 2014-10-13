@@ -228,10 +228,10 @@ class SerialLauncher extends LauncherBase {
     try {
       $job->run();
     } catch (Exception $e) {
-      watchdog('serial_launcher', 'Error executing %job: @error', array(
+      \Drupal::logger('serial_launcher')->error('Error executing %job: @error', array(
         '%job' => $job->id(),
         '@error' => $e->getMessage()
-      ), WATCHDOG_ERROR);
+      ));
       $log_entry->finish();
       $job->unlock($lock_id);
       return FALSE;
@@ -302,7 +302,7 @@ class SerialLauncher extends LauncherBase {
 
     if ($thread = intval(self::getGlobalOption('thread'))) {
       if ($thread < 1 || $thread > $configuration['launcher']['max_threads']) {
-        watchdog('serial_launcher', "Invalid thread available for starting launch thread", array(), WATCHDOG_WARNING);
+        \Drupal::logger('serial_launcher')->warning("Invalid thread available for starting launch thread");
         return;
       }
 
@@ -312,9 +312,9 @@ class SerialLauncher extends LauncherBase {
         $lock_id = $lock->lock($lock_name, $lock_timeout);
       }
       if (!$lock_id) {
-        watchdog('serial_launcher', "Thread @thread is already running", array(
+        \Drupal::logger('serial_launcher')->warning("Thread @thread is already running", array(
           '@thread' => $thread,
-        ), WATCHDOG_WARNING);
+        ));
       }
     }
     else {
@@ -324,7 +324,7 @@ class SerialLauncher extends LauncherBase {
     $this->currentThread = $thread;
 
     if (!$thread) {
-      watchdog('serial_launcher', "No free threads available for launching jobs", array(), WATCHDOG_WARNING);
+      \Drupal::logger('serial_launcher')->warning("No free threads available for launching jobs");
       return;
     }
 
@@ -332,7 +332,7 @@ class SerialLauncher extends LauncherBase {
       set_time_limit($configuration['timeouts']['max_execution_time']);
     }
 
-    watchdog('serial_launcher', "Cron thread %thread started", array('%thread' => $thread), WATCHDOG_INFO);
+    \Drupal::logger('serial_launcher')->info("Cron thread %thread started", array('%thread' => $thread));
 
     $this->runThread($lock_id, $thread, $jobs);
     $lock->unlock($lock_id);

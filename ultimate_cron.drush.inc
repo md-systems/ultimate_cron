@@ -508,11 +508,11 @@ function drush_ultimate_cron_cron_unlock($name = NULL) {
   if ($job->unlock($lock_id, TRUE)) {
     $log_entry = $job->resumeLog($lock_id);
     global $user;
-    watchdog('ultimate_cron', '@name manually unlocked by user @username (@uid)', array(
+    \Drupal::logger('ultimate_cron')->warning('@name manually unlocked by user @username (@uid)', array(
       '@name' => $job->id(),
       '@username' => $user->name,
       '@uid' => $user->uid,
-    ), WATCHDOG_WARNING);
+    ));
     $log_entry->finish();
 
     drush_print(dt('Cron job @name unlocked', array('@name' => $name)));

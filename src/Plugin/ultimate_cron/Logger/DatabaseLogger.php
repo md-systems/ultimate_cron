@@ -107,7 +107,7 @@ class DatabaseLogger extends LoggerBase {
         break;
 
       default:
-        watchdog('ultimate_cron', 'Invalid cleanup method: @method', array(
+        \Drupal::logger('ultimate_cron')->warning('Invalid cleanup method: @method', array(
           '@method' => $settings['method'],
         ));
         return;
@@ -135,10 +135,10 @@ class DatabaseLogger extends LoggerBase {
       }
     } while ($lids && $max > 0);
     if ($count) {
-      watchdog('database_logger', '@count log entries removed for job @name', array(
+      \Drupal::logger('database_logger')->info('@count log entries removed for job @name', array(
         '@count' => $count,
         '@name' => $job->id(),
-      ), WATCHDOG_INFO);
+      ));
     }
   }
 

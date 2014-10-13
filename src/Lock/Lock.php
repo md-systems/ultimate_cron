@@ -244,13 +244,13 @@ class Lock implements LockInterface {
       }
       if ($job = $class::$currentJob) {
         if ($job->getSignal('kill')) {
-          watchdog('ultimate_cron', 'kill signal recieved', array(), WATCHDOG_WARNING);
+          \Drupal::logger('ultimate_cron')->warning('kill signal recieved');
           return;
         }
       }
     } while ($lids);
-    watchdog('ultimate_cron_lock', 'Cleaned up @count expired locks', array(
+      \Drupal::logger('ultimate_cron_lock')->info('Cleaned up @count expired locks', array(
       '@count' => $count
-    ), WATCHDOG_INFO);
+    ));
   }
 }

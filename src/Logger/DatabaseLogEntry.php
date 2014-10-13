@@ -60,7 +60,7 @@ class DatabaseLogEntry extends LogEntry {
         $retry++;
         if ($retry > 3) {
           $retry = 0;
-          watchdog('database_logger', (string) $e, array(), WATCHDOG_CRITICAL);
+          \Drupal::logger('database_logger')->critical((string) $e);
           return;
         }
 

@@ -407,9 +407,9 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
     $launcher = $this->getPlugin('launcher');
     $lock_id = $launcher->lock($this);
     if (!$lock_id) {
-      watchdog('ultimate_cron', 'Could not get lock for job @name', array(
+      \Drupal::logger('ultimate_cron')->error('Could not get lock for job @name', array(
         '@name' => $this->id(),
-      ), WATCHDOG_ERROR);
+      ));
       return FALSE;
     }
     $this->sendMessage('lock', array(

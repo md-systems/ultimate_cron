@@ -159,10 +159,10 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
         $_SERVER['PHP_SELF'] = $php_self;
       }
 
-      watchdog('ultimate_cron', 'Error running @name: @error', array(
+      \Drupal::logger('ultimate_cron')->error('Error running @name: @error', array(
         '@name' => $job->id(),
         '@error' => $e->getMessage(),
-      ), WATCHDOG_ERROR);
+      ));
     }
     // Restore the user.
 //    $GLOBALS['user'] = $original_user;

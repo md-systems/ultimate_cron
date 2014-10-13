@@ -102,7 +102,7 @@ class QueueSettings extends TaggedSettings {
     $items = 0;
     while (microtime(TRUE) < $end) {
       if ($job->getSignal('kill')) {
-        watchdog('ultimate_cron', 'kill signal recieved', array(), WATCHDOG_WARNING);
+        \Drupal::logger('ultimate_cron')->warning('kill signal recieved');
         break;
       }
 
@@ -133,17 +133,17 @@ class QueueSettings extends TaggedSettings {
       }
       catch (Exception $e) {
         // Just continue ...
-        watchdog($job->hook['module'], "Queue item @item_id from queue @queue failed with message @message", array(
+        \Drupal::logger($job->hook['module'])->error("Queue item @item_id from queue @queue failed with message @message", array(
           '@item_id' => $item->item_id,
           '@queue' => $settings['queue']['name'],
           '@message' => $e->getMessage()
-        ), WATCHDOG_ERROR);
+        ));
       }
     }
-    watchdog($job->hook['module'], 'Processed @items items from queue @queue', array(
+    \Drupal::logger($job->hook['module'])->info('Processed @items items from queue @queue', array(
       '@items' => $items,
       '@queue' => $settings['queue']['name'],
-    ), WATCHDOG_INFO);
+    ));
 
     // Re-throttle.
     $job->getPlugin('settings', 'queue')->throttle($job);

@@ -115,9 +115,9 @@ function ultimate_cron_exit($dest = NULL) {
 
   $launcher = ultimate_cron_plugin_load('launcher', $settings['launcher']);
   if (!$launcher) {
-    watchdog('ultimate_cron', 'Invalid poormans cron launcher: @name', array(
+    \Drupal::logger('ultimate_cron')->error('Invalid poormans cron launcher: @name', array(
       '@name' => $settings['launcher'],
-    ), WATCHDOG_ERROR);
+    ));
     return;
   }
 
