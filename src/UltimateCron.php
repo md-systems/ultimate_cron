@@ -17,7 +17,6 @@ class UltimateCron extends Cron {
    * {@inheritdoc}
    */
   public function run() {
-    //_ultimate_cron_variable_save('cron_last', time());
 
     $launcher_jobs = array();
     foreach (CronJob::loadMultiple() as $job) {
@@ -40,7 +39,8 @@ class UltimateCron extends Cron {
       //uasort($launcher_job['jobs'], '_ultimate_cron_multi_column_sort');
       $launcher_job['launcher']->launchJobs($launcher_job['jobs']);
     }
-    drupal_set_message('Run Ultimate Cron job');
+
+    $this->setCronLastTime();
 
     return TRUE;
   }
