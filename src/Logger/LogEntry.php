@@ -7,6 +7,7 @@
 namespace Drupal\ultimate_cron\Logger;
 
 use Drupal\Component\Utility\String;
+use Drupal\Core\Logger\RfcLogLevel;
 
 /**
  * Abstract class for Ultimate Cron log entries.
@@ -142,7 +143,7 @@ abstract class LogEntry {
    *
    * @see watchdog()
    */
-  public function log($type, $message, $variables = array(), $severity = WATCHDOG_NOTICE, $link = NULL) {
+  public function log($type, $message, $variables = array(), $severity = RfcLogLevel::NOTICE, $link = NULL) {
     global $user, $base_root;
 
     // The user object may not exist in all conditions, so 0 is substituted if needed.
@@ -262,23 +263,23 @@ abstract class LogEntry {
    */
   public function formatSeverity() {
     switch ($this->severity) {
-      case WATCHDOG_EMERGENCY:
-      case WATCHDOG_ALERT:
-      case WATCHDOG_CRITICAL:
-      case WATCHDOG_ERROR:
+      case RfcLogLevel::EMERGENCY:
+      case RfcLogLevel::ALERT:
+      case RfcLogLevel::CRITICAL:
+      case RfcLogLevel::ERROR:
         $file = 'misc/message-16-error.png';
         break;
 
-      case WATCHDOG_WARNING:
+      case RfcLogLevel::WARNING:
         $file = 'misc/message-16-warning.png';
         break;
 
-      case WATCHDOG_NOTICE:
+      case RfcLogLevel::NOTICE:
         $file = 'misc/message-16-info.png';
         break;
 
-      case WATCHDOG_INFO:
-      case WATCHDOG_DEBUG:
+      case RfcLogLevel::INFO:
+      case RfcLogLevel::DEBUG:
       default:
         $file = 'misc/message-16-ok.png';
     }

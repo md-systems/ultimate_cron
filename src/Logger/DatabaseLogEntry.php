@@ -6,6 +6,8 @@
 
 namespace Drupal\ultimate_cron\Logger;
 
+use Drupal\Core\Logger\RfcLogLevel;
+
 class DatabaseLogEntry extends LogEntry {
 
   /**
@@ -55,7 +57,7 @@ class DatabaseLogEntry extends LogEntry {
             '@original_lid' => $this->lid,
             '@lid' => $lid,
           )) . "\n" . $this->message;
-        $this->severity = $this->severity >= 0 && $this->severity < WATCHDOG_ERROR ? $this->severity : WATCHDOG_ERROR;
+        $this->severity = $this->severity >= 0 && $this->severity < RfcLogLevel::ERROR ? $this->severity : RfcLogLevel::ERROR;
         $this->lid = $lid;
         $retry++;
         if ($retry > 3) {

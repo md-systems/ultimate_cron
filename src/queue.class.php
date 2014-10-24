@@ -3,6 +3,7 @@
  * @file
  * Queue settings for Ultimate Cron.
  */
+use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\ultimate_cron\Entity\CronJob;
 use Drupal\ultimate_cron\TaggedSettings;
 
@@ -366,7 +367,7 @@ class QueueSettings extends TaggedSettings {
           '@items' => $items,
           '@boundary' => ($thread - 1) * $settings['queue']['threshold'],
           '@threshold' => $settings['queue']['threshold'],
-        ), WATCHDOG_INFO);
+        ), RfcLogLevel::INFO);
         $log_entry->finish();
         $job->dont_log = TRUE;
         ultimate_cron_job_set_status($job, $new_status);

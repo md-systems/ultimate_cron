@@ -8,6 +8,7 @@ namespace Drupal\ultimate_cron\Entity;
 
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
+use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\ultimate_cron\CronJobHelper;
 use Drupal\ultimate_cron\CronJobInterface;
 use Drupal\ultimate_cron\CronPlugin;
@@ -97,7 +98,7 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
     parent::postSave($storage, $update);
     if ($update && empty($this->dont_log)) {
       $log = $this->startLog(uniqid($this->id(), TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
-      $log->log($this->id(), 'Job modified by ' . $log->formatUser(), array(), WATCHDOG_INFO);
+      $log->log($this->id(), 'Job modified by ' . $log->formatUser(), array(), RfcLogLevel::INFO);
       $log->finish();
     }
   }

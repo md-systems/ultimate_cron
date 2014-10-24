@@ -3,6 +3,7 @@
  * @file
  * Poormans cron functions.
  */
+use Drupal\Core\Logger\RfcLogLevel;
 
 /**
  * Output buffer callback for poormans cron early page flush.
@@ -205,6 +206,6 @@ function ultimate_cron_poorman_trigger() {
     watchdog('ultimate_cron', 'Could not trigger poorman at @url. Error: @error', array(
       '@url' => $url,
       '@error' => $response->error,
-    ), WATCHDOG_ERROR);
+    ), RfcLogLevel::ERROR);
   }
 }

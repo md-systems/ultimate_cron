@@ -1,4 +1,6 @@
 <?php
+use Drupal\Core\Logger\RfcLogLevel;
+
 /**
  * Implements hook_nagios_info().
  */
@@ -133,7 +135,7 @@ function ultimate_cron_nagios_get_job_info($mode = 'running') {
         if ($hook['background_process']) {
           $overview['running']++;
         }
-        $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= WATCHDOG_NOTICE ? 'info' : ($log['severity'] >= WATCHDOG_WARNING ? 'warning' : 'error'));
+        $severity_type = $log['severity'] < 0 ? 'success' : ($log['severity'] >= RfcLogLevel::NOTICE ? 'info' : ($log['severity'] >= RfcLogLevel::NOTICE ? 'warning' : 'error'));
         $overview[$severity_type]++;
       }
     }

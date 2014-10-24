@@ -4,6 +4,7 @@
  * Contains \Drupal\ultimate_cron\Logger\LoggerBase.
  */
 namespace Drupal\ultimate_cron\Logger;
+use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\ultimate_cron\CronPlugin;
 use Drupal\ultimate_cron\Logger\LogEntry;
 
@@ -115,9 +116,9 @@ abstract class LoggerBase extends CronPlugin implements LoggerInterface {
    *
    * @see watchdog()
    */
-  final static public function log($type, $message, $variables = array(), $severity = WATCHDOG_NOTICE, $link = NULL) {
-    if (\Drupal\ultimate_cron\self::$log_entries) {
-      foreach (\Drupal\ultimate_cron\self::$log_entries as $log_entry_object) {
+  final static public function log($type, $message, $variables = array(), $severity = RfcLogLevel::NOTICE, $link = NULL) {
+    if (static::$log_entries) {
+      foreach (static::$log_entries as $log_entry_object) {
         $log_entry_object->log($type, $message, $variables, $severity, $link);
       }
     }
@@ -156,15 +157,15 @@ abstract class LoggerBase extends CronPlugin implements LoggerInterface {
     $error = error_get_last();
     if ($error) {
       $message = $error['message'] . ' (line ' . $error['line'] . ' of ' . $error['file'] . ').' . "\n";
-      $severity = WATCHDOG_INFO;
+      $severity = RfcLogLevel::INFO;
       if ($error['type'] && (E_NOTICE || E_USER_NOTICE || E_USER_WARNING)) {
-        $severity = WATCHDOG_NOTICE;
+        $severity = RfcLogLevel::NOTICE;
       }
       if ($error['type'] && (E_WARNING || E_CORE_WARNING || E_USER_WARNING)) {
-        $severity = WATCHDOG_WARNING;
+        $severity = RfcLogLevel::WARNING;
       }
       if ($error['type'] && (E_ERROR || E_CORE_ERROR || E_USER_ERROR || E_RECOVERABLE_ERROR)) {
-        $severity = WATCHDOG_ERROR;
+        $severity = RfcLogLevel::ERROR;
       }
 
       $log_entry->log($log_entry->name, $message, array(), $severity);

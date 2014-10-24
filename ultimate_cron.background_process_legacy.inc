@@ -3,6 +3,7 @@
  * @file
  * Hooks for legacy handling of Background Process 1.x.
  */
+use Drupal\Core\Logger\RfcLogLevel;
 
 /**
  * Implements hook_background_process_shutdown().
@@ -57,6 +58,6 @@ function ultimate_cron_background_process_shutdown($process = NULL, $msg = NULL)
     ));
   }
 
-  $log_entry->log('bgpl_launcher', $msg, array(), WATCHDOG_WARNING);
+  $log_entry->log('bgpl_launcher', $msg, array(), RfcLogLevel::WARNING);
   $log_entry->finish();
 }
