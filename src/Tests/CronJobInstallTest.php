@@ -14,6 +14,12 @@ use Drupal\simpletest\WebTestBase;
  * @group ultimate_cron
  */
 class CronJobInstallTest extends WebTestBase {
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
   public static $modules = array('ultimate_cron');
 
   /**
@@ -24,19 +30,6 @@ class CronJobInstallTest extends WebTestBase {
   protected $admin_user;
 
   /**
-   * @var \Drupal\Core\Extension\ModuleHandler
-   */
-  protected $moduleHandler;
-
-  /**
-   * Sets up the module handler for enabling and disabling modules.
-   */
-  protected function setUp() {
-    parent::setUp();
-    $this->moduleHandler = $this->container->get('module_handler');
-  }
-
-  /**
    * Tests adding and editing a cron job.
    */
   function testManageJob() {
@@ -45,20 +38,20 @@ class CronJobInstallTest extends WebTestBase {
     $this->drupalLogin($this->admin_user);
 
     // Check default modules
-    $this->moduleHandler->install(array('field'));
-    $this->moduleHandler->install(array('system'));
+    \Drupal::service('module_installer')->install(array('field'));
+    \Drupal::service('module_installer')->install(array('system'));
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertText('Purges deleted Field API data');
     $this->assertText('Cleanup (caches, batch, flood, temp-files, etc.)');
     $this->assertNoText('Deletes temporary files');
 
     // Install new module.
-    $this->moduleHandler->install(array('file'));
+    \Drupal::service('module_installer')->install(array('file'));
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertText('Deletes temporary files');
 
     // Uninstall new module.
-    $this->moduleHandler->uninstall(array('file'));
+    \Drupal::service('module_installer')->uninstall(array('file'));
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertNoText('Deletes temporary files');
   }

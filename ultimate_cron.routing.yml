@@ -14,7 +14,7 @@ ultimate_cron.job_add:
   requirements:
     _entity_create_access: 'ultimate_cron_job'
 
-ultimate_cron.job_edit:
+entity.ultimate_cron_job.edit_form:
   path: '/admin/config/system/cron/jobs/manage/{ultimate_cron_job}'
   defaults:
     _entity_form: 'ultimate_cron_job.default'

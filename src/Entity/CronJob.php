@@ -38,10 +38,10 @@ use Exception;
  *     "status" = "status",
  *   },
  *   links = {
- *     "edit-form" = "ultimate_cron.job_edit",
+ *     "edit-form" = "/admin/config/system/cron/jobs/manage/{ultimate_cron_job}",
  *   }
  * )
- * "delete-form" = "ultimate_cron.job_delete"
+ *
  */
 class CronJob extends ConfigEntityBase implements CronJobInterface {
   static public $signals;

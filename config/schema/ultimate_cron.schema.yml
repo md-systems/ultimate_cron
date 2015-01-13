@@ -1,4 +1,13 @@
 
+ultimate_cron.settings:
+  type: mapping
+  label: 'Ultimate cron settings'
+  mapping:
+    bypass_transactional_safe_connection:
+      type: boolean
+      label: Bypass transactional connection
+
+# @todo make schema pluggable
 ultimate_cron.job.*:
   type: config_entity
   label: 'Cron Job'
@@ -25,6 +34,13 @@ ultimate_cron.job.*:
         configuration:
           type: mapping
           label: 'Scheduler configuration'
+          mapping:
+            rules:
+              type: sequence
+              label: Scheduler rules
+              sequence:
+                - type: string
+                  label: Scheduling rule
     launcher:
       type: mapping
       label: 'Scheduler'
@@ -35,6 +51,27 @@ ultimate_cron.job.*:
         configuration:
           type: mapping
           label: 'Scheduler configuration'
+          mapping:
+            timeouts:
+              type: mapping
+              label: Timeout settings
+              mapping:
+                lock_timeout:
+                  type: integer
+                  label: Lock timeout
+                max_execution_time:
+                  type: integer
+                  label: Max execution time
+            launcher:
+              type: mapping
+              label: Launcher settings
+              mapping:
+                max_threads:
+                  type: integer
+                  label: Max threads
+                poorman_keepalive:
+                  type: boolean
+                  label: Keepalive
     logger:
       type: mapping
       label: 'Scheduler'
@@ -45,3 +82,13 @@ ultimate_cron.job.*:
         configuration:
           type: mapping
           label: 'Scheduler configuration'
+          mapping:
+            method:
+              type: string
+              label: Method
+            expire:
+              type: integer
+              label: Expiration
+            retain:
+              type: integer
+              label: Retain X amount of logs
