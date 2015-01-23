@@ -151,7 +151,7 @@ function ultimate_cron_schema() {
  * Implements hook_install().
  */
 function ultimate_cron_install() {
-  \Drupal::config('system.cron')->set('threshold.autorun', 0)->save();
+  \Drupal::configFactory()->getEditable('system.cron')->set('threshold.autorun', 0)->save();
 
   foreach (\Drupal::moduleHandler()->getImplementations('cron') as $module_name) {
     \Drupal\ultimate_cron\CronJobHelper::ensureCronJobExists($module_name);
