@@ -135,7 +135,7 @@ function ultimate_cron_drush_command() {
  */
 function ultimate_cron_drush_command_alter(&$command) {
   // Let's hijack the core cron command.
-  if ($command['command'] == 'core-cron') {
+  if (FALSE && $command['command'] == 'core-cron') {
     $command['command-hook'] = 'cron-run';
     $command['commandfile'] = 'ultimate_cron';
     $command['path'] = drupal_get_path('module', 'ultimate_cron');
