@@ -5,20 +5,18 @@
  * Contains \Drupal\ultimate_cron\RulesUnitTest.
  */
 
-namespace Drupal\ultimate_cron;
+namespace Drupal\Tests\ultimate_cron;
 
 use Drupal\Tests\UnitTestCase;
+use Drupal\ultimate_cron\CronRule;
 use Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler\Crontab;
 
+/**
+ * Tests Drupal\ultimate_cron\CronRule.
+ *
+ * @group ultimate_cron
+ */
 class RulesUnitTest extends UnitTestCase {
-
-  public static function getInfo() {
-    return array(
-      'name' => 'Rules',
-      'description' => 'Test crontab rules parser.',
-      'group' => 'Ultimate Cron',
-    );
-  }
 
   private function getIntervals($rule) {
     $cron = CronRule::factory($rule, $_SERVER['REQUEST_TIME']);
