@@ -7,6 +7,7 @@
 
 namespace Drupal\ultimate_cron;
 
+use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Component\Utility\String;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
@@ -37,15 +38,22 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
    */
   public function buildRow(EntityInterface $entity) {
     /* @var \Drupal\ultimate_cron\Entity\CronJob $entity */
+    $entry = $entity->loadLatestLogEntry();
+    // Start and end as UNIX timestamps.
+    $start_time = $entry->start_time;
+    $end_time = $entry->end_time;
+    // Duration in milliseconds.
+    $duration = ($end_time - $start_time) * 1000;
+    $duration = floor($duration);
     $row['module'] = array(
-      'data' => String::checkPlain($entity->getModuleName()),
+      'data' => SafeMarkup::checkPlain($entity->getModuleName()),
       'class' => array('ctools-export-ui-module'),
       'title' => strip_tags($entity->getModuleDescription()),
     );
     $row['title'] = $this->getLabel($entity);
-    $row['scheduled'] = '';
-    $row['started'] = '';
-    $row['duration'] = '';
+    $row['scheduled'] = $entity->getPlugin('scheduler')->formatLabel($entity);
+    $row['started'] = \Drupal::service('date.formatter')->format($start_time, "short");
+    $row['duration'] = $duration . ' ms';
     $row['status'] = $entity->status() ? $this->t('Yes') : $this->t('No');
     return $row + parent::buildRow($entity);
   }
@@ -77,7 +85,7 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
 
     // Module.
     $this->rows[$name]['data'][] = array(
-      'data' => String::checkPlain($item->getModuleName()),
+      'data' => SafeMarkup::checkPlain($item->getModuleName()),
       'class' => array('ctools-export-ui-module'),
       'title' => strip_tags($item->getModuleDescription()),
     );
@@ -85,7 +93,7 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
     // If we have an admin title, make it the first row.
     if (!empty($this->plugin['export']['admin_title'])) {
       $this->rows[$name]['data'][] = array(
-        'data' => String::checkPlain($item->{$this->plugin['export']['admin_title']}),
+        'data' => SafeMarkup::checkPlain($item->{$this->plugin['export']['admin_title']}),
         'class' => array('ctools-export-ui-title'),
         'title' => strip_tags($item->name),
       );
@@ -136,7 +144,7 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
 
 
     // Storage.
-    $this->rows[$name]['data'][] = array('data' => String::checkPlain($item->{$schema['export']['export type string']}), 'class' => array('ctools-export-ui-storage'));
+    $this->rows[$name]['data'][] = array('data' => SafeMarkup::checkPlain($item->{$schema['export']['export type string']}), 'class' => array('ctools-export-ui-storage'));
 
   }
 

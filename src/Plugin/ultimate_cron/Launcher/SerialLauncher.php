@@ -320,8 +320,6 @@ class SerialLauncher extends LauncherBase {
       set_time_limit($configuration['timeouts']['max_execution_time']);
     }
 
-    \Drupal::logger('serial_launcher')->info("Cron thread %thread started", array('%thread' => $thread));
-
     $this->runThread($lock_id, $thread, $jobs);
     $lock->unlock($lock_id);
   }

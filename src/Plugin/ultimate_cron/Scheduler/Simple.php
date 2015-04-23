@@ -45,7 +45,7 @@ class Simple extends Crontab {
   public function settingsLabel($name, $value) {
     switch ($name) {
       case 'rules':
-        return isset($value[0]) ? format_interval($this->presets[$value[0]]) : $value;
+        return isset($value[0]) ? \Drupal::service('date.formatter')->formatInterval($this->presets[$value[0]]) : $value;
     }
     return parent::settingsLabel($name, $value);
   }
@@ -54,9 +54,8 @@ class Simple extends Crontab {
    * Label for schedule.
    */
   public function formatLabel($job) {
-    $settings = $job->getSettings($this->type);
     return t('Every @interval', array(
-      '@interval' => format_interval($this->presets[$settings['rules'][0]])
+      '@interval' => \Drupal::service('date.formatter')->formatInterval($this->presets[$this->configuration['rules'][0]])
     ));
   }
 
