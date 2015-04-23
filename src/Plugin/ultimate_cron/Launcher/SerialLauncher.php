@@ -209,28 +209,16 @@ class SerialLauncher extends LauncherBase {
       return FALSE;
     }
 
-    if ($this->currentThread) {
-      $init_message = t('Launched in thread @current_thread', array(
-        '@current_thread' => $this->currentThread,
-      ));
-    }
-    else {
-      $init_message = t('Launched manually');
-    }
-    $log_entry = $job->startLog($lock_id, $init_message);
-
-    drupal_set_message(t('@name: @init_message', array(
-      '@name' => $job->id(),
-      '@init_message' => $init_message,
-    )));
+    $log_entry = $job->startLog($lock_id);
 
     // Run job.
     try {
       $job->run();
-    } catch (Exception $e) {
+    }
+    catch (Exception $e) {
       \Drupal::logger('serial_launcher')->error('Error executing %job: @error', array(
         '%job' => $job->id(),
-        '@error' => $e->getMessage()
+        '@error' => $e->getMessage(),
       ));
       $log_entry->finish();
       $job->unlock($lock_id);
