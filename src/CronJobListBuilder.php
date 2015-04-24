@@ -40,11 +40,7 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
     /* @var \Drupal\ultimate_cron\Entity\CronJob $entity */
     $entry = $entity->loadLatestLogEntry();
     // Start and end as UNIX timestamps.
-    $start_time = $entry->start_time;
-    $end_time = $entry->end_time;
     // Duration in milliseconds.
-    $duration = ($end_time - $start_time) * 1000;
-    $duration = floor($duration);
     $row['module'] = array(
       'data' => SafeMarkup::checkPlain($entity->getModuleName()),
       'class' => array('ctools-export-ui-module'),
@@ -52,8 +48,8 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
     );
     $row['title'] = $this->getLabel($entity);
     $row['scheduled'] = $entity->getPlugin('scheduler')->formatLabel($entity);
-    $row['started'] = \Drupal::service('date.formatter')->format($start_time, "short");
-    $row['duration'] = $duration . ' ms';
+    $row['started'] = \Drupal::service('date.formatter')->format($entry->start_time, "short");
+    $row['duration'] = $this->t('(%durations)', array('%duration' => round($entry->end_time - $entry->start_time, 3)));
     $row['status'] = $entity->status() ? $this->t('Yes') : $this->t('No');
     return $row + parent::buildRow($entity);
   }

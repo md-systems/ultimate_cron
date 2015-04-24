@@ -554,9 +554,9 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
    * @return LoggerBase
    *   The log object.
    */
-  public function startLog($lock_id) {
+  public function startLog($lock_id, $init_message = '', $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL) {
     $logger = $this->getPlugin('logger');
-    $log_entry = $logger->create($this->id(), $lock_id);
+    $log_entry = $logger->create($this->id(), $lock_id, $init_message, $log_type);
     $logger->catchMessages($log_entry);
     return $log_entry;
   }
