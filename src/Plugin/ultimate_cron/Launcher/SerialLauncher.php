@@ -208,7 +208,6 @@ class SerialLauncher extends LauncherBase {
     if (!$lock_id) {
       return FALSE;
     }
-
     if ($this->currentThread) {
       $init_message = t('Launched in thread @current_thread', array(
         '@current_thread' => $this->currentThread,
@@ -220,17 +219,18 @@ class SerialLauncher extends LauncherBase {
     $log_entry = $job->startLog($lock_id, $init_message);
 
     drupal_set_message(t('@name: @init_message', array(
-      '@name' => $job->id(),
-      '@init_message' => $init_message,
-    )));
+        '@name' => $job->id(),
+        '@init_message' => $init_message,
+      )));
 
     // Run job.
     try {
       $job->run();
-    } catch (Exception $e) {
+    }
+    catch (Exception $e) {
       \Drupal::logger('serial_launcher')->error('Error executing %job: @error', array(
         '%job' => $job->id(),
-        '@error' => $e->getMessage()
+        '@error' => $e->getMessage(),
       ));
       $log_entry->finish();
       $job->unlock($lock_id);
@@ -331,8 +331,6 @@ class SerialLauncher extends LauncherBase {
     if ($max_execution_time && $max_execution_time < $configuration['timeouts']['max_execution_time']) {
       set_time_limit($configuration['timeouts']['max_execution_time']);
     }
-
-    \Drupal::logger('serial_launcher')->info("Cron thread %thread started", array('%thread' => $thread));
 
     $this->runThread($lock_id, $thread, $jobs);
     $lock->unlock($lock_id);
