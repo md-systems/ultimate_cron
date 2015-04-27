@@ -7,6 +7,7 @@
 namespace Drupal\ultimate_cron\Tests;
 
 use Drupal\simpletest\WebTestBase;
+use Drupal\Component\Utility\SafeMarkup;
 
 /**
  * Cron Job Form Testing
@@ -49,6 +50,11 @@ class CronJobFormTest extends WebTestBase {
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertResponse('200');
 
+    // Check for the default schedule.
+    $this->assertText('Every 15 min', "Job has correct schedule.");
+    // Check that the Cron job has never run.
+    $this->assertText('Never', "Job has not run yet.");
+
     // Start adding a new job.
     $this->clickLink(t('Add job'));
     $this->assertResponse('200');
@@ -82,6 +88,7 @@ class CronJobFormTest extends WebTestBase {
 
     // Save the new job.
     $this->drupalPostForm(NULL, $edit, t('Save'));
+    $this->assertText(SafeMarkup::format('@time', array('@time' => \Drupal::service('date.formatter')->format(time(), "short"))), "Created Cron job has been run.");
 
     // Assert drupal_set_message for successful updated job.
     $this->assertText(t('job @name has been updated.', array('@name' => $this->job_name)));
