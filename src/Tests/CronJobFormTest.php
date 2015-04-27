@@ -90,6 +90,7 @@ class CronJobFormTest extends WebTestBase {
     $this->drupalPostForm(NULL, $edit, t('Save'));
     // Assert the edited Job hasn't run yet.
     $this->assertNoUniqueText('Never');
+    // Assert drupal_set_message for successful updated job.
     $this->assertText(t('job @name has been updated.', array('@name' => $this->job_name)));
 
     // Run the Jobs.
@@ -99,7 +100,6 @@ class CronJobFormTest extends WebTestBase {
     // Assert the cron jobs hav been run.
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertNoUniqueText(SafeMarkup::format('@time', array('@time' => \Drupal::service('date.formatter')->format(time(), "short"))), "Created Cron jobs have been run.");
-    // Assert drupal_set_message for successful updated job.
 
     //Assert cron job overview for recently updated job.
     $this->drupalGet('admin/config/system/cron/jobs');
