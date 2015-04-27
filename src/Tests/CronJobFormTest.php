@@ -84,14 +84,22 @@ class CronJobFormTest extends WebTestBase {
     // Set new cron job configuration and save the old job name.
     $old_job_name = $this->job_name;
     $this->job_name = 'edited job name';
-    $edit = array('title' => $this->job_name,);
+    $edit = array('title' => $this->job_name);
 
     // Save the new job.
     $this->drupalPostForm(NULL, $edit, t('Save'));
-    $this->assertText(SafeMarkup::format('@time', array('@time' => \Drupal::service('date.formatter')->format(time(), "short"))), "Created Cron job has been run.");
-
-    // Assert drupal_set_message for successful updated job.
+    // Assert the edited Job hasn't run yet.
+    $this->assertNoUniqueText('Never');
     $this->assertText(t('job @name has been updated.', array('@name' => $this->job_name)));
+
+    // Run the Jobs.
+    $this->drupalGet('admin/config/system/cron/');
+    $this->drupalPostForm(NULL, array(), t('Run cron'));
+
+    // Assert the cron jobs hav been run.
+    $this->drupalGet('admin/config/system/cron/jobs');
+    $this->assertNoUniqueText(SafeMarkup::format('@time', array('@time' => \Drupal::service('date.formatter')->format(time(), "short"))), "Created Cron jobs have been run.");
+    // Assert drupal_set_message for successful updated job.
 
     //Assert cron job overview for recently updated job.
     $this->drupalGet('admin/config/system/cron/jobs');

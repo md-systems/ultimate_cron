@@ -97,7 +97,7 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
   public function postSave(EntityStorageInterface $storage, $update = TRUE) {
     parent::postSave($storage, $update);
     if ($update && empty($this->dont_log)) {
-      $log = $this->startLog(uniqid($this->id(), TRUE));
+      $log = $this->startLog(uniqid($this->id(), TRUE), '', ULTIMATE_CRON_LOG_TYPE_ADMIN);
       $log->log($this->id(), 'Job modified by ' . $log->formatUser(), array(), RfcLogLevel::INFO);
       $log->finish();
     }
