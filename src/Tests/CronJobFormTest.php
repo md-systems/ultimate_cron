@@ -50,10 +50,10 @@ class CronJobFormTest extends WebTestBase {
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertResponse('200');
 
-    // Check for the default schedule.
-    $this->assertText('Every 15 min', "Job has correct schedule.");
-    // Check that the Cron job has never run.
-    $this->assertText('Never', "Job has not run yet.");
+    // Check for the default schedule message in Job list.
+    $this->assertText('Every 15 min');
+    // Check for the Last Run default value.
+    $this->assertText('Never');
 
     // Start adding a new job.
     $this->clickLink(t('Add job'));
