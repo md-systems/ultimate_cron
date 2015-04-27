@@ -165,7 +165,7 @@ class Crontab extends SchedulerBase {
       }
       $job_last_ran = $registered[$job->id()];
     }
-    
+
     $settings = $job->getSettings($this->type);
 
     $skew = $this->getSkew($job);
