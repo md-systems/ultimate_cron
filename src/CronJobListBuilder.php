@@ -8,7 +8,6 @@
 namespace Drupal\ultimate_cron;
 
 use Drupal\Component\Utility\SafeMarkup;
-use Drupal\Core\Url;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
 
