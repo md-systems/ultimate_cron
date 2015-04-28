@@ -40,8 +40,6 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
     $job_status = SafeMarkup::format('<img src="@s" title="@l"><span></span></img>', array("@s" => file_create_url($icon), "@l" => "Job is behind schedule!"));
 
     $entry = $entity->loadLatestLogEntry();
-    // Start and end as UNIX timestamps.
-    // Duration in milliseconds.
     $row['module'] = array(
       'data' => SafeMarkup::checkPlain($entity->getModuleName()),
       'class' => array('ctools-export-ui-module'),
@@ -54,7 +52,9 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
     else {
       $row['scheduled'] = $entity->getPlugin('scheduler')->formatLabel($entity);
     }
+    // If the start time is 0, the jobs have never been run.
     $row['started'] = $entry->start_time ? \Drupal::service('date.formatter')->format($entry->start_time, "short") : $this->t('Never');
+    // In milliseconds.
     $row['duration'] = round(($entry->end_time - $entry->start_time) * 1000, 0);
     $row['status'] = $entity->status() ? $this->t('Yes') : $this->t('No');
     return $row + parent::buildRow($entity);

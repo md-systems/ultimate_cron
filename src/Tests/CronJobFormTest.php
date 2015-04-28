@@ -94,14 +94,16 @@ class CronJobFormTest extends WebTestBase {
     $this->assertText(t('job @name has been updated.', array('@name' => $this->job_name)));
 
     // Run the Jobs.
-    $this->drupalGet('admin/config/system/cron/');
-    $this->drupalPostForm(NULL, array(), t('Run cron'));
+    $this->cronRun();
 
-    // Assert the cron jobs hav been run.
+    // Assert the cron jobs have been run by checking the time.
     $this->drupalGet('admin/config/system/cron/jobs');
-    $this->assertNoUniqueText(SafeMarkup::format('@time', array('@time' => \Drupal::service('date.formatter')->format(time(), "short"))), "Created Cron jobs have been run.");
+    $this->assertNoUniqueText(SafeMarkup::format('@time', array('@time' => \Drupal::service('date.formatter')->format(\Drupal::state()->get('system.cron_last'), "short"))), "Created Cron jobs have been run.");
 
-    //Assert cron job overview for recently updated job.
+    // Check that all jobs have been run.
+    $this->assertNoText("Never");
+
+    // Assert cron job overview for recently updated job.
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertNoText($old_job_name);
     $this->assertText($this->job_name);
