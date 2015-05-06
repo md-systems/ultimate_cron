@@ -4,12 +4,10 @@
  * Ultimate Cron. Extend cron functionality in Drupal.
  */
 
-use Drupal\Component\Utility\String;
 use Drupal\Core\Logger\RfcLogLevel;
 use Drupal\ultimate_cron\Logger\LoggerBase;
 use Drupal\ultimate_cron\CronRule;
 use Drupal\ultimate_cron\Entity\CronJob;
-use Drupal\ultimate_cron\CronPlugin;
 
 //include dirname(__FILE__) . '/ultimate_cron.poorman.inc';
 
