@@ -7,7 +7,6 @@
 namespace Drupal\ultimate_cron\Logger;
 
 use Drupal\Component\Utility\SafeMarkup;
-use Drupal\Component\Utility\String;
 use Drupal\Core\Logger\RfcLogLevel;
 
 /**
