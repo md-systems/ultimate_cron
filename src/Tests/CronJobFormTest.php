@@ -7,6 +7,7 @@
 namespace Drupal\ultimate_cron\Tests;
 
 use Drupal\simpletest\WebTestBase;
+use Drupal\Component\Utility\SafeMarkup;
 
 /**
  * Cron Job Form Testing
@@ -49,6 +50,11 @@ class CronJobFormTest extends WebTestBase {
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertResponse('200');
 
+    // Check for the default schedule message in Job list.
+    $this->assertText('Every 15 min');
+    // Check for the Last Run default value.
+    $this->assertText('Never');
+
     // Start adding a new job.
     $this->clickLink(t('Add job'));
     $this->assertResponse('200');
@@ -78,15 +84,26 @@ class CronJobFormTest extends WebTestBase {
     // Set new cron job configuration and save the old job name.
     $old_job_name = $this->job_name;
     $this->job_name = 'edited job name';
-    $edit = array('title' => $this->job_name,);
+    $edit = array('title' => $this->job_name);
 
     // Save the new job.
     $this->drupalPostForm(NULL, $edit, t('Save'));
-
+    // Assert the edited Job hasn't run yet.
+    $this->assertNoUniqueText('Never');
     // Assert drupal_set_message for successful updated job.
     $this->assertText(t('job @name has been updated.', array('@name' => $this->job_name)));
 
-    //Assert cron job overview for recently updated job.
+    // Run the Jobs.
+    $this->cronRun();
+
+    // Assert the cron jobs have been run by checking the time.
+    $this->drupalGet('admin/config/system/cron/jobs');
+    $this->assertNoUniqueText(SafeMarkup::format('@time', array('@time' => \Drupal::service('date.formatter')->format(\Drupal::state()->get('system.cron_last'), "short"))), "Created Cron jobs have been run.");
+
+    // Check that all jobs have been run.
+    $this->assertNoText("Never");
+
+    // Assert cron job overview for recently updated job.
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertNoText($old_job_name);
     $this->assertText($this->job_name);

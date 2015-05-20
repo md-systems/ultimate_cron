@@ -8,7 +8,6 @@
 namespace Drupal\ultimate_cron;
 
 use Drupal\Component\Utility\SafeMarkup;
-use Drupal\Component\Utility\String;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
 
@@ -27,29 +26,36 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
     $header['module'] = array('data' => t('Module'));
     $header['title'] = array('data' => t('Title'));
     $header['scheduled'] = array('data' => t('Scheduled'));
-    $header['started'] = array('data' => t('Started'));
-    $header['duration'] = array('data' => t('Duration'));
+    $header['started'] = array('data' => t('Last Run'));
+    $header['duration'] = array('data' => t('Duration in ms'));
     $header['status'] = array('data' => t('Status'));
     return $header + parent::buildHeader();
   }
-
   /**
    * {@inheritdoc}
    */
   public function buildRow(EntityInterface $entity) {
     /* @var \Drupal\ultimate_cron\Entity\CronJob $entity */
+    $icon = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
+    $job_status = SafeMarkup::format('<img src="@s" title="@l"><span></span></img>', array("@s" => file_create_url($icon), "@l" => "Job is behind schedule!"));
+
     $entry = $entity->loadLatestLogEntry();
-    // Start and end as UNIX timestamps.
-    // Duration in milliseconds.
     $row['module'] = array(
       'data' => SafeMarkup::checkPlain($entity->getModuleName()),
       'class' => array('ctools-export-ui-module'),
       'title' => strip_tags($entity->getModuleDescription()),
     );
     $row['title'] = $this->getLabel($entity);
-    $row['scheduled'] = $entity->getPlugin('scheduler')->formatLabel($entity);
-    $row['started'] = \Drupal::service('date.formatter')->format($entry->start_time, "short");
-    $row['duration'] = $this->t('(%durations)', array('%duration' => round($entry->end_time - $entry->start_time, 3)));
+    if ($entity->isScheduled()) {
+      $row['scheduled'] = SafeMarkup::format('@label !icon', array('@label' => $entity->getPlugin('scheduler')->formatLabel($entity), '!icon' => $job_status));
+    }
+    else {
+      $row['scheduled'] = $entity->getPlugin('scheduler')->formatLabel($entity);
+    }
+    // If the start time is 0, the jobs have never been run.
+    $row['started'] = $entry->start_time ? \Drupal::service('date.formatter')->format($entry->start_time, "short") : $this->t('Never');
+    // In milliseconds.
+    $row['duration'] = round(($entry->end_time - $entry->start_time) * 1000, 0);
     $row['status'] = $entity->status() ? $this->t('Yes') : $this->t('No');
     return $row + parent::buildRow($entity);
   }
