@@ -1,20 +1,15 @@
 <?php
 /**
- * Created by PhpStorm.
- * User: berdir
- * Date: 4/4/14
- * Time: 3:01 PM
+ * @file
+ * CronPlugin for Ultimate Cron.
  */
-
 
 namespace Drupal\ultimate_cron;
 use Drupal\Component\Plugin\ConfigurablePluginInterface;
 use Drupal\Component\Plugin\PluginInspectionInterface;
-use Drupal\Component\Utility\NestedArray;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Plugin\PluginBase;
 use Drupal\Core\Plugin\PluginFormInterface;
-use Drupal\ultimate_cron\Entity\CronJob;
 
 /**
  * This is the base class for all Ultimate Cron plugins.
@@ -121,23 +116,6 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
    */
   static public function setGlobalOption($name, $value) {
     static::$globalOptions[$name] = $value;
-  }
-
-  /**
-   * Remove a global plugin option.
-   *
-   * @param string $name
-   *   Name of global plugin option to remove.
-   */
-  static public function unsetGlobalOption($name) {
-    unset(static::$globalOptions[$name]);
-  }
-
-  /**
-   * Remove all global plugin options.
-   */
-  static public function unsetGlobalOptions() {
-    static::$globalOptions = array();
   }
 
   /**
@@ -261,19 +239,6 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
   }
 
   /**
-   * A hook_cronapi() for plugins.
-   */
-  public function cronapi() {
-    return array();
-  }
-
-  /**
-   * A hook_cron_alter() for plugins.
-   */
-  public function cron_alter(&$jobs) {
-  }
-
-  /**
    * A hook_cron_pre_schedule() for plugins.
    */
   public function cron_pre_schedule($job) {
@@ -322,18 +287,6 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
   }
 
   /**
-   * Signal page for plugins.
-   */
-  public function signal($item, $signal) {
-  }
-
-  /**
-   * Allow plugins to alter the allowed operations for a job.
-   */
-  public function build_operations_alter($job, &$allowed_operations) {
-  }
-
-  /**
    * Get label for a specific setting.
    */
   public function settingsLabel($name, $value) {
@@ -343,32 +296,6 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
     else {
       return $value;
     }
-  }
-
-  /**
-   * Format label for the plugin.
-   *
-   * @param CronJob $job
-   *   The job for format the plugin label for.
-   *
-   * @return string
-   *   Formatted label.
-   */
-  public function formatLabel($job) {
-    return $job->id();
-  }
-
-  /**
-   * Format verbose label for the plugin.
-   *
-   * @param CronJob $job
-   *   The job for format the verbose plugin label for.
-   *
-   * @return string
-   *   Verbosely formatted label.
-   */
-  public function formatLabelVerbose($job) {
-    return $job->getTitle();
   }
 
   /**
@@ -439,35 +366,13 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
   }
 
   /**
-   * Default settings form.
-   */
-  static public function defaultSettingsForm(&$form, &$form_state, $plugin_info) {
-    $plugin_type = $plugin_info['type'];
-    $static = $plugin_info['defaults']['static'];
-    $key = 'ultimate_cron_plugin_' . $plugin_type . '_default';
-    $options = array();
-    foreach (ultimate_cron_plugin_load_all($plugin_type) as $name => $plugin) {
-      if ($plugin->isValid()) {
-        $options[$name] = $plugin->title;
-      }
-    }
-    $form[$key] = array(
-      '#type' => 'select',
-      '#options' => $options,
-      '#default_value' => variable_get($key, $static['default plugin']),
-      '#title' => t('Default @plugin_type', array('@plugin_type' => $static['title singular'])),
-    );
-    $form = system_settings_form($form);
-  }
-
-  /**
    * Process fallback form parameters.
    *
    * @param array $elements
    *   Elements to process.
    * @param array $defaults
    *   Default values to add to description.
-   * @param boolean $remove_non_fallbacks
+   * @param bool $remove_non_fallbacks
    *   If TRUE, non fallback elements will be removed.
    */
   public function fallbackalize(&$elements, &$values, $defaults, $remove_non_fallbacks = FALSE) {
@@ -495,14 +400,14 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
           if ($element['#type'] == 'radios') {
             $label = $this->settingsLabel($child, $defaults[$child]);
             $element['#options'] = array(
-                '' => t('Default (@default)', array('@default' => $label)),
-              ) + $element['#options'];
+              '' => t('Default (@default)', array('@default' => $label)),
+            ) + $element['#options'];
           }
           elseif ($element['#type'] == 'select' && empty($element['#multiple'])) {
             $label = $this->settingsLabel($child, $defaults[$child]);
             $element['#options'] = array(
-                '' => t('Default (@default)', array('@default' => $label)),
-              ) + $element['#options'];
+              '' => t('Default (@default)', array('@default' => $label)),
+            ) + $element['#options'];
           }
           elseif ($defaults[$child] !== '') {
             $element['#description'] .= ' ' . t('(Blank = @default).', array('@default' => $this->settingsLabel($child, $defaults[$child])));
@@ -520,4 +425,5 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
       }
     }
   }
+
 }
