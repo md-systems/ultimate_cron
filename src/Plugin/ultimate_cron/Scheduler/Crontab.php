@@ -34,7 +34,8 @@ class Crontab extends SchedulerBase {
    * {@inheritdoc}
    */
   public function formatLabel(CronJob $job) {
-    return t('Rule: @rule', ['@rule' => $job->getSchedulerId()['configuration']['rules'][0]]);
+    $settings = $job->getPluginSettings('scheduler');
+    return implode("\n", $settings[$this->getPluginId()]['rules']);
   }
 
   /**
