@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * CronPlugin for Ultimate Cron.
+ * Contains \Drupal\ultimate_cron\CronPlugin.
  */
 
 namespace Drupal\ultimate_cron;
