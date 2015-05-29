@@ -14,7 +14,9 @@ class CronJobHelper {
   /**
    * Creates a new cron job with specific values.
    *
-   * @param $info
+   * @param array $info
+   *   Module info.
+   * @param string $id
    *   Module name.
    */
   public static function ensureCronJobExists($info, $id) {
@@ -23,9 +25,7 @@ class CronJobHelper {
 
     if (!CronJob::load($id)) {
       $callback = $info['callback'];
-      debug($callback);
       $title = isset($module_titles[$callback]) ? $module_titles[$callback]['title'] : 'Default cron handler';
-
       $values = array(
         'title' => $title,
         'id' => $id,
