@@ -360,10 +360,9 @@ function drush_ultimate_cron_cron_job_get($name = NULL) {
     return drush_set_error(dt('No job specified?'));
   }
   $job = ultimate_cron_job_load($name);
-  require_once drupal_get_path('module', 'ultimate_cron') . '/includes/nicejson.php';
   $settings = drush_get_option('fallback') ? $job->getSettings() : $job->settings;
-  $nicejson = json_format(drupal_json_encode($settings));
-  drush_print($nicejson);
+  $pretty_print = json_encode($settings, JSON_PRETTY_PRINT);
+  drush_print($pretty_print);
 }
 
 /**
@@ -400,9 +399,8 @@ function drush_ultimate_cron_cron_job_set($name = NULL, $settings = NULL) {
     }
   }
 
-  require_once drupal_get_path('module', 'ultimate_cron') . '/includes/nicejson.php';
-  $nicejson = json_format(drupal_json_encode($job->settings));
-  drush_print($nicejson);
+  $pretty_print = json_encode($job->settings, JSON_PRETTY_PRINT);
+  drush_print($pretty_print);
   if (drush_confirm(dt('Do you want to update the job with the above settings?'))) {
     ctools_include('export');
     ctools_export_crud_save('ultimate_cron_job', $job);
