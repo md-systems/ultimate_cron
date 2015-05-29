@@ -5,7 +5,7 @@
  * Contains \Drupal\Tests\ultimate_cron\RulesUnitTest.
  */
 
-namespace Drupal\Tests\ultimate_cron\Unit;
+namespace Drupal\Tests\ultimate_cron\Unit\RulesUnitTest;
 
 use Drupal\Tests\UnitTestCase;
 use Drupal\ultimate_cron\CronRule;
