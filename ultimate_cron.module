@@ -21,6 +21,8 @@ function _ultimate_cron_define_log_type_all() {
   return array(ULTIMATE_CRON_LOG_TYPE_NORMAL, ULTIMATE_CRON_LOG_TYPE_ADMIN);
 }
 
+$GLOBALS['ultimate_cron_shutdown_functions'] = array();
+
 /**
  * The shutdown function itself is also overridable.
  *
