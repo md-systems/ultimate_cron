@@ -2,10 +2,10 @@
 /**
  * @file
  *
- * Contains \Drupal\Tests\ultimate_cron\RulesUnitTest.
+ * Contains \Drupal\Tests\ultimate_cron\Unit\RulesUnitTest.
  */
 
-namespace Drupal\Tests\ultimate_cron\Unit\RulesUnitTest;
+namespace Drupal\Tests\ultimate_cron\Unit;
 
 use Drupal\Tests\UnitTestCase;
 use Drupal\ultimate_cron\CronRule;
