@@ -195,7 +195,6 @@ function ultimate_cron_prepare_job($name, $hook, $job = NULL) {
   }
 
   // We do alot of += on arrays. Let's make sure we have an array to begin with.
-  ctools_include('plugins');
   $plugin_types = ctools_plugin_get_plugin_type_info();
   foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
     $class = $info['defaults']['static']['class'];
@@ -395,7 +394,6 @@ function ultimate_cron_plugin_cleanup($job, $arguments) {
 function ultimate_cron_cronapi() {
   $items = array();
 
-  ctools_include('plugins');
   $plugin_types = ctools_plugin_get_plugin_type_info();
   foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
     foreach (ultimate_cron_plugin_load_all($plugin_type) as $name => $plugin) {
@@ -737,7 +735,6 @@ function ultimate_cron_prepare_hooks(&$hooks) {
   static $plugin_types;
   static $plugins;
   if (!isset($plugin_types)) {
-    ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     $plugins = array();
     foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
