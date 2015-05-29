@@ -150,7 +150,7 @@ class Crontab extends SchedulerBase {
    */
   public function isBehind(CronJob $job) {
     // Disabled jobs are not behind!
-    if (!empty($job->disabled)) {
+    if (!$job->status()) {
       return FALSE;
     }
 
@@ -159,14 +159,10 @@ class Crontab extends SchedulerBase {
     // Check the registered time, and use that if it's available.
     $job_last_ran = $log_entry->start_time;
     if (!$job_last_ran) {
-      $registered = variable_get('ultimate_cron_hooks_registered', array());
-      if (empty($registered[$job->id()])) {
-        return FALSE;
-      }
-      $job_last_ran = $registered[$job->id()];
+      return FALSE;
     }
 
-    $settings = $job->getSettings($this->type);
+    $settings = $job->getPluginSettings('scheduler')['crontab'];
 
     $skew = $this->getSkew($job);
     $next_schedule = NULL;

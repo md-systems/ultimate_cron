@@ -20,12 +20,16 @@ class CronJobKernelTest extends KernelTestBase {
    *
    * @var array
    */
-  public static $modules = array('ultimate_cron');
+  public static $modules = array('system', 'ultimate_cron');
 
   protected function setup() {
     parent::setUp();
 
-    $this->installSchema('ultimate_cron', 'ultimate_cron_log');
+    $this->installSchema('system', 'router');
+    $this->installSchema('ultimate_cron', [
+      'ultimate_cron_log',
+      'ultimate_cron_lock',
+    ]);
   }
 
   /**
@@ -53,4 +57,5 @@ class CronJobKernelTest extends KernelTestBase {
     $this->assertEqual($cron_job->id(), 'example');
     $this->assertFalse($cron_job->status());
   }
+
 }

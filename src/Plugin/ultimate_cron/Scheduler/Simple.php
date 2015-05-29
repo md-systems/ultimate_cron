@@ -5,6 +5,7 @@
  */
 
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler;
+use Drupal\ultimate_cron\CronRule;
 use Drupal\ultimate_cron\Entity\CronJob;
 
 /**
