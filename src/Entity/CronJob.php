@@ -327,7 +327,6 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
    * Allow a job to alter the allowed operations on it in the Export UI.
    */
   public function build_operations_alter(&$allowed_operations) {
-    ctools_include('plugins');
     $plugin_types = ctools_plugin_get_plugin_type_info();
     foreach ($plugin_types['ultimate_cron'] as $name => $info) {
       $static = $info['defaults']['static'];
@@ -785,7 +784,6 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
    * Rebuild a row on the export ui.
    */
   public function rebuild_ctools_export_ui_table_row() {
-    ctools_include('export-ui');
     $plugin = ctools_get_export_ui('ultimate_cron_job_ctools_export_ui');
     $handler = ctools_export_ui_get_handler($plugin);
     $operations = $handler->build_operations($this);
