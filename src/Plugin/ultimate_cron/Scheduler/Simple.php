@@ -5,6 +5,7 @@
  */
 
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler;
+use Drupal\ultimate_cron\Entity\CronJob;
 
 /**
  * Simple scheduler.
@@ -31,7 +32,7 @@ class Simple extends Crontab {
   );
 
   /**
-   * Default settings.
+   * {@inheritdoc}
    */
   public function defaultConfiguration() {
     return array(
@@ -40,7 +41,7 @@ class Simple extends Crontab {
   }
 
   /**
-   * Label for settings.
+   * {@inheritdoc}
    */
   public function settingsLabel($name, $value) {
     switch ($name) {
@@ -51,18 +52,18 @@ class Simple extends Crontab {
   }
 
   /**
-   * Label for schedule.
+   * {@inheritdoc}
    */
-  public function formatLabel($job) {
+  public function formatLabel(CronJob $job) {
     return t('Every @interval', array(
-      '@interval' => \Drupal::service('date.formatter')->formatInterval($this->presets[$this->configuration['rules'][0]])
+      '@interval' => \Drupal::service('date.formatter')->formatInterval($this->presets[$this->configuration['rules'][0]]),
     ));
   }
 
   /**
-   * Settings form for the simple scheduler.
+   * {@inheritdoc}
    */
-  public function settingsForm(&$form, &$form_state, $job = NULL) {
+  public function settingsForm(array &$form, array &$form_state, CronJob $job = NULL) {
     $date_formatter = \Drupal::service('date.formatter');
     $intervals = array_map(array($date_formatter, 'formatInterval'), $this->presets);
 

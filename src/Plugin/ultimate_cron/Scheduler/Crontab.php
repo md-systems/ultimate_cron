@@ -31,17 +31,17 @@ class Crontab extends SchedulerBase {
   }
 
   /**
-   * Label for schedule.
+   * {@inheritdoc}
    */
-  public function formatLabel($job) {
+  public function formatLabel(CronJob $job) {
     $settings = $job->getSettings($this->type);
     return implode("\n", $settings['rules']);
   }
 
   /**
-   * Label for schedule.
+   * {@inheritdoc}
    */
-  public function formatLabelVerbose($job) {
+  public function formatLabelVerbose(CronJob $job) {
     $settings = $job->getSettings($this->type);
 
     $parsed = '';
@@ -66,9 +66,9 @@ class Crontab extends SchedulerBase {
   }
 
   /**
-   * Settings form for the crontab scheduler.
+   * {@inheritdoc}
    */
-  public function settingsForm(&$form, &$form_state, $job = NULL) {
+  public function settingsForm(array &$form, array &$form_state, CronJob $job = NULL) {
     $form['rules'] = array(
       '#title' => t("Rules"),
       '#type' => 'textfield',
@@ -104,9 +104,9 @@ class Crontab extends SchedulerBase {
   }
 
   /**
-   * Submit handler.
+   * {@inheritdoc}
    */
-  public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
+  public function settingsFormSubmit(array &$form, array &$form_state, CronJob $job = NULL) {
     $values = & $form_state['values']['settings'][$this->type][$this->name];
 
     if (!empty($values['rules'])) {
@@ -116,9 +116,9 @@ class Crontab extends SchedulerBase {
   }
 
   /**
-   * Schedule handler.
+   * {@inheritdoc}
    */
-  public function isScheduled($job) {
+  public function isScheduled(CronJob $job) {
     $settings = $job->getSettings('scheduler')[$this->getPluginId()];
     $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
     $skew = $this->getSkew($job);
@@ -127,7 +127,7 @@ class Crontab extends SchedulerBase {
   }
 
   /**
-   * Check crontab rules against times.
+   * {@inheritdoc}
    */
   static public function shouldRun($rules, $job_last_ran, $time = NULL, $catch_up = 0, $skew = 0) {
     $time = is_null($time) ? time() : $time;
@@ -146,9 +146,9 @@ class Crontab extends SchedulerBase {
   }
 
   /**
-   * Determine if job is behind schedule.
+   * {@inheritdoc}
    */
-  public function isBehind($job) {
+  public function isBehind(CronJob $job) {
     // Disabled jobs are not behind!
     if (!empty($job->disabled)) {
       return FALSE;

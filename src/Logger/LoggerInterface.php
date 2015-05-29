@@ -18,6 +18,13 @@ use Drupal\Core\Plugin\PluginFormInterface;
 interface LoggerInterface extends PluginInspectionInterface, ConfigurablePluginInterface, PluginFormInterface {
 
   /**
+   * Returns the default configuration.
+   *
+   * @return mixed
+   */
+  public function defaultConfiguration();
+
+  /**
    * Factory method for creating a new unsaved log entry object.
    *
    * @param string $name
