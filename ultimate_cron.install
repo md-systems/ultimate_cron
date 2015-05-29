@@ -154,8 +154,6 @@ function ultimate_cron_schema() {
 function ultimate_cron_install() {
   \Drupal::configFactory()->getEditable('system.cron')->set('threshold.autorun', 0)->save();
   foreach (ultimate_cron_get_hooks() as $id => $info) {
-    debug($id, 'KEY');
-    debug($info, 'VALUE');
     CronJobHelper::ensureCronJobExists($info, $id);
   }
 }
