@@ -3,8 +3,10 @@
  * @file
  * Serial cron job launcher for Ultimate Cron.
  */
+
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Launcher;
 
+use Drupal\ultimate_cron\Entity\CronJob;
 use Drupal\ultimate_cron\Launcher\LauncherBase;
 use Exception;
 
@@ -145,7 +147,7 @@ class SerialLauncher extends LauncherBase {
   /**
    * Lock job.
    */
-  public function lock($job) {
+  public function lock(CronJob $job) {
     $configuration = $job->getSettings('launcher')['serial'];
     $timeout = $configuration['timeouts']['lock_timeout'];
 
@@ -169,7 +171,7 @@ class SerialLauncher extends LauncherBase {
   /**
    * Check if job is locked.
    */
-  public function isLocked($job) {
+  public function isLocked(CronJob $job) {
     $lock = \Drupal::service('ultimate_cron.lock');
     $lock_id = $lock->isLocked($job->id());
     return $lock_id ? $this->name . '-' . $lock_id : $lock_id;
@@ -178,7 +180,7 @@ class SerialLauncher extends LauncherBase {
   /**
    * Check lock for multiple jobs.
    */
-  public function isLockedMultiple($jobs) {
+  public function isLockedMultiple(array $jobs) {
     $names = array();
     foreach ($jobs as $job) {
       $names[] = $job->id();
@@ -202,7 +204,7 @@ class SerialLauncher extends LauncherBase {
   /**
    * Launcher.
    */
-  public function launch($job) {
+  public function launch(CronJob $job) {
     $lock_id = $job->lock();
 
     if (!$lock_id) {
@@ -283,7 +285,7 @@ class SerialLauncher extends LauncherBase {
   /**
    * Launch manager.
    */
-  public function launchJobs($jobs) {
+  public function launchJobs(array $jobs) {
     $lock = \Drupal::service('ultimate_cron.lock');
     $configuration = $this->getConfiguration();
 
