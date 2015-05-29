@@ -34,7 +34,7 @@ class SerialLauncher extends LauncherBase {
   }
 
   /**
-   * Default settings.
+   * {@inheritdoc}
    */
   public function defaultConfiguration() {
     return array(
@@ -51,7 +51,7 @@ class SerialLauncher extends LauncherBase {
   }
 
   /**
-   * Settings form for the crontab scheduler.
+   * {@inheritdoc}
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
     $form['timeouts'] = array(
@@ -130,7 +130,7 @@ class SerialLauncher extends LauncherBase {
   }
 
   /**
-   * Settings form validator.
+   * {@inheritdoc}
    */
   public function settingsFormValidate(&$form, &$form_state, $job = NULL) {
     $elements = & $form['configuration'][$this->type][$this->name];
@@ -145,7 +145,7 @@ class SerialLauncher extends LauncherBase {
   }
 
   /**
-   * Lock job.
+   * {@inheritdoc}
    */
   public function lock(CronJob $job) {
     $configuration = $job->getSettings('launcher')['serial'];
@@ -160,7 +160,7 @@ class SerialLauncher extends LauncherBase {
   }
 
   /**
-   * Unlock job.
+   * {@inheritdoc}
    */
   public function unlock($lock_id, $manual = FALSE) {
     list($launcher, $lock_id) = explode('-', $lock_id, 2);
@@ -169,7 +169,7 @@ class SerialLauncher extends LauncherBase {
   }
 
   /**
-   * Check if job is locked.
+   * {@inheritdoc}
    */
   public function isLocked(CronJob $job) {
     $lock = \Drupal::service('ultimate_cron.lock');
@@ -178,7 +178,7 @@ class SerialLauncher extends LauncherBase {
   }
 
   /**
-   * Check lock for multiple jobs.
+   * {@inheritdoc}
    */
   public function isLockedMultiple(array $jobs) {
     $names = array();
@@ -194,7 +194,7 @@ class SerialLauncher extends LauncherBase {
   }
 
   /**
-   * Cleanup.
+   * {@inheritdoc}
    */
   public function cleanup() {
     $lock = \Drupal::service('ultimate_cron.lock');
@@ -202,7 +202,7 @@ class SerialLauncher extends LauncherBase {
   }
 
   /**
-   * Launcher.
+   * {@inheritdoc}
    */
   public function launch(CronJob $job) {
     $lock_id = $job->lock();
@@ -245,7 +245,7 @@ class SerialLauncher extends LauncherBase {
   }
 
   /**
-   * Find a free thread for running cron jobs.
+   * {@inheritdoc}
    */
   public function findFreeThread($lock, $lock_timeout = NULL, $timeout = 3) {
     $configuration = $this->getConfiguration();
@@ -283,7 +283,7 @@ class SerialLauncher extends LauncherBase {
   }
 
   /**
-   * Launch manager.
+   * {@inheritdoc}
    */
   public function launchJobs(array $jobs) {
     $lock = \Drupal::service('ultimate_cron.lock');
@@ -339,14 +339,7 @@ class SerialLauncher extends LauncherBase {
   }
 
   /**
-   * Run jobs in thread.
-   *
-   * @param string $lock_id
-   *   The lock id.
-   * @param string $thread
-   *   The tread number.
-   * @param \Drupal\ultimate_cron\Entity\CronJob[] $jobs
-   *   The UltimateCronJobs to run.
+   * {@inheritdoc}
    */
   public function runThread($lock_id, $thread, $jobs) {
     $lock = \Drupal::service('ultimate_cron.lock');
@@ -388,7 +381,7 @@ class SerialLauncher extends LauncherBase {
   }
 
   /**
-   * Poormans cron launcher.
+   * {@inheritdoc}
    */
   public function launchPoorman() {
     $lock = \Drupal::service('ultimate_cron.lock');
