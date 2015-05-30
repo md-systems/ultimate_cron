@@ -60,7 +60,7 @@ interface SchedulerInterface extends PluginInspectionInterface, ConfigurablePlug
    * @param \Drupal\ultimate_cron\Entity\CronJob $job
    *   The job for which the settings form applies.
    */
-  public function settingsFormSubmit(array &$form, array &$form_state, CronJob $job = NULL);
+  public function settingsFormSubmit(&$form, &$form_state, CronJob $job = NULL);
 
   /**
    * Check job schedule.

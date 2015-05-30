@@ -106,7 +106,7 @@ class Crontab extends SchedulerBase {
   /**
    * {@inheritdoc}
    */
-  public function settingsFormSubmit(array &$form, array &$form_state, CronJob $job = NULL) {
+  public function settingsFormSubmit(&$form, &$form_state, CronJob $job = NULL) {
     $values = & $form_state['values']['settings'][$this->type][$this->name];
 
     if (!empty($values['rules'])) {
