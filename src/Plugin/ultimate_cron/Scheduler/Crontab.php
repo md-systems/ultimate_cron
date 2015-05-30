@@ -68,7 +68,7 @@ class Crontab extends SchedulerBase {
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(array &$form, array &$form_state, CronJob $job = NULL) {
+  public function settingsForm(&$form, &$form_state, CronJob $job = NULL) {
     $form['rules'] = array(
       '#title' => t("Rules"),
       '#type' => 'textfield',

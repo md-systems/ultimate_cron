@@ -41,14 +41,14 @@ interface SchedulerInterface extends PluginInspectionInterface, ConfigurablePlug
   /**
    * Settings form for the scheduler.
    *
-   * @param array &$form
+   * @param string|array &$form
    *   The form.
-   * @param array $form_state
+   * @param string|array $form_state
    *   The form's state.
    * @param \Drupal\ultimate_cron\Entity\CronJob $job
    *   The job for which the settings form applies.
    */
-  public function settingsForm(array &$form, array &$form_state, CronJob $job = NULL);
+  public function settingsForm(&$form, &$form_state, CronJob $job = NULL);
 
   /**
    * Submit handler.

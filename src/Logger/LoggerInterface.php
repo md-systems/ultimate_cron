@@ -93,7 +93,7 @@ interface LoggerInterface extends PluginInspectionInterface, ConfigurablePluginI
    * @param Url $link
    *   A link to associate with the message.
    */
-  static public function log($type, $message, array $variables = [], RfcLogLevel $severity = RfcLogLevel::NOTICE, Url $link = NULL);
+  static public function log($type, $message, array $variables = [], RfcLogLevel $severity = NULL, Url $link = NULL);
 
   /**
    * Shutdown handler wrapper for catching messages.

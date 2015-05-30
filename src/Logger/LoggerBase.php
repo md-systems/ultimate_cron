@@ -88,7 +88,7 @@ abstract class LoggerBase extends CronPlugin implements LoggerInterface {
   /**
    * {@inheritdoc}
    */
-  final static public function log($type, $message, array $variables = array(), RfcLogLevel $severity = RfcLogLevel::NOTICE, Url $link = NULL) {
+  final static public function log($type, $message, array $variables = [], RfcLogLevel $severity = NULL, Url $link = NULL) {
     if (static::$log_entries) {
       foreach (static::$log_entries as $log_entry_object) {
         $log_entry_object->log($type, $message, $variables, $severity, $link);
