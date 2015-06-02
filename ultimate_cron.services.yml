@@ -1,17 +1,9 @@
 services:
-  cache.ultimate_cron:
-    class: Drupal\Core\Cache\CacheBackendInterface
-    tags:
-      - { name: cache.bin }
-    factory_method: get
-    factory_service: cache_factory
-    arguments: [ultimate_cron]
   cache.signal:
       class: Drupal\Core\Cache\CacheBackendInterface
       tags:
         - { name: cache.bin }
-      factory_method: get
-      factory_service: cache_factory
+      factory: cache_factory:get
       arguments: [signal]
   plugin.manager.ultimate_cron.launcher:
     class: Drupal\ultimate_cron\Launcher\LauncherManager
@@ -23,11 +15,11 @@ services:
     class: Drupal\ultimate_cron\Scheduler\SchedulerManager
     parent: default_plugin_manager
   ultimate_cron.lock:
-      class: Drupal\ultimate_cron\Lock\Lock
-      arguments: [@database]
+    class: Drupal\ultimate_cron\Lock\Lock
+    arguments: [@database]
   ultimate_cron.progress:
-      class: Drupal\ultimate_cron\Progress\Progress
-      arguments: [@keyvalue]
+    class: Drupal\ultimate_cron\Progress\Progress
+    arguments: [@keyvalue]
   ultimate_cron.signal:
-      class: Drupal\ultimate_cron\Signal\SignalCache
-      arguments: [@cache.signal, @lock]
+    class: Drupal\ultimate_cron\Signal\SignalCache
+    arguments: [@cache.signal, @lock]
