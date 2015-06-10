@@ -9,7 +9,7 @@
 namespace Drupal\ultimate_cron\Launcher;
 
 use Drupal\ultimate_cron\CronPlugin;
-use Drupal\ultimate_cron\Entity\CronJob;
+use Drupal\ultimate_cron\CronJobInterface;
 use Exception;
 
 /**
@@ -64,26 +64,6 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
   /**
    * {@inheritdoc}
    */
-  abstract public function lock(CronJob $job);
-
-  /**
-   * {@inheritdoc}
-   */
-  abstract public function unlock($lock_id, $manual = FALSE);
-
-  /**
-   * {@inheritdoc}
-   */
-  abstract public function isLocked(CronJob $job);
-
-  /**
-   * {@inheritdoc}
-   */
-  abstract public function launch(CronJob $job);
-
-  /**
-   * {@inheritdoc}
-   */
   public function isLockedMultiple(array $jobs) {
     $lock_ids = array();
     foreach ($jobs as $name => $job) {
@@ -94,7 +74,16 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
   /**
    * {@inheritdoc}
    */
-  public function run(CronJob $job) {
+  public function run(CronJobInterface $job) {
+    // // Prevent session information from being saved while cron is running.
+    // $original_session_saving = drupal_save_session();
+    // drupal_save_session(FALSE);
+    //
+    // // Force the current user to anonymous to ensure consistent permissions
+    // // on cron runs.
+    // $original_user = $GLOBALS['user'];
+    // $GLOBALS['user'] = drupal_anonymous_user();
+
     $php_self = NULL;
     try {
       // Signal to whomever might be listening, that we're cron!
@@ -118,6 +107,9 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
         '@error' => $e->getMessage(),
       ));
     }
+    // // Restore the user.
+    // $GLOBALS['user'] = $original_user;
+    // drupal_save_session($original_session_saving);
   }
 
   /**
@@ -134,7 +126,7 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
   /**
    * {@inheritdoc}
    */
-  public function formatRunning(CronJob $job) {
+  public function formatRunning(CronJobInterface $job) {
     $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
     $status = theme('image', array('path' => $file));
     $title = t('running');
@@ -144,7 +136,7 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
   /**
    * {@inheritdoc}
    */
-  public function formatUnfinished(CronJob $job) {
+  public function formatUnfinished(CronJobInterface $job) {
     $file = drupal_get_path('module', 'ultimate_cron') . '/icons/lock_open.png';
     $status = theme('image', array('path' => $file));
     $title = t('unfinished but not locked?');
@@ -154,7 +146,7 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
   /**
    * {@inheritdoc}
    */
-  public function formatProgress(CronJob $job, $progress) {
+  public function formatProgress(CronJobInterface $job, $progress) {
     $progress = $progress ? sprintf("(%d%%)", round($progress * 100)) : '';
     return $progress;
   }
@@ -162,21 +154,21 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
   /**
    * {@inheritdoc}
    */
-  public function initializeProgress(CronJob $job) {
+  public function initializeProgress(CronJobInterface $job) {
     \Drupal::service('ultimate_cron.progress')->setProgress($job->id(), FALSE);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function finishProgress(CronJob $job) {
+  public function finishProgress(CronJobInterface $job) {
     \Drupal::service('ultimate_cron.progress')->setProgress($job->id(), FALSE);
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getProgress(CronJob $job) {
+  public function getProgress(CronJobInterface $job) {
     return \Drupal::service('ultimate_cron.progress')->getProgress($job->id());
   }
 
@@ -190,7 +182,7 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
   /**
    * {@inheritdoc}
    */
-  public function setProgress(CronJob $job, $progress) {
+  public function setProgress(CronJobInterface $job, $progress) {
     \Drupal::service('ultimate_cron.progress')->setProgress($job->id(), $progress);
   }
 

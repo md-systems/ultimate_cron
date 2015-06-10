@@ -9,7 +9,7 @@ namespace Drupal\ultimate_cron\Launcher;
 use Drupal\Component\Plugin\ConfigurablePluginInterface;
 use Drupal\Component\Plugin\PluginInspectionInterface;
 use Drupal\Core\Plugin\PluginFormInterface;
-use Drupal\ultimate_cron\Entity\CronJob;
+use Drupal\ultimate_cron\CronJobInterface;
 
 /**
  * Defines a launcher method.
@@ -18,19 +18,22 @@ interface LauncherInterface extends PluginInspectionInterface, ConfigurablePlugi
 
   /**
    * Default settings.
+   *
+   * @return array
+   *   Returns array with default configuration of the object.
    */
   public function defaultConfiguration();
 
   /**
    * Lock job.
    *
-   * @param \Drupal\ultimate_cron\Entity\CronJob $job
+   * @param \Drupal\ultimate_cron\CronJobInterface $job
    *   The job to lock.
    *
-   * @return string
+   * @return string|FALSE
    *   Lock ID or FALSE.
    */
-  public function lock(CronJob $job);
+  public function lock(CronJobInterface $job);
 
   /**
    * Unlock a lock.
@@ -48,24 +51,24 @@ interface LauncherInterface extends PluginInspectionInterface, ConfigurablePlugi
   /**
    * Check if a job is locked.
    *
-   * @param CronJob $job
+   * @param \Drupal\ultimate_cron\CronJobInterface $job
    *   The job to check.
    *
    * @return string
    *   Lock ID of the locked job, FALSE if not locked.
    */
-  public function isLocked(CronJob $job);
+  public function isLocked(CronJobInterface $job);
 
   /**
    * Launch job.
    *
-   * @param CronJob $job
+   * @param \Drupal\ultimate_cron\CronJobInterface $job
    *   The job to launch.
    *
    * @return bool
    *   TRUE on successful launch.
    */
-  public function launch(CronJob $job);
+  public function launch(CronJobInterface $job);
 
   /**
    * Fallback implementation of multiple lock check.
@@ -84,10 +87,10 @@ interface LauncherInterface extends PluginInspectionInterface, ConfigurablePlugi
   /**
    * Run the job.
    *
-   * @param CronJob $job
+   * @param \Drupal\ultimate_cron\CronJobInterface $job
    *   The job to run.
    */
-  public function run(CronJob $job);
+  public function run(CronJobInterface $job);
 
   /**
    * Default implementation of jobs launcher.
@@ -100,52 +103,52 @@ interface LauncherInterface extends PluginInspectionInterface, ConfigurablePlugi
   /**
    * Format running state.
    *
-   * @param CronJob $job
+   * @param \Drupal\ultimate_cron\CronJobInterface $job
    *   The running job to format.
    */
-  public function formatRunning(CronJob $job);
+  public function formatRunning(CronJobInterface $job);
 
   /**
    * Format unfinished state.
    */
-  public function formatUnfinished(CronJob $job);
+  public function formatUnfinished(CronJobInterface $job);
 
   /**
    * Default implementation of formatProgress().
    *
-   * @param CronJob $job
+   * @param \Drupal\ultimate_cron\CronJobInterface $job
    *   Job to format progress for.
    * @param string $progress
-   *   Formatted progress.
+   *   Progress value for the Job.
    */
-  public function formatProgress(CronJob $job, $progress);
+  public function formatProgress(CronJobInterface $job, $progress);
 
   /**
    * Default implementation of initializeProgress().
    *
-   * @param CronJob $job
+   * @param \Drupal\ultimate_cron\CronJobInterface $job
    *   Job to initialize progress for.
    */
-  public function initializeProgress(CronJob $job);
+  public function initializeProgress(CronJobInterface $job);
 
   /**
    * Default implementation of finishProgress().
    *
-   * @param CronJob $job
+   * @param \Drupal\ultimate_cron\CronJobInterface $job
    *   Job to finish progress for.
    */
-  public function finishProgress(CronJob $job);
+  public function finishProgress(CronJobInterface $job);
 
   /**
    * Default implementation of getProgress().
    *
-   * @param CronJob $job
+   * @param \Drupal\ultimate_cron\CronJobInterface $job
    *   Job to get progress for.
    *
    * @return float
    *   Progress for the job.
    */
-  public function getProgress(CronJob $job);
+  public function getProgress(CronJobInterface $job);
 
   /**
    * Default implementation of getProgressMultiple().
@@ -161,11 +164,11 @@ interface LauncherInterface extends PluginInspectionInterface, ConfigurablePlugi
   /**
    * Default implementation of setProgress().
    *
-   * @param CronJob $job
+   * @param \Drupal\ultimate_cron\CronJobInterface $job
    *   Job to set progress for.
    * @param float $progress
    *   Progress (0-1).
    */
-  public function setProgress(CronJob $job, $progress);
+  public function setProgress(CronJobInterface $job, $progress);
 
 }
