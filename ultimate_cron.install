@@ -22,7 +22,7 @@ function ultimate_cron_schema() {
       'name' => array(
         'description' => 'Name',
         'type' => 'varchar',
-        'length' => 255,
+        'length' => 166,
         'not null' => TRUE,
       ),
       'log_type' => array(
@@ -94,7 +94,7 @@ function ultimate_cron_schema() {
       'name' => array(
         'description' => 'Name',
         'type' => 'varchar',
-        'length' => 255,
+        'length' => 166,
         'not null' => TRUE,
       ),
       'current' => array(
@@ -124,13 +124,13 @@ function ultimate_cron_schema() {
       'job_name' => array(
         'description' => 'Name of job',
         'type' => 'varchar',
-        'length' => 255,
+        'length' => 166,
         'not null' => TRUE,
       ),
       'signal_name' => array(
         'description' => 'Name of signal',
         'type' => 'varchar',
-        'length' => 255,
+        'length' => 166,
         'not null' => TRUE,
       ),
       'claimed' => array(
