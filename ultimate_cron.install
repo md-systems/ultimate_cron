@@ -16,7 +16,7 @@ function ultimate_cron_schema() {
       'lid' => array(
         'description' => 'Lock ID',
         'type' => 'varchar',
-        'length' => 255,
+        'length' => 176,
         'not null' => TRUE,
       ),
       'name' => array(
@@ -74,7 +74,7 @@ function ultimate_cron_schema() {
     'primary key' => array('lid'),
     'indexes' => array(
       'idx_last' => array(
-        'name',
+        array('name', 80),
         'start_time',
         'end_time',
         'log_type',
