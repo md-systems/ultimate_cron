@@ -6,6 +6,7 @@
 
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Launcher;
 
+use Drupal\ultimate_cron\CronJobInterface;
 use Drupal\ultimate_cron\Entity\CronJob;
 use Drupal\ultimate_cron\Launcher\LauncherBase;
 use Exception;
@@ -147,7 +148,7 @@ class SerialLauncher extends LauncherBase {
   /**
    * {@inheritdoc}
    */
-  public function lock(CronJob $job) {
+  public function lock(CronJobInterface $job) {
     $configuration = $job->getSettings('launcher')['serial'];
     $timeout = $configuration['timeouts']['lock_timeout'];
 
@@ -171,7 +172,7 @@ class SerialLauncher extends LauncherBase {
   /**
    * {@inheritdoc}
    */
-  public function isLocked(CronJob $job) {
+  public function isLocked(CronJobInterface $job) {
     $lock = \Drupal::service('ultimate_cron.lock');
     $lock_id = $lock->isLocked($job->id());
     return $lock_id ? $this->name . '-' . $lock_id : $lock_id;
@@ -204,7 +205,7 @@ class SerialLauncher extends LauncherBase {
   /**
    * {@inheritdoc}
    */
-  public function launch(CronJob $job) {
+  public function launch(CronJobInterface $job) {
     $lock_id = $job->lock();
 
     if (!$lock_id) {

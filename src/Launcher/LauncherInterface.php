@@ -77,7 +77,7 @@ interface LauncherInterface extends PluginInspectionInterface, ConfigurablePlugi
    * if possible.
    *
    * @param \Drupal\ultimate_cron\CronJobInterface[] $jobs
-   *   Array of UltimateCronJob to check.
+   *   Array of UltimateCronJobs to check.
    *
    * @return array
    *   Array of lock ids, keyed by job name.
@@ -96,7 +96,7 @@ interface LauncherInterface extends PluginInspectionInterface, ConfigurablePlugi
    * Default implementation of jobs launcher.
    *
    * @param \Drupal\ultimate_cron\CronJobInterface[] $jobs
-   *   Array of UltimateCronJob to launch.
+   *   Array of UltimateCronJobs to launch.
    */
   public function launchJobs(array $jobs);
 
@@ -156,7 +156,7 @@ interface LauncherInterface extends PluginInspectionInterface, ConfigurablePlugi
   /**
    * Default implementation of getProgressMultiple().
    *
-   * @param array $jobs
+   * @param \Drupal\ultimate_cron\CronJobInterface[] $jobs
    *   Jobs to get progresses for, keyed by job name.
    *
    * @return array
