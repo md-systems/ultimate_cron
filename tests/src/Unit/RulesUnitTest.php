@@ -2,7 +2,7 @@
 /**
  * @file
  *
- * Contains \Drupal\ultimate_cron\Tests\Unit\RulesUnitTest.
+ * Contains \Drupal\Tests\ultimate_cron\Unit\RulesUnitTest.
  */
 
 namespace Drupal\Tests\ultimate_cron\Unit;
