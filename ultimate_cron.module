@@ -202,41 +202,6 @@ function ultimate_cron_watchdog(array $log_entry) {
 }
 
 // ---------- FIXUPS FOR CORE  ----------
-
-/**
- * Implements hook_cron_alter().
- *
- * Add better description to core modules.
- *
- *
- * @todo: port this(to default config).
- */
-function ultimate_cron_cron_alter(&$hooks) {
-  $update['dblog_cron']['configure'] = 'admin/config/development/logging';
-
-  $update['system_cron']['scheduler']['crontab'] = array('rules' => array('0+@ */3 * * *'));
-  $update['system_cron']['scheduler']['simple'] = array('rules' => array('0+@ */3 * * *'));
-
-  foreach ($update as $name => $data) {
-    if (isset($hooks[$name])) {
-      $hooks[$name] = array_replace_recursive($hooks[$name], $data);
-    }
-  }
-}
-
-/**
- * Implements hook_watchdog().
- *
- * Capture watchdog messages and send them to the loggers.
- *
- * @todo: port this.
- */
-function ultimate_cron_watchdog(array $log_entry) {
-  if (class_exists('Drupal\ultimate_cron\Logger\LoggerBase')) {
-    LoggerBase::hook_watchdog($log_entry);
-  }
-}
-// ---------- FIXUPS FOR CORE  ----------
 /**
  * Implements hook_cron_alter().
  *
