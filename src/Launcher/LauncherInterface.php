@@ -110,6 +110,9 @@ interface LauncherInterface extends PluginInspectionInterface, ConfigurablePlugi
 
   /**
    * Format unfinished state.
+   *
+   * @param \Drupal\ultimate_cron\CronJobInterface $job
+   *   The running job to format.
    */
   public function formatUnfinished(CronJobInterface $job);
 
