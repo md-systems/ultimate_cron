@@ -76,7 +76,7 @@ interface LauncherInterface extends PluginInspectionInterface, ConfigurablePlugi
    * Each launcher should implement an optimized version of this method
    * if possible.
    *
-   * @param array $jobs
+   * @param \Drupal\ultimate_cron\CronJobInterface[] $jobs
    *   Array of UltimateCronJob to check.
    *
    * @return array
@@ -95,7 +95,7 @@ interface LauncherInterface extends PluginInspectionInterface, ConfigurablePlugi
   /**
    * Default implementation of jobs launcher.
    *
-   * @param array $jobs
+   * @param \Drupal\ultimate_cron\CronJobInterface[] $jobs
    *   Array of UltimateCronJob to launch.
    */
   public function launchJobs(array $jobs);
