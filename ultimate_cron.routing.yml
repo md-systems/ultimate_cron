@@ -22,6 +22,14 @@ entity.ultimate_cron_job.edit_form:
   requirements:
     _entity_access: 'ultimate_cron_job.edit'
 
+entity.ultimate_cron_job.run:
+      path: '/admin/config/system/cron/jobs/{ultimate_cron_job}/run'
+      defaults:
+        _controller: '\Drupal\ultimate_cron\Controller\JobController::runCronJob'
+        _title: Run Cron job
+      requirements:
+        _permission: 'run cron jobs'
+
 entity.ultimate_cron_job.delete_form:
   path: '/admin/config/system/cron/jobs/manage/{ultimate_cron_job}/delete'
   defaults:

@@ -40,8 +40,9 @@ use Exception;
  *   },
  *   links = {
  *     "edit-form" = "/admin/config/system/cron/jobs/manage/{ultimate_cron_job}",
- *     "delete-form" = "/adming/config/system/cron/jobs/manage/{ultimate_cron_job}/delete",
+ *     "delete-form" = "/admin/config/system/cron/jobs/manage/{ultimate_cron_job}/delete",
  *     "collection" = "/admin/config/system/cron/jobs",
+ *     "run" = "/admin/config/system/cron/jobs/{ultimate_cron_job}/run",
  *   }
  * )
  *
