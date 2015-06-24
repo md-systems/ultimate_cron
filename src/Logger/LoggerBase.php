@@ -75,7 +75,10 @@ abstract class LoggerBase extends CronPlugin implements LoggerInterface {
   }
 
   /**
-   * {@inheritdoc}
+   * Invoke loggers watchdog hooks.
+   *
+   * @param LogEntry $log_entry
+   *   Watchdog log entry array.
    */
   final static public function hook_watchdog(LogEntry $log_entry) {
     if (static::$log_entries) {
@@ -86,7 +89,18 @@ abstract class LoggerBase extends CronPlugin implements LoggerInterface {
   }
 
   /**
-   * {@inheritdoc}
+   * Log to ultimate cron logs only.
+   *
+   * @param string $type
+   *   Category of the message.
+   * @param string $message
+   *   The message to store in the log. Keep $message translatable.
+   * @param array $variables
+   *   The variables for $message string to replace.
+   * @param RfcLogLevel $severity
+   *   (optional) The severity of th event.
+   * @param Url $link
+   *   A link to associate with the message.
    */
   final static public function log($type, $message, array $variables = [], RfcLogLevel $severity = NULL, Url $link = NULL) {
     if (static::$log_entries) {

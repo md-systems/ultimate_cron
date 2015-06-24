@@ -72,30 +72,6 @@ interface LoggerInterface extends PluginInspectionInterface, ConfigurablePluginI
   public function unCatchMessages(LogEntry $log_entry);
 
   /**
-   * Invoke loggers watchdog hooks.
-   *
-   * @param LogEntry $log_entry
-   *   Watchdog log entry array.
-   */
-  static public function hook_watchdog(LogEntry $log_entry);
-
-  /**
-   * Log to ultimate cron logs only.
-   *
-   * @param string $type
-   *   Category of the message.
-   * @param string $message
-   *   The message to store in the log. Keep $message translatable.
-   * @param array $variables
-   *   The variables for $message string to replace.
-   * @param RfcLogLevel $severity
-   *   (optional) The severity of th event.
-   * @param Url $link
-   *   A link to associate with the message.
-   */
-  static public function log($type, $message, array $variables = [], RfcLogLevel $severity = NULL, Url $link = NULL);
-
-  /**
    * Shutdown handler wrapper for catching messages.
    *
    * @param string $class
