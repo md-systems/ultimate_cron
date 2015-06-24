@@ -107,9 +107,9 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
         '@error' => $e->getMessage(),
       ));
     }
-    // // Restore the user.
-    // $GLOBALS['user'] = $original_user;
-    // drupal_save_session($original_session_saving);
+    // Restore the user.
+//    $GLOBALS['user'] = $original_user;
+//    drupal_save_session($original_session_saving);
   }
 
   /**
