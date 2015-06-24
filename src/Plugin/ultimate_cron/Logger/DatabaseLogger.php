@@ -43,7 +43,7 @@ class DatabaseLogger extends LoggerBase {
   }
 
   /**
-   * Default settings.
+   * {@inheritdoc}
    */
   public function defaultConfiguration() {
     return array(
@@ -54,7 +54,7 @@ class DatabaseLogger extends LoggerBase {
   }
 
   /**
-   * Cleanup logs.
+   * {@inheritdoc}
    */
   public function cleanup() {
     $jobs = ultimate_cron_job_load_all();
@@ -78,7 +78,7 @@ class DatabaseLogger extends LoggerBase {
   }
 
   /**
-   * Cleanup logs for a single job.
+   * {@inheritdoc}
    */
   public function cleanupJob($job) {
     $settings = $job->getSettings('logger');
@@ -143,7 +143,7 @@ class DatabaseLogger extends LoggerBase {
   }
 
   /**
-   * Label for setting.
+   * {@inheritdoc}
    */
   public function settingsLabel($name, $value) {
     switch ($name) {
@@ -202,38 +202,9 @@ class DatabaseLogger extends LoggerBase {
   }
 
   /**
-   * Submit handler.
+   * {@inheritdoc}
    */
-  public function settingsFormSubmit(&$form, &$form_state, $job = NULL) {
-    $values = & $form_state['values']['settings'][$this->type][$this->name];
-    $defaults = & $form_state['default_values']['settings'][$this->type][$this->name];
-    if (!$job) {
-      return;
-    }
-
-    $method = $values['method'] ? $values['method'] : $defaults['method'];
-
-    // Cleanup form (can this be done elsewhere?)
-    switch ($method) {
-      case static::CLEANUP_METHOD_DISABLED:
-        unset($values['expire']);
-        unset($values['retain']);
-        break;
-
-      case static::CLEANUP_METHOD_EXPIRE:
-        unset($values['retain']);
-        break;
-
-      case static::CLEANUP_METHOD_RETAIN:
-        unset($values['expire']);
-        break;
-    }
-  }
-
-  /**
-   * Load log entry.
-   */
-  public function load($name, $lock_id = NULL, $log_types = array(ULTIMATE_CRON_LOG_TYPE_NORMAL)) {
+  public function load($name, $lock_id = NULL, array $log_types = [ULTIMATE_CRON_LOG_TYPE_NORMAL]) {
     if ($lock_id) {
       $log_entry = db_select('ultimate_cron_log', 'l')
         ->fields('l')
@@ -262,9 +233,9 @@ class DatabaseLogger extends LoggerBase {
   }
 
   /**
-   * Load latest log entry.
+   * {@inheritdoc}
    */
-  public function loadLatestLogEntries($jobs, $log_types) {
+  public function loadLatestLogEntries(array $jobs, array $log_types) {
     if (Database::getConnection()->databaseType() !== 'mysql') {
       return parent::loadLatestLogEntries($jobs, $log_types);
     }
@@ -300,9 +271,9 @@ class DatabaseLogger extends LoggerBase {
   }
 
   /**
-   * Get log entries.
+   * {@inheritdoc}
    */
-  public function getLogEntries($name, $log_types, $limit = 10) {
+  public function getLogEntries($name, array $log_types, $limit = 10) {
     $result = db_select('ultimate_cron_log', 'l')
       ->fields('l')
       ->extend('PagerDefault')

@@ -5,6 +5,7 @@
  */
 namespace Drupal\ultimate_cron\Logger;
 use Drupal\Core\Logger\RfcLogLevel;
+use Drupal\Core\Url;
 use Drupal\ultimate_cron\CronPlugin;
 use Drupal\ultimate_cron\Logger\LogEntry;
 
@@ -28,30 +29,14 @@ abstract class LoggerBase extends CronPlugin implements LoggerInterface {
   public $logEntryClass = '\Drupal\ultimate_cron\Logger\LogEntry';
 
   /**
-   * Factory method for creating a new unsaved log entry object.
-   *
-   * @param string $name
-   *   Name of the log entry (name of the job).
-   *
-   * @return LogEntry
-   *   The log entry.
+   * {@inheritdoc}
    */
   public function factoryLogEntry($name) {
     return new $this->logEntryClass($name, $this);
   }
 
   /**
-   * Create a new log entry.
-   *
-   * @param string $name
-   *   Name of the log entry (name of the job).
-   * @param string $lock_id
-   *   The lock id.
-   * @param string $init_message
-   *   (optional) The initial message for the log entry.
-   *
-   * @return LogEntry
-   *   The log entry created.
+   * {@inheritdoc}
    */
   public function create($name, $lock_id, $init_message = '', $log_type = ULTIMATE_CRON_LOG_TYPE_NORMAL) {
     $log_entry = new $this->logEntryClass($name, $this, $log_type);
@@ -65,12 +50,9 @@ abstract class LoggerBase extends CronPlugin implements LoggerInterface {
 
 
   /**
-   * Begin capturing messages.
-   *
-   * @param LogEntry $log_entry
-   *   The log entry that should capture messages.
+   * {@inheritdoc}
    */
-  public function catchMessages($log_entry) {
+  public function catchMessages(LogEntry $log_entry) {
     $class = get_class($this);
     if (!isset($class::$log_entries)) {
       $class::$log_entries = array();
@@ -85,14 +67,9 @@ abstract class LoggerBase extends CronPlugin implements LoggerInterface {
   }
 
   /**
-   * End message capturing.
-   *
-   * Effectively disables the shutdown function for the given log entry.
-   *
-   * @param \Drupal\ultimate_cron\Logger\LogEntry $log_entry
-   *   The log entry.
+   * {@inheritdoc}
    */
-  public function unCatchMessages($log_entry) {
+  public function unCatchMessages(LogEntry $log_entry) {
     $class = get_class($this);
     unset($class::$log_entries[$log_entry->lid]);
   }
@@ -100,10 +77,10 @@ abstract class LoggerBase extends CronPlugin implements LoggerInterface {
   /**
    * Invoke loggers watchdog hooks.
    *
-   * @param array $log_entry
+   * @param LogEntry $log_entry
    *   Watchdog log entry array.
    */
-  final static public function hook_watchdog(array $log_entry) {
+  final static public function hook_watchdog(LogEntry $log_entry) {
     if (static::$log_entries) {
       foreach (static::$log_entries as $log_entry_object) {
         $log_entry_object->watchdog($log_entry);
@@ -114,9 +91,18 @@ abstract class LoggerBase extends CronPlugin implements LoggerInterface {
   /**
    * Log to ultimate cron logs only.
    *
-   * @see watchdog()
+   * @param string $type
+   *   Category of the message.
+   * @param string $message
+   *   The message to store in the log. Keep $message translatable.
+   * @param array $variables
+   *   The variables for $message string to replace.
+   * @param RfcLogLevel $severity
+   *   (optional) The severity of th event.
+   * @param Url $link
+   *   A link to associate with the message.
    */
-  final static public function log($type, $message, $variables = array(), $severity = RfcLogLevel::NOTICE, $link = NULL) {
+  final static public function log($type, $message, array $variables = [], RfcLogLevel $severity = NULL, Url $link = NULL) {
     if (static::$log_entries) {
       foreach (static::$log_entries as $log_entry_object) {
         $log_entry_object->log($type, $message, $variables, $severity, $link);
@@ -125,10 +111,7 @@ abstract class LoggerBase extends CronPlugin implements LoggerInterface {
   }
 
   /**
-   * Shutdown handler wrapper for catching messages.
-   *
-   * @param string $class
-   *   The class in question.
+   * {@inheritdoc}
    */
   static public function catchMessagesShutdownWrapper($class) {
     if ($class::$log_entries) {
@@ -139,14 +122,9 @@ abstract class LoggerBase extends CronPlugin implements LoggerInterface {
   }
 
   /**
-   * PHP shutdown function callback.
-   *
-   * Ensures that a log entry has been closed properly on shutdown.
-   *
-   * @param LogEntry $log_entry
-   *   The log entry to close.
+   * {@inheritdoc}
    */
-  public function catchMessagesShutdown($log_entry) {
+  public function catchMessagesShutdown(LogEntry $log_entry) {
     $this->unCatchMessages($log_entry);
 
     if ($log_entry->finished) {
@@ -174,12 +152,9 @@ abstract class LoggerBase extends CronPlugin implements LoggerInterface {
   }
 
   /**
-   * Load latest log entry for multiple jobs.
-   *
-   * This is the fallback method. Loggers should implement an optimized
-   * version if possible.
+   * {@inheritdoc}
    */
-  public function loadLatestLogEntries($jobs, $log_types) {
+  public function loadLatestLogEntries(array $jobs, array $log_types) {
     $logs = array();
     foreach ($jobs as $job) {
       $logs[$job->id()] = $job->loadLatestLogEntry($log_types);
@@ -188,30 +163,12 @@ abstract class LoggerBase extends CronPlugin implements LoggerInterface {
   }
 
   /**
-   * Load a log.
-   *
-   * @param string $name
-   *   Name of log.
-   * @param string $lock_id
-   *   Specific lock id.
-   *
-   * @return \Drupal\ultimate_cron\Logger\LogEntry
-   *   Log entry
+   * {@inheritdoc}
    */
-  abstract public function load($name, $lock_id = NULL, $log_types = array(ULTIMATE_CRON_LOG_TYPE_NORMAL));
+  abstract public function load($name, $lock_id = NULL, array $log_types = [ULTIMATE_CRON_LOG_TYPE_NORMAL]);
 
   /**
-   * Get page with log entries for a job.
-   *
-   * @param string $name
-   *   Name of job.
-   * @param array $log_types
-   *   Log types to get.
-   * @param integer $limit
-   *   (optional) Number of log entries per page.
-   *
-   * @return array
-   *   Log entries.
+   * {@inheritdoc}
    */
-  abstract public function getLogEntries($name, $log_types, $limit = 10);
+  abstract public function getLogEntries($name, array $log_types, $limit = 10);
 }

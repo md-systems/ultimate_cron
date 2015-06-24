@@ -36,7 +36,7 @@ abstract class SchedulerBase extends CronPlugin implements SchedulerInterface {
    * @return boolean
    *   TRUE if job is scheduled to run.
    */
-  abstract public function isScheduled($job);
+  abstract public function isScheduled(CronJob $job);
 
   /**
    * Check if job is behind schedule.
@@ -47,5 +47,5 @@ abstract class SchedulerBase extends CronPlugin implements SchedulerInterface {
    * @return boolean
    *   TRUE if job is behind its schedule.
    */
-  abstract public function isBehind($job);
+  abstract public function isBehind(CronJob $job);
 }

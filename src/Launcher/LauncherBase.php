@@ -9,11 +9,11 @@
 namespace Drupal\ultimate_cron\Launcher;
 
 use Drupal\ultimate_cron\CronPlugin;
-use Drupal\ultimate_cron\Entity\CronJob;
+use Drupal\ultimate_cron\CronJobInterface;
 use Exception;
 
 /**
- * Abstract class for Ultimate Cron launchers
+ * Abstract class for Ultimate Cron launchers.
  *
  * A launcher is responsible for locking and launching/running a job.
  *
@@ -55,71 +55,16 @@ use Exception;
 abstract class LauncherBase extends CronPlugin implements LauncherInterface {
 
   /**
-   * Default settings.
+   * {@inheritdoc}
    */
   public function defaultConfiguration() {
     return array();
   }
 
   /**
-   * Lock job.
-   *
-   * @param CronJob $job
-   *   The job to lock.
-   *
-   * @return string
-   *   Lock ID or FALSE.
+   * {@inheritdoc}
    */
-  abstract public function lock($job);
-
-  /**
-   * Unlock a lock.
-   *
-   * @param string $lock_id
-   *   The lock id to unlock.
-   * @param boolean $manual
-   *   Whether this is a manual unlock or not.
-   *
-   * @return boolean
-   *   TRUE on successful unlock.
-   */
-  abstract public function unlock($lock_id, $manual = FALSE);
-
-  /**
-   * Check if a job is locked.
-   *
-   * @param CronJob $job
-   *   The job to check.
-   *
-   * @return string
-   *   Lock ID of the locked job, FALSE if not locked.
-   */
-  abstract public function isLocked($job);
-
-  /**
-   * Launch job.
-   *
-   * @param CronJob $job
-   *   The job to launch.
-   *
-   * @return boolean
-   *   TRUE on successful launch.
-   */
-  abstract public function launch($job);
-
-  /**
-   * Fallback implementation of multiple lock check.
-   *
-   * Each launcher should implement an optimized version of this method
-   * if possible.
-   *
-   * @param array $jobs
-   *   Array of UltimateCronJob to check.
-   *
-   * @return array
-   *   Array of lock ids, keyed by job name.
-   */
-  public function isLockedMultiple($jobs) {
+  public function isLockedMultiple(array $jobs) {
     $lock_ids = array();
     foreach ($jobs as $name => $job) {
       $lock_ids[$name] = $this->isLocked($job);
@@ -127,20 +72,17 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
   }
 
   /**
-   * Run the job.
-   *
-   * @param CronJob $job
-   *   The job to run.
+   * {@inheritdoc}
    */
-  public function run($job) {
-    // Prevent session information from being saved while cron is running.
-//    $original_session_saving = drupal_save_session();
-//    drupal_save_session(FALSE);
-
-    // Force the current user to anonymous to ensure consistent permissions on
-    // cron runs.
-//    $original_user = $GLOBALS['user'];
-//    $GLOBALS['user'] = drupal_anonymous_user();
+  public function run(CronJobInterface $job) {
+    // // Prevent session information from being saved while cron is running.
+    // $original_session_saving = drupal_save_session();
+    // drupal_save_session(FALSE);
+    //
+    // // Force the current user to anonymous to ensure consistent permissions
+    // // on cron runs.
+    // $original_user = $GLOBALS['user'];
+    // $GLOBALS['user'] = drupal_anonymous_user();
 
     $php_self = NULL;
     try {
@@ -153,7 +95,8 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
 
       // Restore state.
       $_SERVER['PHP_SELF'] = $php_self;
-    } catch (Exception $e) {
+    }
+    catch (Exception $e) {
       // Restore state.
       if (isset($php_self)) {
         $_SERVER['PHP_SELF'] = $php_self;
@@ -170,12 +113,9 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
   }
 
   /**
-   * Default implementation of jobs launcher.
-   *
-   * @param array $jobs
-   *   Array of UltimateCronJob to launch.
+   * {@inheritdoc}
    */
-  public function launchJobs($jobs) {
+  public function launchJobs(array $jobs) {
     foreach ($jobs as $job) {
       if ($job->isScheduled()) {
         $job->launch();
@@ -184,9 +124,9 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
   }
 
   /**
-   * Format running state.
+   * {@inheritdoc}
    */
-  public function formatRunning($job) {
+  public function formatRunning(CronJobInterface $job) {
     $file = drupal_get_path('module', 'ultimate_cron') . '/icons/hourglass.png';
     $status = theme('image', array('path' => $file));
     $title = t('running');
@@ -194,9 +134,9 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
   }
 
   /**
-   * Format unfinished state.
+   * {@inheritdoc}
    */
-  public function formatUnfinished($job) {
+  public function formatUnfinished(CronJobInterface $job) {
     $file = drupal_get_path('module', 'ultimate_cron') . '/icons/lock_open.png';
     $status = theme('image', array('path' => $file));
     $title = t('unfinished but not locked?');
@@ -204,74 +144,45 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
   }
 
   /**
-   * Default implementation of formatProgress().
-   *
-   * @param CronJob $job
-   *   Job to format progress for.
-   *
-   * @return string
-   *   Formatted progress.
+   * {@inheritdoc}
    */
-  public function formatProgress($job, $progress) {
+  public function formatProgress(CronJobInterface $job, $progress) {
     $progress = $progress ? sprintf("(%d%%)", round($progress * 100)) : '';
     return $progress;
   }
 
   /**
-   * Default implementation of initializeProgress().
-   *
-   * @param CronJob $job
-   *   Job to initialize progress for.
+   * {@inheritdoc}
    */
-  public function initializeProgress($job) {
+  public function initializeProgress(CronJobInterface $job) {
     \Drupal::service('ultimate_cron.progress')->setProgress($job->id(), FALSE);
   }
 
   /**
-   * Default implementation of finishProgress().
-   *
-   * @param CronJob $job
-   *   Job to finish progress for.
+   * {@inheritdoc}
    */
-  public function finishProgress($job) {
+  public function finishProgress(CronJobInterface $job) {
     \Drupal::service('ultimate_cron.progress')->setProgress($job->id(), FALSE);
   }
 
   /**
-   * Default implementation of getProgress().
-   *
-   * @param CronJob $job
-   *   Job to get progress for.
-   *
-   * @return float
-   *   Progress for the job.
+   * {@inheritdoc}
    */
-  public function getProgress($job) {
+  public function getProgress(CronJobInterface $job) {
     return \Drupal::service('ultimate_cron.progress')->getProgress($job->id());
   }
 
   /**
-   * Default implementation of getProgressMultiple().
-   *
-   * @param CronJob $jobs
-   *   Jobs to get progresses for, keyed by job name.
-   *
-   * @return array
-   *   Progresses, keyed by job name.
+   * {@inheritdoc}
    */
-  public function getProgressMultiple($jobs) {
+  public function getProgressMultiple(array $jobs) {
     return \Drupal::service('ultimate_cron.progress')->getProgressMultiple(array_keys($jobs));
   }
 
   /**
-   * Default implementation of setProgress().
-   *
-   * @param CronJob $job
-   *   Job to set progress for.
-   * @param float $progress
-   *   Progress (0-1).
+   * {@inheritdoc}
    */
-  public function setProgress($job, $progress) {
+  public function setProgress(CronJobInterface $job, $progress) {
     \Drupal::service('ultimate_cron.progress')->setProgress($job->id(), $progress);
   }
 

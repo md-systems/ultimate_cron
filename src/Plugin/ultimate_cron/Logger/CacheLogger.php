@@ -22,7 +22,7 @@ class CacheLogger extends LoggerBase {
   public $logEntryClass = '\Drupal\ultimate_cron\Logger\CacheLogEntry';
 
   /**
-   * Default settings.
+   * {@inheritdoc}
    */
   public function defaultConfiguration() {
     return array(
@@ -32,9 +32,9 @@ class CacheLogger extends LoggerBase {
   }
 
   /**
-   * Load log entry.
+   * {@inheritdoc}
    */
-  public function load($name, $lock_id = NULL, $log_types = array(ULTIMATE_CRON_LOG_TYPE_NORMAL)) {
+  public function load($name, $lock_id = NULL, array $log_types = [ULTIMATE_CRON_LOG_TYPE_NORMAL]) {
     $log_entry = new $this->logEntryClass($name, $this);
 
     $job = ultimate_cron_job_load($name);
@@ -57,15 +57,15 @@ class CacheLogger extends LoggerBase {
   }
 
   /**
-   * Get log entries.
+   * {@inheritdoc}
    */
-  public function getLogEntries($name, $log_types, $limit = 10) {
+  public function getLogEntries($name, array $log_types, $limit = 10) {
     $log_entry = $this->load($name);
     return $log_entry->lid ? array($log_entry) : array();
   }
 
   /**
-   * Settings form.
+   * {@inheritdoc}
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
     $form['bin'] = array(
