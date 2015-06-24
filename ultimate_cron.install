@@ -162,7 +162,7 @@ function ultimate_cron_install() {
  * @param $modules
  */
 function ultimate_cron_modules_installed($modules) {
-  foreach (ultimate_cron_get_hooks() as $id => $info) {
+  foreach (ultimate_cron_get_hooks(TRUE) as $id => $info) {
     if (in_array($info['module'], $modules)) {
       CronJobHelper::ensureCronJobExists($info, $id);
     }

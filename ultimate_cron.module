@@ -467,10 +467,12 @@ function ultimate_cron_get_hooks($reset = FALSE) {
     return $cache;
   }
 
-  $cache = \Drupal::cache()->get('ultimate_cron_hooks');
-  if ($cache && $cache->data) {
-    $cache = $cache->data;
-    return $cache;
+  if (!$reset) {
+    $cache = \Drupal::cache()->get('ultimate_cron_hooks');
+    if ($cache && $cache->data) {
+      $cache = $cache->data;
+      return $cache;
+    }
   }
 
   $hooks = array();
