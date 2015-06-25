@@ -1,6 +1,6 @@
 
 ultimate_cron.settings:
-  type: mapping
+  type: config_entity
   label: 'Ultimate cron settings'
   mapping:
     bypass_transactional_safe_connection:
@@ -41,6 +41,9 @@ ultimate_cron.job.*:
               sequence:
                 - type: string
                   label: Scheduling rule
+            catch_up:
+              type: integer
+              label: 'Timeout (s) after job run'
     launcher:
       type: mapping
       label: 'Scheduler'

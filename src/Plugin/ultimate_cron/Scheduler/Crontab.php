@@ -34,16 +34,14 @@ class Crontab extends SchedulerBase {
    * {@inheritdoc}
    */
   public function formatLabel(CronJob $job) {
-    $settings = $job->getSettings($this->type);
-    return implode("\n", $settings['rules']);
+    return t('Rule: @rule', ['@rule' => $job->getSchedulerId()['configuration']['rules'][0]]);
   }
 
   /**
    * {@inheritdoc}
    */
   public function formatLabelVerbose(CronJob $job) {
-    $settings = $job->getSettings($this->type);
-
+    $settings = $job->getSettings($job->getSchedulerId()['id']);
     $parsed = '';
     $next_schedule = NULL;
     $time = REQUEST_TIME;
@@ -69,7 +67,7 @@ class Crontab extends SchedulerBase {
    * {@inheritdoc}
    */
   public function settingsForm(&$form, &$form_state, CronJob $job = NULL) {
-    $form['rules'] = array(
+    $form['rules'][0] = array(
       '#title' => t("Rules"),
       '#type' => 'textfield',
       '#default_value' => empty($this->configuration['rules']) ? $this->defaultConfiguration()['rules'] : $this->configuration['rules'],
@@ -119,7 +117,7 @@ class Crontab extends SchedulerBase {
    * {@inheritdoc}
    */
   public function isScheduled(CronJob $job) {
-    $settings = $job->getSettings('scheduler')[$this->getPluginId()];
+    $settings = $job->getSettings($job->getSchedulerId()['id']);
     $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
     $skew = $this->getSkew($job);
     $class = get_class($this);
@@ -159,10 +157,14 @@ class Crontab extends SchedulerBase {
     // Check the registered time, and use that if it's available.
     $job_last_ran = $log_entry->start_time;
     if (!$job_last_ran) {
-      return FALSE;
+      $registered = \Drupal::config('ultimate_cron')->get('ultimate_cron_hooks_registered');
+      if (empty($registered[$job->id()])) {
+        return FALSE;
+      }
+      $job_last_ran = $registered[$job->id()];
     }
 
-    $settings = $job->getPluginSettings('scheduler')['crontab'];
+    $settings = $job->getSettings($job->getSchedulerId()['id']);
 
     $skew = $this->getSkew($job);
     $next_schedule = NULL;

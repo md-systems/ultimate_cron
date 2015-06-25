@@ -224,7 +224,7 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
   public function getSettings($type = '') {
     if (isset($this->cacheSettings)) {
       if ($type) {
-        $settings = !empty($this->cacheSettings[$type]['name']) ? $this->cacheSettings[$type][$this->cacheSettings[$type]['name']] : $this->cacheSettings[$type];
+        $settings = !empty($this->cacheSettings['scheduler'][$type]['name']) ? $this->cacheSettings[$type][$this->cacheSettings['scheduler'][$type]['name']] : $this->cacheSettings['scheduler'][$type];
       }
       else {
         $settings = $this->cacheSettings;

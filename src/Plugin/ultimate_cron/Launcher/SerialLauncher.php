@@ -149,8 +149,8 @@ class SerialLauncher extends LauncherBase {
    * {@inheritdoc}
    */
   public function lock(CronJobInterface $job) {
-    $configuration = $job->getSettings('launcher')['serial'];
-    $timeout = $configuration['timeouts']['lock_timeout'];
+    $configuration = $job->getSettings($job->getSchedulerId()['id']);
+    array_key_exists('timeouts', $configuration) ? $timeout = $configuration['timeouts']['lock_timeout'] : $timeout = 0;
 
     $lock = \Drupal::service('ultimate_cron.lock');
     if ($lock_id = $lock->lock($job->id(), $timeout)) {

@@ -190,7 +190,6 @@ function ultimate_cron_requirements($phase) {
 
       // @todo: port this
       // Check if any jobs are behind.
-      $jobs_behind = FALSE;
       $jobs_behind = 0;
       $jobs = CronJob::loadMultiple();
 
