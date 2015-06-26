@@ -201,27 +201,6 @@ function ultimate_cron_watchdog(array $log_entry) {
   }
 }
 
-// ---------- FIXUPS FOR CORE  ----------
-/**
- * Implements hook_cron_alter().
- *
- * Add better description to core modules.
- *
- * @todo: port this(to default config).
- */
-function ultimate_cron_cron_alter(&$hooks) {
-  $update['dblog_cron']['configure'] = 'admin/config/development/logging';
-
-  $update['system_cron']['scheduler']['crontab'] = array('rules' => array('0+@ */3 * * *'));
-  $update['system_cron']['scheduler']['simple'] = array('rules' => array('0+@ */3 * * *'));
-
-  foreach ($update as $name => $data) {
-    if (isset($hooks[$name])) {
-      $hooks[$name] = array_replace_recursive($hooks[$name], $data);
-    }
-  }
-}
-
 // ---------- HELPER FUNCTIONS ----------
 /**
  * Cron easy hooks.
