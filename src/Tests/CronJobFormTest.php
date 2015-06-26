@@ -107,5 +107,10 @@ class CronJobFormTest extends WebTestBase {
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertNoText($old_job_name);
     $this->assertText($this->job_name);
+
+    // Change time when cron runs, check the 'Scheduled' label is updated.
+    $this->clickLink(t('Edit'));
+    $this->drupalPostForm(NULL, ['scheduler[configuration][rules][0]' => '0+@ */6 * * *'], t('Save'));
+    $this->assertText('Every 6 hours');
   }
 }

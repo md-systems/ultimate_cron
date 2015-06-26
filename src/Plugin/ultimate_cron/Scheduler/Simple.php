@@ -56,7 +56,7 @@ class Simple extends Crontab {
    */
   public function formatLabel(CronJob $job) {
     return t('Every @interval', array(
-      '@interval' => \Drupal::service('date.formatter')->formatInterval($this->presets[$this->getConfiguration()['rules'][0]]),
+      '@interval' => \Drupal::service('date.formatter')->formatInterval($this->presets[$this->configuration['rules'][0]]),
     ));
   }
 
