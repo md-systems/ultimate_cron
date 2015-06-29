@@ -1,1 +1,38 @@
+## Settings
+# General
 bypass_transactional_safe_connection: FALSE
+threshold_autorun: 3600
+# Poormans
+launcher: 'Serial'
+early_page_flush: TRUE
+user_agent: 'Ultimate Cron'
+# Queue
+queue_enabled: FALSE
+lease_time: 30
+time: 15
+empty_delay: 0
+item_delay: 0
+throttle: TRUE
+threads: 4
+threshold: 10
+## Launcher
+poorman_keepalive: FALSE
+thread: 'any'
+max_threads: 1
+lock_timeout: 3600
+max_execution_time: 3600
+## Logger
+# Cache
+bin: 'cache_ultimate_cron'
+timeout: 0
+# Database
+method: 3
+expire: 1209600
+retain: 1000
+## Scheduler
+# Crontab
+catch_up: 86400
+rules:
+  - '*/10+@ * * * *'
+# Simple
+rule: '*/15+@ * * * *'

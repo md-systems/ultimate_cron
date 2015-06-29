@@ -1,0 +1,29 @@
+ultimate_cron.job_list:
+  title: 'Cron Jobs'
+  route_name: ultimate_cron.job_list
+  base_route: ultimate_cron.job_list
+
+ultimate_cron.settings:
+  title: 'Cron settings'
+  route_name: ultimate_cron.settings
+  base_route: ultimate_cron.job_list
+
+ultimate_cron.general_settings:
+  title: General
+  route_name: ultimate_cron.general_settings
+  parent_id: ultimate_cron.settings
+
+ultimate_cron.launcher_settings:
+  title: Launcher
+  route_name: ultimate_cron.launcher_settings
+  parent_id: ultimate_cron.settings
+
+ultimate_cron.logger_settings:
+  title: Logger
+  route_name: ultimate_cron.logger_settings
+  parent_id: ultimate_cron.settings
+
+ultimate_cron.scheduler_settings:
+  title: Scheduler
+  route_name: ultimate_cron.scheduler_settings
+  parent_id: ultimate_cron.settings

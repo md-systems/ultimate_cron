@@ -68,6 +68,7 @@ class CacheLogger extends LoggerBase {
    * {@inheritdoc}
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
+    $this->setConfiguration(\Drupal::config('ultimate_cron.settings')->getRawData());
     $form['bin'] = array(
       '#type' => 'textfield',
       '#title' => t('Cache bin'),

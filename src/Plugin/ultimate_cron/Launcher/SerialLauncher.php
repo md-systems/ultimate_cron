@@ -55,6 +55,7 @@ class SerialLauncher extends LauncherBase {
    * {@inheritdoc}
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
+    $this->setConfiguration(\Drupal::config('ultimate_cron.settings')->getRawData());
     $form['timeouts'] = array(
       '#type' => 'fieldset',
       '#title' => t('Timeouts'),
@@ -68,7 +69,7 @@ class SerialLauncher extends LauncherBase {
     $form['timeouts']['lock_timeout'] = array(
       '#title' => t("Job lock timeout"),
       '#type' => 'textfield',
-      '#default_value' => $this->configuration['timeouts']['lock_timeout'],
+      '#default_value' => $this->configuration['lock_timeout'],
       '#description' => t('Number of seconds to keep lock on job.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
@@ -78,7 +79,7 @@ class SerialLauncher extends LauncherBase {
       $form['timeouts']['max_execution_time'] = array(
         '#title' => t("Maximum execution time"),
         '#type' => 'textfield',
-        '#default_value' => $this->configuration['timeouts']['max_execution_time'],
+        '#default_value' => $this->configuration['max_execution_time'],
         '#description' => t('Maximum execution time for a cron run in seconds.'),
         '#fallback' => TRUE,
         '#required' => TRUE,
@@ -86,7 +87,7 @@ class SerialLauncher extends LauncherBase {
       $form['launcher']['max_threads'] = array(
         '#title' => t("Maximum number of launcher threads"),
         '#type' => 'number',
-        '#default_value' => $this->configuration['launcher']['max_threads'],
+        '#default_value' => $this->configuration['max_threads'],
         '#description' => t('The maximum number of launch threads that can be running at any given time.'),
         '#fallback' => TRUE,
         '#required' => TRUE,
@@ -95,7 +96,7 @@ class SerialLauncher extends LauncherBase {
       $form['launcher']['poorman_keepalive'] = array(
         '#title' => t("Poormans cron keepalive"),
         '#type' => 'checkbox',
-        '#default_value' => $this->configuration['launcher']['poorman_keepalive'],
+        '#default_value' => $this->configuration['poorman_keepalive'],
         '#description' => t('Retrigger poormans cron after it has finished. Requires $base_url to be accessible from the webserver.'),
         '#fallback' => TRUE,
         '#weight' => 3,

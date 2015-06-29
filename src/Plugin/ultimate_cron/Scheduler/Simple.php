@@ -65,13 +65,14 @@ class Simple extends Crontab {
    * {@inheritdoc}
    */
   public function settingsForm(&$form, &$form_state, CronJob $job = NULL) {
+    $this->setConfiguration(\Drupal::config('ultimate_cron.settings')->getRawData());
     $date_formatter = \Drupal::service('date.formatter');
     $intervals = array_map(array($date_formatter, 'formatInterval'), $this->presets);
 
     $form['rules'][0] = array(
       '#type' => 'select',
       '#title' => t('Run cron every'),
-      '#default_value' => $this->configuration['rules'][0],
+      '#default_value' => $this->configuration['rule'],
       '#description' => t('Select the interval you wish cron to run on.'),
       '#options' => $intervals,
       '#fallback' => TRUE,

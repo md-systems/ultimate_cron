@@ -6,6 +6,84 @@ ultimate_cron.settings:
     bypass_transactional_safe_connection:
       type: boolean
       label: Bypass transactional connection
+    threshold_autorun:
+      type: integer
+      label: Interval for runs
+    launcher:
+      type: string
+      lable: Launcher for Cron
+    early_page_flush:
+      type: boolean
+      label: Toggle execution order
+    user_agent:
+      type: string
+      label: User Agent triggering the launcher
+    queue_enabled:
+      type: boolean
+      label: Toggle queing jobs
+    lease_time:
+      type: integer
+      label: Time to claim item
+    time:
+      type: integer
+      label: Time to process item
+    empty_delay:
+      type: integer
+      lebel: Time to idle when queue is empty
+    item_delay:
+      type: integer
+      label: Time to idle when finished with item
+    throttle:
+      type: boolean
+      label: Toggles throttling of queues
+    threads:
+      type: integer
+      label: Number of threads for queues
+    threshold:
+      type: integer
+      label: Number of items needed for a queue
+    poorman_keepalive:
+      type: boolean
+      label: Trigger Poormans
+    thread:
+      type: string
+      label: Which thread to use
+    max_threads:
+      type: integer
+      label: Maximum number of threads
+    lock_timeout:
+      type: integer
+      label: Time to lock job
+    max_execution_time:
+      type: integer
+      label: Maximum time for the job to run
+    bin:
+      type: string
+      label: The cache bin to use
+    timeout:
+      type: integer
+      label: Time until cache expires
+    method:
+      type: integer
+      label: The method used for log retention
+    expire:
+      type: integer
+      label: Time until expiration
+    retain:
+      type: integer
+      label: Maximum number of logs to keep
+    catch_up:
+      type: integer
+      label: Stop between job runs
+    rules:
+      type: sequence
+      label: Array with rules
+      sequence:
+        type: string
+        label: Formatted rule
+    rule:
+      type: string
+      label: Rule for Simple scheduler
 
 # @todo make schema pluggable
 ultimate_cron.job.*:

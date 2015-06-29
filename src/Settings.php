@@ -7,6 +7,7 @@
  */
 
 namespace Drupal\ultimate_cron;
+use Drupal\Core\Form\FormBase;
 
 /**
  * Base class for settings.
