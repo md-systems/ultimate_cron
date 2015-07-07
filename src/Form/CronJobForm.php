@@ -153,17 +153,9 @@ class CronJobForm extends EntityForm {
   }
 
   /**
-   * Overrides Drupal\Core\Entity\EntityForm::validate().
-   */
-  public function validate(array $form, FormStateInterface $form_state) {
-    parent::validate($form, $form_state);
-  }
-
-  /**
-   * Overrides Drupal\Core\Entity\EntityForm::save().
+   * {@inheritdoc}
    */
   public function save(array $form, FormStateInterface $form_state) {
-    //@todo: catogery rename to job
     $job = $this->entity;
     $status = $job->save();
 
