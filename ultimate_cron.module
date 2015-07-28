@@ -233,84 +233,6 @@ function ultimate_cron_watchdog(array $log_entry) {
 
 // ---------- HELPER FUNCTIONS ----------
 /**
- * Cron easy hooks.
- *
- * Provide a default set of easy hooks.
- *
- * @return array
- *   Easy hooks.
- */
-function ultimate_cron_easy_hooks() {
-  static $easy_hooks;
-  if (isset($easy_hooks)) {
-    return $easy_hooks;
-  }
-
-  $easy_hooks = array(
-    'cron' => array(
-      'title' => 'Default cron job',
-    ),
-    'cron_hourly' => array(
-      'title' => 'Hourly cron job',
-      'scheduler' => array(
-        'name' => 'crontab',
-        'crontab' => array(
-          'rules' => array('0+@ * * * *'),
-        ),
-      ),
-    ),
-    'cron_daily' => array(
-      'title' => 'Daily cron job',
-      'scheduler' => array(
-        'name' => 'crontab',
-        'crontab' => array(
-          'rules' => array('0+@ 12 * * *'),
-        ),
-      ),
-    ),
-    'cron_nightly' => array(
-      'title' => 'Nightly cron job',
-      'scheduler' => array(
-        'name' => 'crontab',
-        'crontab' => array(
-          'rules' => array('0+@ 0 * * *'),
-        ),
-      ),
-    ),
-    'cron_weekly' => array(
-      'title' => 'Weekly cron job',
-      'scheduler' => array(
-        'name' => 'crontab',
-        'crontab' => array(
-          'rules' => array('0+@ 0 * * 1'),
-        ),
-      ),
-    ),
-    'cron_monthly' => array(
-      'title' => 'Monthly cron job',
-      'scheduler' => array(
-        'name' => 'crontab',
-        'crontab' => array(
-          'rules' => array('0+@ 0 1 * *'),
-        ),
-      ),
-    ),
-    'cron_yearly' => array(
-      'title' => 'Yearly cron job',
-      'scheduler' => array(
-        'name' => 'crontab',
-        'crontab' => array(
-          'rules' => array('0+@ 0 1 1 *'),
-        ),
-      ),
-    ),
-  );
-  $easy_hooks += \Drupal::moduleHandler()->invokeAll('cron_easy_hooks');
-  \Drupal::moduleHandler()->alter('cron_easy_hooks', $easy_hooks);
-  return $easy_hooks;
-}
-
-/**
  * Get cron hooks declared by a module.
  *
  * @param string $module
@@ -321,62 +243,6 @@ function ultimate_cron_easy_hooks() {
  */
 function ultimate_cron_get_module_hooks($module) {
   $items = array();
-  if (\Drupal::moduleHandler()->implementsHook($module, 'cronapi')) {
-    $items = \Drupal::moduleHandler()->implementsHook($module, 'cronapi', NULL);
-
-    if (!is_array($items)) {
-      // API Version 1.x
-      $items = array();
-
-      $list = \Drupal::moduleHandler()->implementsHook($module, 'cronapi', 'list');
-      if (!$list) {
-        $list = array();
-      }
-      foreach ($list as $name => $title) {
-        $items[$name] = array('title' => $title);
-      }
-      foreach ($items as $name => &$item) {
-        $item['api_version'] = 'ultimate_cron-1';
-        $rules = \Drupal::moduleHandler()->implementsHook($module, 'cronapi', 'rule', $name);
-        $rules = $rules ? $rules : array();
-
-        $settings = (array) \Drupal::moduleHandler()->implementsHook($module, 'cronapi', 'settings', $name);
-        if (empty($settings['rules']) && $rules) {
-          $settings['rules'] = is_array($rules) ? $rules : array($rules);
-        }
-
-        if (!empty($settings['rules'])) {
-          $settings['scheduler'] = array(
-            'name' => 'crontab',
-            'crontab' => array(
-              'rules' => $settings['rules']
-            ),
-          );
-          unset($settings['rules']);
-        }
-
-        $settings += array(
-          'configure' => \Drupal::moduleHandler()->implementsHook($module, 'cronapi', 'configure', $name),
-        );
-        $item += $settings;
-      }
-    }
-    else {
-      foreach ($items as &$item) {
-        if (!empty($item['rule'])) {
-          // Elysia 2.x compatibility.
-          $item['scheduler'] = array(
-            'name' => 'crontab',
-            'crontab' => array(
-              'rules' => array($item['rule']),
-            ),
-          );
-          $item['api_version'] = 'elysia_cron-2';
-          $item['title'] = $item['description'];
-        }
-      }
-    }
-  }
 
   // Add hook_cron() if applicable.
   if (\Drupal::moduleHandler()->implementsHook($module, 'cron')) {
@@ -393,27 +259,6 @@ function ultimate_cron_get_module_hooks($module) {
       'pass job argument' => FALSE,
     );
     $items["{$module}_cron"]['tags'][] = 'core';
-  }
-
-  foreach (ultimate_cron_easy_hooks() as $name => $easy_hook) {
-    $hook_name = "{$module}_{$name}";
-    if (\Drupal::moduleHandler()->implementsHook($module, $name)) {
-      if (empty($items[$hook_name])) {
-        $items[$hook_name] = array();
-      }
-      $items[$hook_name] += $easy_hook;
-      $items[$hook_name] += array(
-        'module' => $module,
-        'title' => 'Easy hook ' . $name,
-      );
-    }
-  }
-
-  // Make sure the module is defined.
-  foreach ($items as &$item) {
-    $item += array(
-      'module' => $module,
-    );
   }
 
   return $items;
