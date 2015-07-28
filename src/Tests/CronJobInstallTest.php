@@ -39,7 +39,6 @@ class CronJobInstallTest extends WebTestBase {
 
     // Check default modules
     \Drupal::service('module_installer')->install(array('field'));
-    \Drupal::service('module_installer')->install(array('system'));
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertText('Purges deleted Field API data');
     $this->assertText('Cleanup (caches, batch, flood, temp-files, etc.)');

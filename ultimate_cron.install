@@ -3,6 +3,7 @@
  * @file
  * Installation file for Ultimate Cron
  */
+use Drupal\ultimate_cron\CronJobHelper;
 
 /**
  * Implements hook_schema().
@@ -152,9 +153,8 @@ function ultimate_cron_schema() {
  */
 function ultimate_cron_install() {
   \Drupal::configFactory()->getEditable('system.cron')->set('threshold.autorun', 0)->save();
-
-  foreach (\Drupal::moduleHandler()->getImplementations('cron') as $module_name) {
-    \Drupal\ultimate_cron\CronJobHelper::ensureCronJobExists($module_name);
+  foreach (ultimate_cron_get_hooks() as $id => $info) {
+    CronJobHelper::ensureCronJobExists($info, $id);
   }
 }
 
@@ -162,10 +162,10 @@ function ultimate_cron_install() {
  * @param $modules
  */
 function ultimate_cron_modules_installed($modules) {
-  $installed_modules = array_intersect(\Drupal::moduleHandler()->getImplementations('cron'), $modules);
-
-  foreach (array_values($installed_modules) as $module_name) {
-    \Drupal\ultimate_cron\CronJobHelper::ensureCronJobExists($module_name);
+  foreach (ultimate_cron_get_hooks(TRUE) as $id => $info) {
+    if (in_array($info['module'], $modules)) {
+      CronJobHelper::ensureCronJobExists($info, $id);
+    }
   }
 }
 
