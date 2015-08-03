@@ -28,6 +28,7 @@ use Exception;
  *     "list_builder" = "Drupal\ultimate_cron\CronJobListBuilder",
  *     "form" = {
  *       "default" = "Drupal\ultimate_cron\Form\CronJobForm",
+ *       "delete" = "\Drupal\Core\Entity\EntityDeleteForm",
  *     }
  *   },
  *   config_prefix = "job",
@@ -39,6 +40,8 @@ use Exception;
  *   },
  *   links = {
  *     "edit-form" = "/admin/config/system/cron/jobs/manage/{ultimate_cron_job}",
+ *     "delete-form" = "/adming/config/system/cron/jobs/manage/{ultimate_cron_job}/delete",
+ *     "collection" = "/admin/config/system/cron/jobs",
  *   }
  * )
  *
@@ -105,6 +108,19 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
 
   public function setConfiguration($plugin_type, $configuration) {
     $this->{$plugin_type}['configuration'] = $configuration;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function postDelete(EntityStorageInterface $storage, array $entities) {
+    foreach ($entities as $entity) {
+      if (empty($entity->dont_log)) {
+        $log = $entity->startLog(uniqid($entity->id(), TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
+        $log->log($entity->id(), 'Job deleted by ' . $log->formatUser(), array(), RfcLogLevel::INFO);
+        $log->finish();
+      }
+    }
   }
 
   /**

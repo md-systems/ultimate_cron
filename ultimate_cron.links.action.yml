@@ -3,4 +3,4 @@ ultimate_cron.job_add:
   title: 'Add job'
   weight: 1
   appears_on:
-    - ultimate_cron.job_list
+    - entity.ultimate_cron_job.collection
