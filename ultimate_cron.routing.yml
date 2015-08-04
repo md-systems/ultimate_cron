@@ -1,4 +1,4 @@
-ultimate_cron.job_list:
+entity.ultimate_cron_job.collection:
   path: '/admin/config/system/cron/jobs'
   defaults:
     _entity_list: 'ultimate_cron_job'
@@ -21,3 +21,11 @@ entity.ultimate_cron_job.edit_form:
     _title: 'Edit job'
   requirements:
     _entity_access: 'ultimate_cron_job.edit'
+
+entity.ultimate_cron_job.delete_form:
+  path: '/admin/config/system/cron/jobs/manage/{ultimate_cron_job}/delete'
+  defaults:
+    _entity_form: 'ultimate_cron_job.delete'
+    _title: 'Delete job'
+  requirements:
+    _entity_access: 'ultimate_cron_job.delete'

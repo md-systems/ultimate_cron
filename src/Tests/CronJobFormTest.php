@@ -112,5 +112,12 @@ class CronJobFormTest extends WebTestBase {
     $this->clickLink(t('Edit'));
     $this->drupalPostForm(NULL, ['scheduler[configuration][rules][0]' => '0+@ */6 * * *'], t('Save'));
     $this->assertText('Every 6 hours');
+
+    // Test deleting a job.
+    $this->clickLink(t('Delete'), 1);
+    $this->drupalPostForm(NULL, NULL, t('Delete'));
+    $this->assertText('The cron job edited job name has been deleted.');
+    $this->drupalGet('admin/config/system/cron/jobs');
+    $this->assertNoText($this->job_name);
   }
 }
