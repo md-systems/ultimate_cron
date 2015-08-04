@@ -3,7 +3,10 @@
  * @file
  * Installation file for Ultimate Cron
  */
+
+use Drupal\Core\Url;
 use Drupal\ultimate_cron\CronJobHelper;
+use Drupal\ultimate_cron\Entity\CronJob;
 
 /**
  * Implements hook_schema().
@@ -188,17 +191,14 @@ function ultimate_cron_requirements($phase) {
       // @todo: port this
       // Check if any jobs are behind.
       $jobs_behind = FALSE;
-//      $jobs_behind = 0;
-//      $jobs = ultimate_cron_job_load_all();
-//      $class = _ultimate_cron_get_class('job');
-//      $log_entries = $class::loadLatestLogEntries($jobs);
-//
-//      foreach ($jobs as $job) {
-//        $job->log_entry = $log_entries[$job->id()];
-//        if ($job->isBehindSchedule()) {
-//          $jobs_behind++;
-//        }
-//      }
+      $jobs_behind = 0;
+      $jobs = CronJob::loadMultiple();
+
+      foreach ($jobs as $job) {
+        if ($job->isBehindSchedule()) {
+          $jobs_behind++;
+        }
+      }
 
       if ($jobs_behind) {
         $requirements['severity'] = $requirements['severity'] > REQUIREMENT_ERROR ? $requirements['severity'] : REQUIREMENT_ERROR;
@@ -209,15 +209,8 @@ function ultimate_cron_requirements($phase) {
         );
         $requirements['description'][] = t(
           'Some jobs are behind their schedule. Please check if !link is running properly.', array(
-          '!link' => l(t('cron'), 'admin/config/system/cron')
+          '!link' => \Drupal::l(t('Cron'), Url::fromRoute('system.cron', ['key' => \Drupal::state()->get('system.cron_key')])),
         ));
-      }
-
-      // Check for PHP safe mode.
-      if (ini_get('safe_mode')) {
-        $requirements['severity'] = $requirements['severity'] > REQUIREMENT_WARNING ? $requirements['severity'] : REQUIREMENT_WARNING;
-        $requirements['value'][] = t('Safe mode enabled');
-        $requirements['description'][] = t('Safe mode enabled. Ultimate Cron is unable to control maximum execution time for cron jobs. This may cause cron jobs to end prematurely.');
       }
 
       // Compose result.
