@@ -10,6 +10,7 @@ namespace Drupal\ultimate_cron;
 use Drupal\Component\Utility\SafeMarkup;
 use Drupal\Core\Config\Entity\ConfigEntityListBuilder;
 use Drupal\Core\Entity\EntityInterface;
+use Drupal\Core\Url;
 
 /**
  * Defines a class to build a listing of cron jobs.
@@ -57,7 +58,28 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
     // In milliseconds.
     $row['duration'] = round(($entry->end_time - $entry->start_time) * 1000, 0);
     $row['status'] = $entity->status() ? $this->t('Yes') : $this->t('No');
+
     return $row + parent::buildRow($entity);
+  }
+
+  /**
+   * Returns the default operations for the entity.
+   *
+   * @param EntityInterface $entity
+   *   The entity of this row.
+   *
+   * @return array
+   *   The array structure is identical to the return value of
+   *   parent::getOperations().
+   */
+  public function getDefaultOperations(EntityInterface $entity) {
+    $operations['run'] = [
+      'title' => t('Run'),
+      'weight' => 9,
+      'url' => $entity->urlInfo('run'),
+    ];
+
+    return $operations + parent::getDefaultOperations($entity);
   }
 
   /**
