@@ -119,5 +119,18 @@ class CronJobFormTest extends WebTestBase {
     $this->assertText('The cron job edited job name has been deleted.');
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertNoText($this->job_name);
+    $this->clickLink(t('Add job'));
+    $job_configuration = array(
+      'title' => 'Test Job',
+      'id' => strtolower($this->randomMachineName()),
+      'scheduler[id]' => 'crontab',
+    );
+
+    // Save new job.
+    $this->drupalPostForm(NULL, $job_configuration, t('Save'));
+    $this->clickLink(t('Edit'), 1);
+    $this->drupalPostForm(NULL, ['scheduler[configuration][rules][0]' => '0+@ * * * *'], t('Save'));
+    $this->assertText('Rule: 0+@ * * * *');
   }
+
 }
