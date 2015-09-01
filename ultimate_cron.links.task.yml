@@ -1,12 +1,12 @@
 ultimate_cron.job_list:
   title: 'Cron Jobs'
-  route_name: ultimate_cron.job_list
-  base_route: ultimate_cron.job_list
+  route_name: entity.ultimate_cron_job.collection
+  base_route: entity.ultimate_cron_job.collection
 
 ultimate_cron.settings:
   title: 'Cron settings'
   route_name: ultimate_cron.settings
-  base_route: ultimate_cron.job_list
+  base_route: entity.ultimate_cron_job.collection
 
 ultimate_cron.general_settings:
   title: General
