@@ -15,7 +15,13 @@ use Drupal\Component\Utility\SafeMarkup;
  * @group ultimate_cron
  */
 class CronJobFormTest extends WebTestBase {
-  public static $modules = array('ultimate_cron');
+
+  /**
+   * Modules to enable.
+   *
+   * @var array
+   */
+  public static $modules = array('ultimate_cron', 'block');
 
   /**
    * A user with permission to create and edit books and to administer blocks.
@@ -42,6 +48,9 @@ class CronJobFormTest extends WebTestBase {
    * Tests adding and editing a cron job.
    */
   function testManageJob() {
+    $this->drupalPlaceBlock('local_tasks_block');
+    $this->drupalPlaceBlock('local_actions_block');
+
     // Create user with correct permission.
     $this->admin_user = $this->drupalCreateUser(array('administer ultimate cron', 'administer site configuration'));
     $this->drupalLogin($this->admin_user);
