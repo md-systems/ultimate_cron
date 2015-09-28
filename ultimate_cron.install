@@ -207,8 +207,8 @@ function ultimate_cron_requirements($phase) {
           '@count jobs are behind schedule'
         );
         $requirements['description'][] = t(
-          'Some jobs are behind their schedule. Please check if !link is running properly.', array(
-          '!link' => \Drupal::l(t('Cron'), Url::fromRoute('system.cron', ['key' => \Drupal::state()->get('system.cron_key')])),
+          'Some jobs are behind their schedule. Please check if @link is running properly.', array(
+          '@link' => \Drupal::l(t('Cron'), Url::fromRoute('system.cron', ['key' => \Drupal::state()->get('system.cron_key')])),
         ));
       }
 

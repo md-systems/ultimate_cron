@@ -59,7 +59,7 @@ class QueueSettings extends TaggedSettings {
       }
 
       $items['queue_' . $name] = array(
-        'title' => t('Queue: !name', array('!name' => $name)),
+        'title' => t('Queue: @name', array('@name' => $name)),
         'callback' => array(get_class($this), 'worker_callback'),
         'scheduler' => array(
           'simple' => array(
