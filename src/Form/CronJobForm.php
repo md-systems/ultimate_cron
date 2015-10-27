@@ -131,7 +131,7 @@ class CronJobForm extends EntityForm {
   }
 
   public function updateSelectedPluginType(array $form, FormStateInterface $form_state) {
-    return $form[$form_state['triggering_element']['#plugin_type']]['configuration'];
+    return $form[$form_state->getTriggeringElement()['#plugin_type']]['configuration'];
   }
 
   /**
