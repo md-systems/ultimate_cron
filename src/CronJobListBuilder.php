@@ -48,7 +48,7 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
     );
     $row['title'] = $this->getLabel($entity);
     if ($entity->isScheduled()) {
-      $row['scheduled'] = SafeMarkup::format('@label !icon', array('@label' => $entity->getPlugin('scheduler')->formatLabel($entity), '!icon' => $job_status));
+      $row['scheduled'] = SafeMarkup::format('@label @icon', array('@label' => $entity->getPlugin('scheduler')->formatLabel($entity), '@icon' => $job_status));
     }
     else {
       $row['scheduled'] = $entity->getPlugin('scheduler')->formatLabel($entity);
