@@ -8,6 +8,7 @@
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Logger;
 
 use Database;
+use Drupal\ultimate_cron\CronJobInterface;
 use Drupal\ultimate_cron\Logger\DatabaseLogEntry;
 use Drupal\ultimate_cron\Logger\LoggerBase;
 use PDO;
@@ -80,15 +81,13 @@ class DatabaseLogger extends LoggerBase {
   /**
    * {@inheritdoc}
    */
-  public function cleanupJob($job) {
-    $settings = $job->getSettings('logger');
-
-    switch ($settings['method']) {
+  public function cleanupJob(CronJobInterface $job) {
+    switch ($this->configuration['method']) {
       case static::CLEANUP_METHOD_DISABLED:
         return;
 
       case static::CLEANUP_METHOD_EXPIRE:
-        $expire = $settings['expire'];
+        $expire = $this->configuration['expire'];
         // Let's not delete more than ONE BILLION log entries :-o.
         $max = 10000000000;
         $chunk = 100;
@@ -99,7 +98,7 @@ class DatabaseLogger extends LoggerBase {
         $max = db_query("SELECT COUNT(lid) FROM {ultimate_cron_log} WHERE name = :name", array(
           ':name' => $job->id(),
         ))->fetchField();
-        $max -= $settings['retain'];
+        $max -= $this->configuration['retain'];
         if ($max <= 0) {
           return;
         }
@@ -108,7 +107,7 @@ class DatabaseLogger extends LoggerBase {
 
       default:
         \Drupal::logger('ultimate_cron')->warning('Invalid cleanup method: @method', array(
-          '@method' => $settings['method'],
+          '@method' => $this->configuration['method'],
         ));
         return;
     }
