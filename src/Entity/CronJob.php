@@ -213,37 +213,6 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
   }
 
   /**
-   * Get job settings.
-   *
-   * @param string $type
-   *   (optional) The plugin type to get settings for.
-   *
-   * @return array
-   *   The settings for the given plugin. If no plugin is given, returns
-   *   all settings.
-   */
-  public function getSettings($type = '') {
-    if (isset($this->cacheSettings)) {
-      if ($type) {
-        $settings = !empty($this->cacheSettings['scheduler'][$type]['name']) ? $this->cacheSettings[$type][$this->cacheSettings['scheduler'][$type]['name']] : $this->cacheSettings['scheduler'][$type];
-      }
-      else {
-        $settings = $this->cacheSettings;
-      }
-      return $settings;
-    }
-    $settings = array();
-
-    $plugin_types = CronJobHelper::getPluginTypes();
-    foreach ($plugin_types as $plugin_type => $plugin_info) {
-      $settings[$plugin_type] = $this->getPluginSettings($plugin_type);
-    }
-
-    $this->cacheSettings = $settings;
-    return $this->getSettings($type);
-  }
-
-  /**
    * Get job plugin.
    *
    * If no plugin name is provided current plugin of the specified type will
@@ -286,50 +255,6 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
     }
 
     return $this->{$plugin_type}['configuration'];
-  }
-
-  /**
-   * Get plugin settings.
-   *
-   * @param string $plugin_type
-   *   The plugin type.
-   *
-   * @return array
-   *   Settings for the given plugin type.
-   */
-  public function getPluginSettings($plugin_type) {
-    if (isset($this->pluginSettings[$plugin_type])) {
-      return $this->pluginSettings[$plugin_type];
-    }
-
-//    $plugin_types = CronJobHelper::getPluginTypes();
-//    $plugin_info = $plugin_types[$plugin_type];
-//    $static = $plugin_info['defaults']['static'];
-////    $class = $static['class'];
-
-    $settings = $this->settings[$plugin_type];
-
-//    if (!$class::$multiple) {
-//      $plugin = $this->getPlugin($plugin_type);
-//      if (empty($settings[$plugin->name])) {
-//        $settings[$plugin->name] = array();
-//      }
-//      $settings['name'] = $plugin->name;
-//      $settings[$plugin->name] += $plugin->getDefaultSettings($this);
-//    }
-//    else {
-      $plugins = ultimate_cron_plugin_load_all($plugin_type);
-      foreach ($plugins as $name => $plugin) {
-        if (empty($settings[$name])) {
-          $settings[$name] = array();
-        }
-        if ($plugin->isValid($this)) {
-          $settings[$name] += $plugin->defaultConfiguration($this);
-        }
-      }
-//    }
-    $this->pluginSettings[$plugin_type] = $settings;
-    return $settings;
   }
 
   /**

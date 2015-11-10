@@ -41,18 +41,17 @@ class Crontab extends SchedulerBase {
    * {@inheritdoc}
    */
   public function formatLabelVerbose(CronJob $job) {
-    $settings = $job->getSettings($job->getSchedulerId()['id']);
     $parsed = '';
     $next_schedule = NULL;
     $time = REQUEST_TIME;
     $skew = $this->getSkew($job);
-    foreach ($settings['rules'] as $rule) {
+    foreach ($this->configuration['rules'] as $rule) {
       $cron = CronRule::factory($rule, $time, $skew);
       $parsed .= $cron->parseRule() . "\n";
       $result = $cron->getNextSchedule();
       $next_schedule = is_null($next_schedule) || $next_schedule > $result ? $result : $next_schedule;
       $result = $cron->getLastSchedule();
-      if ($time < $result + $settings['catch_up']) {
+      if ($time < $result + $this->configuration['catch_up']) {
         $result = floor($time / 60) * 60 + 60;
         $next_schedule = $next_schedule > $result ? $result : $next_schedule;
       }
@@ -117,11 +116,10 @@ class Crontab extends SchedulerBase {
    * {@inheritdoc}
    */
   public function isScheduled(CronJob $job) {
-    $settings = $job->getSettings($job->getSchedulerId()['id']);
     $log_entry = isset($job->log_entry) ? $job->log_entry : $job->loadLatestLogEntry();
     $skew = $this->getSkew($job);
     $class = get_class($this);
-    return $class::shouldRun($settings['rules'], $log_entry->start_time, NULL, $settings['catch_up'], $skew) ? TRUE : FALSE;
+    return $class::shouldRun($this->configuration['rules'], $log_entry->start_time, NULL, $this->configuration['catch_up'], $skew) ? TRUE : FALSE;
   }
 
   /**
@@ -164,18 +162,16 @@ class Crontab extends SchedulerBase {
       $job_last_ran = $registered[$job->id()];
     }
 
-    $settings = $job->getSettings($job->getSchedulerId()['id']);
-
     $skew = $this->getSkew($job);
     $next_schedule = NULL;
-    foreach ($settings['rules'] as $rule) {
+    foreach ($this->configuration['rules'] as $rule) {
       $cron = CronRule::factory($rule, $job_last_ran, $skew);
       $time = $cron->getNextSchedule();
       $next_schedule = is_null($next_schedule) || $time < $next_schedule ? $time : $next_schedule;
     }
     $behind = REQUEST_TIME - $next_schedule;
 
-    return $behind > $settings['catch_up'] ? $behind : FALSE;
+    return $behind > $this->configuration['catch_up'] ? $behind : FALSE;
   }
 
   /**
