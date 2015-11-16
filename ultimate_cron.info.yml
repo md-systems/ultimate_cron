@@ -3,4 +3,4 @@ name: "Ultimate Cron"
 description: "Cron"
 core: 8.x
 
-#configure = admin/config/system/cron/settings
+configure: entity.ultimate_cron_job.collection
