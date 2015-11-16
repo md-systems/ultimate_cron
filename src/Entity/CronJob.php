@@ -38,6 +38,15 @@ use Exception;
  *     "label" = "title",
  *     "status" = "status",
  *   },
+ *   config_export = {
+ *     "title",
+ *     "id",
+ *     "module",
+ *     "callback",
+ *     "scheduler",
+ *     "launcher",
+ *     "logger",
+ *   },
  *   links = {
  *     "edit-form" = "/admin/config/system/cron/jobs/manage/{ultimate_cron_job}",
  *     "delete-form" = "/admin/config/system/cron/jobs/manage/{ultimate_cron_job}/delete",
