@@ -122,6 +122,30 @@ class CronJobFormTest extends WebTestBase {
     $this->drupalPostForm(NULL, ['scheduler[configuration][rules][0]' => '0+@ */6 * * *'], t('Save'));
     $this->assertText('Every 6 hours');
 
+    // Test disabling a job.
+    $this->clickLink(t('Disable'), 1);
+    $this->assertText('This cron job will not be able to be run.');
+    $this->drupalPostForm(NULL, NULL, t('Disable'));
+
+    // Assert drupal_set_message for successful disabled job.
+    $this->assertText(t('Disabled cron job @name.', array('@name' => $this->job_name)));
+    $this->drupalGet('admin/config/system/cron/jobs');
+    $this->assertFieldByXPath('//table/tbody/tr[2]/td[6]', 'Disabled');
+    $this->assertFieldByXPath('//table/tbody/tr[2]/td[7]/div/div/ul/li[1]/a', 'Enable');
+
+    // Test enabling a job.
+    $this->clickLink(t('Enable'), 0);
+    $this->assertText('This cron job will be able to be run.');
+    $this->drupalPostForm(NULL, NULL, t('Enable'));
+
+    // Assert drupal_set_message for successful enabled job.
+    $this->assertText(t('Enabled cron job @name.', array('@name' => $this->job_name)));
+    $this->drupalGet('admin/config/system/cron/jobs');
+    $this->assertFieldByXPath('//table/tbody/tr[2]/td[6]', 'Enabled');
+    $this->assertFieldByXPath('//table/tbody/tr[2]/td[7]/div/div/ul/li[1]/a', 'Run');
+
+    $this->drupalGet('admin/config/system/cron/jobs');
+
     // Test deleting a job.
     $this->clickLink(t('Delete'), 1);
     $this->drupalPostForm(NULL, NULL, t('Delete'));

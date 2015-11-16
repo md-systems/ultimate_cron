@@ -16,10 +16,16 @@ class CronJobEnableForm extends EntityConfirmFormBase {
    * {@inheritdoc}
    */
   public function getQuestion() {
-    // @todo update for enabling
-    return $this->t('Do you really want to disable cron job @cronjob_id?', array(
+    return $this->t('Do you really want to enable @cronjob_id cron job?', array(
       '@cronjob_id' => $this->getEntity()->label(),
     ));
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function getDescription() {
+    return $this->t('This cron job will be able to be run.');
   }
 
   /**
