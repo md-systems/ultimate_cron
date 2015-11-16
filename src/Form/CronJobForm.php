@@ -9,7 +9,8 @@ namespace Drupal\ultimate_cron\Form;
 
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\ultimate_cron\CronJobHelper;
+use Drupal\ultimate_cron\CronJobDiscovery;
+use Drupal\ultimate_cron\CronPlugin;
 use Drupal\ultimate_cron\Entity\CronJob;
 
 /**
@@ -57,12 +58,16 @@ class CronJobForm extends EntityForm {
       $options[$module_name] = $module_name;
     }
 
-    $form['module'] = array(
-      '#title' => 'Module',
-      '#description' => 'Module name for callback, suffix _cron added.',
-      '#type' => 'select',
-      '#options' => $options,
-      '#default_value' => $job->getModule(),
+    $form['module_info'] = array(
+      '#type' => 'item',
+      '#title' => $this->t('Module'),
+      '#markup' => $job->getModule(),
+    );
+
+    $form['callback_info'] = array(
+      '#type' => 'item',
+      '#title' => $this->t('Callback'),
+      '#markup' => $job->getCallback(),
     );
 
     // Setup vertical tabs.
@@ -71,7 +76,7 @@ class CronJobForm extends EntityForm {
     );
 
     // Load settings for each plugin in its own vertical tab.
-    $plugin_types = CronJobHelper::getPluginTypes();
+    $plugin_types = CronPlugin::getPluginTypes();
     foreach ($plugin_types as $plugin_type => $plugin_label) {
       /* @var \Drupal\Core\Plugin\DefaultPluginManager $manager */
       $manager = \Drupal::service('plugin.manager.ultimate_cron.' . $plugin_type);
@@ -83,10 +88,10 @@ class CronJobForm extends EntityForm {
       $options = array();
       foreach ($plugins as $value => $key) {
         if (!empty($key['default']) && $key['default'] == TRUE) {
-          $options = array($value => t('@title (Default)', array('@title' => $key['title']->render()))) + $options;
+          $options = array($value => t('@title (Default)', array('@title' => $key['title']))) + $options;
         }
         else {
-          $options[$value] = $key['title']->render();
+          $options[$value] = $key['title'];
         }
       }
 
@@ -144,17 +149,6 @@ class CronJobForm extends EntityForm {
   /**
    * {@inheritdoc}
    */
-  public function buildEntity(array $form, FormStateInterface $form_state) {
-    $entity = parent::buildEntity($form, $form_state);
-
-    $entity->setCallback($entity->getModule() . '_cron');
-
-    return $entity;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function rebuild(array $form, FormStateInterface $form_state) {
     $form_state->setRebuild(TRUE);
   }
@@ -164,14 +158,8 @@ class CronJobForm extends EntityForm {
    */
   public function save(array $form, FormStateInterface $form_state) {
     $job = $this->entity;
-    $status = $job->save();
 
-    if ($status == SAVED_UPDATED) {
-      drupal_set_message(t('job %label has been updated.', array('%label' => $job->label())));
-    }
-    else {
-      drupal_set_message(t('job %label has been added.', array('%label' => $job->label())));
-    }
+    drupal_set_message(t('job %label has been updated.', array('%label' => $job->label())));
     $form_state->setRedirect('entity.ultimate_cron_job.collection');
 
   }

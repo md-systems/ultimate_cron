@@ -6,13 +6,14 @@ entity.ultimate_cron_job.collection:
   requirements:
     _permission: 'administer ultimate cron'
 
-ultimate_cron.job_add:
-  path: '/admin/config/system/cron/jobs/add'
+ultimate_cron.discover_jobs:
+  path: '/admin/config/system/cron/jobs/discover'
   defaults:
-    _entity_form: 'ultimate_cron_job.default'
-    _title: 'Add job'
+    _controller: '\Drupal\ultimate_cron\Controller\JobController::discoverJobs'
+    _title: 'Discover jobs'
   requirements:
-    _entity_create_access: 'ultimate_cron_job'
+    _permission: 'administer ultimate cron'
+    _csrf: 'TRUE'
 
 entity.ultimate_cron_job.edit_form:
   path: '/admin/config/system/cron/jobs/manage/{ultimate_cron_job}'

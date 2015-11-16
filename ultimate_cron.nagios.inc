@@ -1,5 +1,6 @@
 <?php
 use Drupal\Core\Logger\RfcLogLevel;
+use Drupal\ultimate_cron\CronJobDiscovery;
 
 /**
  * Implements hook_nagios_info().
@@ -125,7 +126,7 @@ function ultimate_cron_nagios_get_job_info($mode = 'running') {
   if (!isset($overview[$mode])) {
     $overview[$mode] = 0;
     // Get hooks and their data
-    $hooks = ultimate_cron_get_hooks();
+    $hooks = CronJobDiscovery::getHooks();
 
     $modules = array();
     foreach ($hooks as $name => $hook) {

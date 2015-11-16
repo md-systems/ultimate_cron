@@ -30,4 +30,12 @@ class JobController extends ControllerBase {
     return $this->redirect('entity.ultimate_cron_job.collection');
   }
 
+  /**
+   * Discovers new default cron jobs.
+   */
+  public function discoverJobs() {
+    \Drupal::service('ultimate_cron.discovery')->discoverCronJobs();
+
+  }
+
 }
