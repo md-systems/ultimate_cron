@@ -37,3 +37,19 @@ entity.ultimate_cron_job.delete_form:
     _title: 'Delete job'
   requirements:
     _entity_access: 'ultimate_cron_job.delete'
+
+entity.ultimate_cron_job.disable:
+  path: '/admin/config/system/cron/jobs/manage/{ultimate_cron_job}/disable'
+  defaults:
+    _entity_form: 'ultimate_cron_job.disable'
+    _title: 'Disable cron job'
+  requirements:
+    _entity_access: 'ultimate_cron_job.disable'
+
+entity.ultimate_cron_job.enable:
+  path: '/admin/config/system/cron/jobs/manage/{ultimate_cron_job}/enable'
+  defaults:
+    _entity_form: 'ultimate_cron_job.enable'
+    _title: 'Enable cron job'
+  requirements:
+    _entity_access: 'ultimate_cron_job.enable'

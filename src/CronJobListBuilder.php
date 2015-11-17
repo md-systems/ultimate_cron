@@ -57,7 +57,7 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
     $row['started'] = $entry->start_time ? \Drupal::service('date.formatter')->format($entry->start_time, "short") : $this->t('Never');
     // In milliseconds.
     $row['duration'] = round(($entry->end_time - $entry->start_time) * 1000, 0);
-    $row['status'] = $entity->status() ? $this->t('Yes') : $this->t('No');
+    $row['status'] = $entity->status() ? $this->t('Enabled') : $this->t('Disabled');
 
     return $row + parent::buildRow($entity);
   }
@@ -73,11 +73,15 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
    *   parent::getOperations().
    */
   public function getDefaultOperations(EntityInterface $entity) {
-    $operations['run'] = [
-      'title' => t('Run'),
-      'weight' => 9,
-      'url' => $entity->urlInfo('run'),
-    ];
+    $operations = [];
+    if ($entity->status()) {
+      $operations['run'] = [
+        'title' => t('Run'),
+        'weight' => 9,
+        'url' => $entity->urlInfo('run'),
+      ];
+    }
+
 
     return $operations + parent::getDefaultOperations($entity);
   }
