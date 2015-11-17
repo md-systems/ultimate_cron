@@ -44,6 +44,13 @@ class CronJobForm extends EntityForm {
       '#disabled' => !$job->isNew(),
     );
 
+    $form['status'] = array(
+      '#type' => 'checkbox',
+      '#title' => t('Enabled'),
+      '#default_value' => $job->status(),
+      '#description' => t('This checkbox enables the cron job. Disabled Cron jobs are not run.'),
+    );
+
     $options = array();
 
     foreach(\Drupal::moduleHandler()->getImplementations('cron') as $module_name) {

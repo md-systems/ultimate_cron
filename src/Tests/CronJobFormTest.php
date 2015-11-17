@@ -144,6 +144,22 @@ class CronJobFormTest extends WebTestBase {
     $this->assertFieldByXPath('//table/tbody/tr[2]/td[6]', 'Enabled');
     $this->assertFieldByXPath('//table/tbody/tr[2]/td[7]/div/div/ul/li[1]/a', 'Run');
 
+    // Test disabling a job with the checkbox on the edit page.
+    $edit = array(
+      'status' => FALSE,
+    );
+    $this->drupalPostForm('admin/config/system/cron/jobs/manage/' . $this->job_id, $edit, t('Save'));
+    $this->assertFieldByXPath('//table/tbody/tr[2]/td[6]', 'Disabled');
+    $this->assertFieldByXPath('//table/tbody/tr[2]/td[7]/div/div/ul/li[1]/a', 'Enable');
+
+    // Test enabling a job with the checkbox on the edit page.
+    $edit = array(
+      'status' => TRUE,
+    );
+    $this->drupalPostForm('admin/config/system/cron/jobs/manage/' . $this->job_id, $edit, t('Save'));
+    $this->assertFieldByXPath('//table/tbody/tr[2]/td[6]', 'Enabled');
+    $this->assertFieldByXPath('//table/tbody/tr[2]/td[7]/div/div/ul/li[1]/a', 'Run');
+
     $this->drupalGet('admin/config/system/cron/jobs');
 
     // Test deleting a job.
