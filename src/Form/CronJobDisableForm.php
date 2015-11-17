@@ -25,7 +25,7 @@ class CronJobDisableForm extends EntityConfirmFormBase {
    * {@inheritdoc}
    */
   public function getDescription() {
-    return $this->t('This cron job will not be able to be run.');
+    return $this->t('This cron job will no longer be executed.');
   }
 
   /**

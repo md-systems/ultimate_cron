@@ -124,7 +124,7 @@ class CronJobFormTest extends WebTestBase {
 
     // Test disabling a job.
     $this->clickLink(t('Disable'), 1);
-    $this->assertText('This cron job will not be able to be run.');
+    $this->assertText('This cron job will no longer be executed.');
     $this->drupalPostForm(NULL, NULL, t('Disable'));
 
     // Assert drupal_set_message for successful disabled job.
@@ -135,7 +135,7 @@ class CronJobFormTest extends WebTestBase {
 
     // Test enabling a job.
     $this->clickLink(t('Enable'), 0);
-    $this->assertText('This cron job will be able to be run.');
+    $this->assertText('This cron job will be executed again.');
     $this->drupalPostForm(NULL, NULL, t('Enable'));
 
     // Assert drupal_set_message for successful enabled job.
@@ -151,6 +151,7 @@ class CronJobFormTest extends WebTestBase {
     $this->drupalPostForm('admin/config/system/cron/jobs/manage/' . $this->job_id, $edit, t('Save'));
     $this->assertFieldByXPath('//table/tbody/tr[2]/td[6]', 'Disabled');
     $this->assertFieldByXPath('//table/tbody/tr[2]/td[7]/div/div/ul/li[1]/a', 'Enable');
+    $this->assertNoFieldByXPath('//table/tbody/tr[2]/td[7]/div/div/ul/li[1]/a', 'Run');
 
     // Test enabling a job with the checkbox on the edit page.
     $edit = array(

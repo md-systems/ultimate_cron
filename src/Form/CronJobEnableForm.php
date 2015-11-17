@@ -25,7 +25,7 @@ class CronJobEnableForm extends EntityConfirmFormBase {
    * {@inheritdoc}
    */
   public function getDescription() {
-    return $this->t('This cron job will be able to be run.');
+    return $this->t('This cron job will be executed again.');
   }
 
   /**
