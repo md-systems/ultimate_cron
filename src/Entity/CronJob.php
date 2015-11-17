@@ -25,6 +25,7 @@ use Exception;
  *   id = "ultimate_cron_job",
  *   label = @Translation("Cron Job"),
  *   handlers = {
+ *     "access" = "Drupal\ultimate_cron\CronJobDeleteControlHandler",
  *     "list_builder" = "Drupal\ultimate_cron\CronJobListBuilder",
  *     "form" = {
  *       "default" = "Drupal\ultimate_cron\Form\CronJobForm",
@@ -159,6 +160,13 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
         $plugin->cron_alter($this);
       }
     }
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function isValid() {
+    return is_callable($this->getCallback());
   }
 
   /**
