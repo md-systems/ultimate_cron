@@ -350,7 +350,7 @@ interface CronJobInterface extends ConfigEntityInterface {
    * @param string $name
    *   (optional) The name of the plugin.
    *
-   * @return mixed
+   * @return \Drupal\ultimate_cron\CronPlugin
    *   Plugin instance of the specified type.
    */
   public function getPlugin($plugin_type, $name = NULL);

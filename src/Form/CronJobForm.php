@@ -20,6 +20,11 @@ class CronJobForm extends EntityForm {
   protected $selected_option;
 
   /**
+   * @var \Drupal\ultimate_cron\CronJobInterface
+   */
+  protected $entity;
+
+  /**
    * {@inheritdoc}
    */
   public function form(array $form, FormStateInterface $form_state) {
@@ -150,12 +155,10 @@ class CronJobForm extends EntityForm {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    $rule = $form_state->getValues()['scheduler']['configuration']['rules'][0];
-    $cron = CronRule::factory($rule);
-    if (!$cron->isValid()) {
-      $form_state->setErrorByName('scheduler_settings', 'Rule is invalid');
-    }
     parent::validateForm($form, $form_state);
+
+    $this->entity->getPlugin('scheduler')->validateConfigurationForm($form, $form_state);
+
   }
 
   /**
