@@ -67,7 +67,6 @@ class Crontab extends SchedulerBase {
    * {@inheritdoc}
    */
   public function settingsForm(&$form, &$form_state, CronJob $job = NULL) {
-    $this->setConfiguration(\Drupal::config('ultimate_cron.settings')->getRawData());
     $form['rules'][0] = array(
       '#title' => t("Rules"),
       '#type' => 'textfield',

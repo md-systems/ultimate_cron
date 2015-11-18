@@ -157,7 +157,6 @@ class DatabaseLogger extends LoggerBase {
    * Settings form.
    */
   public function settingsForm(&$form, &$form_state, $job = NULL) {
-    $this->setConfiguration(\Drupal::config('ultimate_cron.settings')->getRawData());
     $form['method'] = array(
       '#type' => 'select',
       '#title' => t('Log entry cleanup method'),

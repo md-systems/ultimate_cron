@@ -62,6 +62,9 @@ ultimate_cron.settings:
         max_execution_time:
           type: integer
           label: Maximum time for the job to run
+        poorman_keepalive:
+          type: boolean
+          label: Keepalive
     logger:
       type: mapping
       label: Logger
@@ -106,13 +109,13 @@ ultimate_cron.settings:
               sequence:
                 type: string
                 label: Formatted rule
-      simple:
-        type: mapping
-        label: Simple
-        mapping:
-          rule:
-            type: string
-            label: Rule for Simple scheduler
+        simple:
+          type: mapping
+          label: Simple
+          mapping:
+            rule:
+              type: string
+              label: Rule for Simple scheduler
 
 # @todo make schema pluggable
 ultimate_cron.job.*:
