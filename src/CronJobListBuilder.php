@@ -57,7 +57,15 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
     $row['started'] = $entry->start_time ? \Drupal::service('date.formatter')->format($entry->start_time, "short") : $this->t('Never');
     // In milliseconds.
     $row['duration'] = round(($entry->end_time - $entry->start_time) * 1000, 0);
-    $row['status'] = $entity->status() ? $this->t('Enabled') : $this->t('Disabled');
+    if (!$entity->isValid()) {
+      $row['status'] = $this->t('Missing');
+    }
+    elseif ($entity->isValid() && !$entity->status()) {
+      $row['status'] = $this->t('Disabled');
+    }
+    else {
+      $row['status'] = $this->t('Enabled');
+    }
 
     return $row + parent::buildRow($entity);
   }
@@ -73,17 +81,22 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
    *   parent::getOperations().
    */
   public function getDefaultOperations(EntityInterface $entity) {
-    $operations = [];
-    if ($entity->status()) {
-      $operations['run'] = [
+    $operations = parent::getDefaultOperations($entity);
+    if ($entity->status() && $entity->isValid()) {
+      $operations += ['run' => [
         'title' => t('Run'),
         'weight' => 9,
         'url' => $entity->urlInfo('run'),
-      ];
+      ]];
     }
 
+    // Invalid jobs can not be enabled nor disabled.
+    if (!$entity->isValid()) {
+      unset($operations['disable']);
+      unset($operations['enable']);
+    }
 
-    return $operations + parent::getDefaultOperations($entity);
+    return $operations;
   }
 
   /**

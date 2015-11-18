@@ -112,4 +112,12 @@ interface CronJobInterface extends ConfigEntityInterface {
    */
   public function setLoggerId($logger_id);
 
+  /**
+   * Check if the cron job is callable.
+   *
+   * @return bool
+   *   TRUE if the job is callable, FALSE otherwise.
+   */
+  public function isValid();
+
 }
