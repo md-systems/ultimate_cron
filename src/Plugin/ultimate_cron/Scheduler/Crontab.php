@@ -5,6 +5,7 @@
  */
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\ultimate_cron\CronJobInterface;
 use Drupal\ultimate_cron\CronRule;
 use Drupal\ultimate_cron\Entity\CronJob;
@@ -34,7 +35,7 @@ class Crontab extends SchedulerBase {
    * {@inheritdoc}
    */
   public function formatLabel(CronJob $job) {
-    return t('Rule: @rule', ['@rule' => $job->getSchedulerId()['configuration']['rules'][0]]);
+    return implode("\n", $this->configuration['rules']);
   }
 
   /**
@@ -98,6 +99,18 @@ class Crontab extends SchedulerBase {
     );
 
     return $form;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateConfigurationForm(array &$form, FormStateInterface $form_state) {
+    parent::validateConfigurationForm($form, $form_state);
+    $rule = $form_state->getValues()['scheduler']['configuration']['rules'][0];
+    $cron = CronRule::factory($rule);
+    if (!$cron->isValid()) {
+      $form_state->setErrorByName('scheduler][configuration][rules][0', t('Rule is invalid'));
+    }
   }
 
   /**

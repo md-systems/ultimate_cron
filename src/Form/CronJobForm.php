@@ -9,9 +9,8 @@ namespace Drupal\ultimate_cron\Form;
 
 use Drupal\Core\Entity\EntityForm;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\ultimate_cron\CronJobDiscovery;
 use Drupal\ultimate_cron\CronPlugin;
-use Drupal\ultimate_cron\Entity\CronJob;
+use Drupal\ultimate_cron\CronRule;
 
 /**
  * Base form controller for cron job forms.
@@ -19,6 +18,11 @@ use Drupal\ultimate_cron\Entity\CronJob;
 class CronJobForm extends EntityForm {
 
   protected $selected_option;
+
+  /**
+   * @var \Drupal\ultimate_cron\CronJobInterface
+   */
+  protected $entity;
 
   /**
    * {@inheritdoc}
@@ -149,6 +153,16 @@ class CronJobForm extends EntityForm {
 
   /**
    * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    parent::validateForm($form, $form_state);
+
+    $this->entity->getPlugin('scheduler')->validateConfigurationForm($form, $form_state);
+
+  }
+
+  /**
+   * Overrides Drupal\Core\Entity\EntityForm::save().
    */
   public function save(array $form, FormStateInterface $form_state) {
     parent::save($form, $form_state);

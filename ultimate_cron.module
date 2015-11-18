@@ -238,44 +238,6 @@ function ultimate_cron_modules_installed($modules) {
 
 // ---------- CRON RULE FUNCTIONS ----------
 /**
- * Form element validator for cron rules.
- *
- * @todo: Move to CronJobForm.
- */
-function ultimate_cron_plugin_crontab_element_validate_rule($element, \Drupal\Core\Form\FormStateInterface $form_state) {
-  $rules = array();
-  $value = $element['#value'];
-  if (!empty($value)) {
-    $rules = explode(',', $value);
-    $rules = array_map('trim', $rules);
-  }
-  foreach ($rules as $rule) {
-    if (!ultimate_cron_validate_rule($rule)) {
-      $form_state->setError($element, t('%name: %rule is not a valid rule.', array('%name' => $element['#title'], '%rule' => $rule)));
-    }
-  }
-}
-
-/**
- * Check if rule is valid.
- *
- * @param string $rule
- *   rule to validate.
- *
- * @return bool
- *   TRUE if valid, FALSE if not.
- */
-function ultimate_cron_validate_rule($rule) {
-  $cron = CronRule::factory($rule);
-  if (!$cron->isValid()) {
-    return FALSE;
-  }
-  else {
-    return TRUE;
-  }
-}
-
-/**
  * Return blank values for all keys in an array.
  *
  * @param array $array

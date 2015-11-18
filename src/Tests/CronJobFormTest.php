@@ -153,6 +153,12 @@ class CronJobFormTest extends WebTestBase {
     $this->drupalPostForm('admin/config/system/cron/jobs/manage/' . $this->job_id, ['scheduler[configuration][rules][0]' => '0+@ * * * *'], t('Save'));
     $this->assertText('Rule: 0+@ * * * *');
 
+    // Try editing the rule to an invalid one.
+    $this->clickLink('Edit');
+    $this->drupalPostForm(NULL, ['scheduler[configuration][rules][0]' => '*//15+@ *-2 * * *'], t('Save'));
+    $this->assertText('Rule is invalid');
+    $this->assertTitle('Edit job | Drupal');
+
     // Assert that there is no Delete link on the details page.
     $this->assertNoLink('Delete');
 
