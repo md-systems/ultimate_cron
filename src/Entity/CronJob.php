@@ -24,7 +24,7 @@ use Exception;
  *   id = "ultimate_cron_job",
  *   label = @Translation("Cron Job"),
  *   handlers = {
- *     "access" = "Drupal\ultimate_cron\CronJobDeleteControlHandler",
+ *     "access" = "Drupal\ultimate_cron\CronJobAccessControlHandler",
  *     "list_builder" = "Drupal\ultimate_cron\CronJobListBuilder",
  *     "form" = {
  *       "default" = "Drupal\ultimate_cron\Form\CronJobForm",

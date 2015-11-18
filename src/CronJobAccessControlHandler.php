@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\ultimate_cron\CronJobDeleteControlHandler.
+ * Contains \Drupal\ultimate_cron\CronJobAccessControlHandler.
  */
 
 namespace Drupal\ultimate_cron;
@@ -15,7 +15,7 @@ use Drupal\Core\Session\AccountInterface;
 /**
  * Defines a class to check whether a cron job is valid and should be deletable.
  */
-class CronJobDeleteControlHandler extends EntityAccessControlHandler {
+class CronJobAccessControlHandler extends EntityAccessControlHandler {
 
   /**
    * {@inheritdoc}
