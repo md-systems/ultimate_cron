@@ -5,7 +5,6 @@
  */
 
 use Drupal\Core\Url;
-use Drupal\ultimate_cron\CronJobHelper;
 use Drupal\ultimate_cron\Entity\CronJob;
 
 /**
@@ -155,20 +154,7 @@ function ultimate_cron_schema() {
  * Implements hook_install().
  */
 function ultimate_cron_install() {
-  foreach (ultimate_cron_get_hooks() as $id => $info) {
-    CronJobHelper::ensureCronJobExists($info, $id);
-  }
-}
-
-/**
- * @param $modules
- */
-function ultimate_cron_modules_installed($modules) {
-  foreach (ultimate_cron_get_hooks(TRUE) as $id => $info) {
-    if (in_array($info['module'], $modules)) {
-      CronJobHelper::ensureCronJobExists($info, $id);
-    }
-  }
+  \Drupal::service('ultimate_cron.discovery')->discoverCronJobs();
 }
 
 /**

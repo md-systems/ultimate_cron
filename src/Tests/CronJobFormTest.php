@@ -43,7 +43,7 @@ class CronJobFormTest extends WebTestBase {
    *
    * @var string
    */
-  protected $job_id;
+  protected $job_id = 'system_cron';
 
   /**
    * Tests adding and editing a cron job.
@@ -65,41 +65,20 @@ class CronJobFormTest extends WebTestBase {
     // Check for the Last Run default value.
     $this->assertText('Never');
 
-    // Start adding a new job.
-    $this->clickLink(t('Add job'));
-    $this->assertResponse('200');
-
-    // Set new job configuration.
-    $this->job_name = 'initial job name';
-    $this->job_id = strtolower($this->randomMachineName());
-    $job_configuration = array(
-      'title' => $this->job_name,
-      'id' => $this->job_id,
-    );
-
-    // Save new job.
-    $this->drupalPostForm(NULL, $job_configuration, t('Save'));
-
-    // Assert drupal_set_message for successful added job.
-    $this->assertText(t('job @name has been added.', array('@name' => $this->job_name)));
-
-    // Assert cron job overview for recently added job.
-    $this->drupalGet('admin/config/system/cron/jobs');
-    $this->assertText($this->job_name);
-
     // Start editing added job.
     $this->drupalGet('admin/config/system/cron/jobs/manage/' . $this->job_id);
     $this->assertResponse('200');
 
     // Set new cron job configuration and save the old job name.
-    $old_job_name = $this->job_name;
+    $job = CronJob::load($this->job_id);
+    $old_job_name = $job->label();
     $this->job_name = 'edited job name';
     $edit = array('title' => $this->job_name);
 
     // Save the new job.
     $this->drupalPostForm(NULL, $edit, t('Save'));
     // Assert the edited Job hasn't run yet.
-    $this->assertNoUniqueText('Never');
+    $this->assertText('Never');
     // Assert drupal_set_message for successful updated job.
     $this->assertText(t('job @name has been updated.', array('@name' => $this->job_name)));
 
@@ -108,7 +87,7 @@ class CronJobFormTest extends WebTestBase {
 
     // Assert the cron jobs have been run by checking the time.
     $this->drupalGet('admin/config/system/cron/jobs');
-    $this->assertNoUniqueText(SafeMarkup::format('@time', array('@time' => \Drupal::service('date.formatter')->format(\Drupal::state()->get('system.cron_last'), "short"))), "Created Cron jobs have been run.");
+    $this->assertText(\Drupal::service('date.formatter')->format(\Drupal::state()->get('system.cron_last'), 'short'), 'Created Cron jobs have been run.');
 
     // Check that all jobs have been run.
     $this->assertNoText("Never");
@@ -124,16 +103,16 @@ class CronJobFormTest extends WebTestBase {
     $this->assertText('Every 6 hours');
 
     // Test disabling a job.
-    $this->clickLink(t('Disable'), 1);
+    $this->clickLink(t('Disable'), 0);
     $this->assertText('This cron job will no longer be executed.');
     $this->drupalPostForm(NULL, NULL, t('Disable'));
 
     // Assert drupal_set_message for successful disabled job.
     $this->assertText(t('Disabled cron job @name.', array('@name' => $this->job_name)));
     $this->drupalGet('admin/config/system/cron/jobs');
-    $this->assertFieldByXPath('//table/tbody/tr[2]/td[6]', 'Disabled');
-    $this->assertFieldByXPath('//table/tbody/tr[2]/td[7]/div/div/ul/li[1]/a', 'Enable');
-    $this->assertNoFieldByXPath('//table/tbody/tr[2]/td[7]/div/div/ul/li[1]/a', 'Run');
+    $this->assertFieldByXPath('//table/tbody/tr[1]/td[6]', 'Disabled');
+    $this->assertFieldByXPath('//table/tbody/tr[1]/td[7]/div/div/ul/li[1]/a', 'Enable');
+    $this->assertNoFieldByXPath('//table/tbody/tr[1]/td[7]/div/div/ul/li[1]/a', 'Run');
 
     // Test enabling a job.
     $this->clickLink(t('Enable'), 0);
@@ -143,46 +122,44 @@ class CronJobFormTest extends WebTestBase {
     // Assert drupal_set_message for successful enabled job.
     $this->assertText(t('Enabled cron job @name.', array('@name' => $this->job_name)));
     $this->drupalGet('admin/config/system/cron/jobs');
-    $this->assertFieldByXPath('//table/tbody/tr[2]/td[6]', 'Enabled');
-    $this->assertFieldByXPath('//table/tbody/tr[2]/td[7]/div/div/ul/li[1]/a', 'Run');
+    $this->assertFieldByXPath('//table/tbody/tr[1]/td[6]', 'Enabled');
+    $this->assertFieldByXPath('//table/tbody/tr[1]/td[7]/div/div/ul/li[1]/a', 'Run');
 
     // Test disabling a job with the checkbox on the edit page.
     $edit = array(
       'status' => FALSE,
     );
     $this->drupalPostForm('admin/config/system/cron/jobs/manage/' . $this->job_id, $edit, t('Save'));
-    $this->assertFieldByXPath('//table/tbody/tr[2]/td[6]', 'Disabled');
-    $this->assertFieldByXPath('//table/tbody/tr[2]/td[7]/div/div/ul/li[1]/a', 'Enable');
-    $this->assertNoFieldByXPath('//table/tbody/tr[2]/td[7]/div/div/ul/li[1]/a', 'Run');
+    $this->assertFieldByXPath('//table/tbody/tr[1]/td[6]', 'Disabled');
+    $this->assertFieldByXPath('//table/tbody/tr[1]/td[7]/div/div/ul/li[1]/a', 'Enable');
+    $this->assertNoFieldByXPath('//table/tbody/tr[1]/td[7]/div/div/ul/li[1]/a', 'Run');
 
     // Test enabling a job with the checkbox on the edit page.
     $edit = array(
       'status' => TRUE,
     );
     $this->drupalPostForm('admin/config/system/cron/jobs/manage/' . $this->job_id, $edit, t('Save'));
-    $this->assertFieldByXPath('//table/tbody/tr[2]/td[6]', 'Enabled');
-    $this->assertFieldByXPath('//table/tbody/tr[2]/td[7]/div/div/ul/li[1]/a', 'Run');
+    $this->assertFieldByXPath('//table/tbody/tr[1]/td[6]', 'Enabled');
+    $this->assertFieldByXPath('//table/tbody/tr[1]/td[7]/div/div/ul/li[1]/a', 'Run');
 
     $this->drupalGet('admin/config/system/cron/jobs');
 
     // Save new job.
-    $this->clickLink(t('Add job'));
+    $this->clickLink(t('Edit'), 0);
     $job_configuration = array(
-      'title' => 'Test Job',
-      'id' => strtolower($this->randomMachineName()),
       'scheduler[id]' => 'crontab',
     );
     $this->drupalPostForm(NULL, $job_configuration, t('Save'));
-    $this->drupalPostForm('admin/config/system/cron/jobs/manage/' . $job_configuration['id'], ['scheduler[configuration][rules][0]' => '0+@ * * * *'], t('Save'));
+    $this->drupalPostForm('admin/config/system/cron/jobs/manage/' . $this->job_id, ['scheduler[configuration][rules][0]' => '0+@ * * * *'], t('Save'));
     $this->assertText('Rule: 0+@ * * * *');
 
     // Assert that there is no Delete link on the details page.
     $this->assertNoLink('Delete');
 
     // Force a job to be invalid by changing the callback.
-    $this->clickLink(t('Edit'), 1);
-    $job = CronJob::load('system_cron');
-    $job->setCallback('non_existing_function')->save();
+    $job = CronJob::load($this->job_id);
+    $job->setCallback('non_existing_function')
+      ->save();
     $this->drupalGet('admin/config/system/cron/jobs');
 
     // Assert that the invalid cron job is displayed properly.

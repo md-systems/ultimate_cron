@@ -26,7 +26,16 @@ class JobController extends ControllerBase {
    */
   public function runCronJob(CronJob $ultimate_cron_job) {
     $ultimate_cron_job->run();
-    drupal_set_message(t('Cron job @job_label was successfully run.', ['@job_label' => $ultimate_cron_job->label()]));
+    drupal_set_message($this->t('Cron job @job_label was successfully run.', ['@job_label' => $ultimate_cron_job->label()]));
+    return $this->redirect('entity.ultimate_cron_job.collection');
+  }
+
+  /**
+   * Discovers new default cron jobs.
+   */
+  public function discoverJobs() {
+    \Drupal::service('ultimate_cron.discovery')->discoverCronJobs();
+    drupal_set_message($this->t('Completed discovery for now cron jobs.'));
     return $this->redirect('entity.ultimate_cron_job.collection');
   }
 

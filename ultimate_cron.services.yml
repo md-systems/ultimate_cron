@@ -23,3 +23,6 @@ services:
   ultimate_cron.signal:
     class: Drupal\ultimate_cron\Signal\SignalCache
     arguments: [@cache.signal, @lock]
+  ultimate_cron.discovery:
+    class: Drupal\ultimate_cron\CronJobDiscovery
+    arguments: [@module_handler]

@@ -9,7 +9,6 @@ namespace Drupal\ultimate_cron\Entity;
 use Drupal\Core\Config\Entity\ConfigEntityBase;
 use Drupal\Core\Entity\EntityStorageInterface;
 use Drupal\Core\Logger\RfcLogLevel;
-use Drupal\ultimate_cron\CronJobHelper;
 use Drupal\ultimate_cron\CronJobInterface;
 use Drupal\ultimate_cron\CronPlugin;
 use Drupal\ultimate_cron\Logger\LogEntry;
@@ -44,6 +43,7 @@ use Exception;
  *   config_export = {
  *     "title",
  *     "id",
+ *     "status",
  *     "module",
  *     "callback",
  *     "scheduler",

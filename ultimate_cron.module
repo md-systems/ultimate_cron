@@ -6,9 +6,7 @@
 
 use Drupal\Core\Database\Database;
 use Drupal\ultimate_cron\CronRule;
-use Drupal\ultimate_cron\Entity\CronJob;
 use Drupal\ultimate_cron\Logger\LoggerBase;
-use Symfony\Component\HttpFoundation\RedirectResponse;
 
 define('ULTIMATE_CRON_LOG_TYPE_NORMAL', 0);
 define('ULTIMATE_CRON_LOG_TYPE_ADMIN', 1);
@@ -231,129 +229,11 @@ function ultimate_cron_watchdog(array $log_entry) {
   }
 }
 
-// ---------- HELPER FUNCTIONS ----------
 /**
- * Get cron hooks declared by a module.
- *
- * @param string $module
- *   Name of module.
- *
- * @return array
- *   Hook definitions for the specified module.
+ * * Implements hook_modules_installed().
  */
-function ultimate_cron_get_module_hooks($module) {
-  $items = array();
-
-  // Add hook_cron() if applicable.
-  if (\Drupal::moduleHandler()->implementsHook($module, 'cron')) {
-    if (empty($items["{$module}_cron"])) {
-      $items["{$module}_cron"] = array();
-    }
-
-    $info = system_get_info('module', $module);
-    $items["{$module}_cron"] += array(
-      'module' => $module,
-      'title' => 'Default cron handler',
-      'configure' => empty($info['configure']) ? NULL : $info['configure'],
-      'tags' => array(),
-      'pass job argument' => FALSE,
-    );
-    $items["{$module}_cron"]['tags'][] = 'core';
-  }
-
-  return $items;
-}
-
-/**
- * Prepare the hooks by adding default values.
- *
- * @param array &$hooks
- *   The hooks to be prepared.
- */
-function ultimate_cron_prepare_hooks(&$hooks) {
-  // Add default settings.
-  static $plugin_types = ['ultimate_cron'];
-  $plugin_types['ultimate_cron'] = [];
-  static $plugins = [];
-
-  foreach ($hooks as $name => &$item) {
-    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
-      $item += array(
-        $plugin_type => array(),
-      );
-
-      foreach ($plugins[$plugin_type] as $plugin_name => $plugin) {
-        if (!$plugin->isValid()) {
-          continue;
-        }
-        $item[$plugin_type] += array(
-          $plugin_name => array(),
-        );
-      }
-    }
-
-    $item += array(
-      'title' => $name,
-      'description' => isset($item['title']) ? $item['title'] : $name,
-      'file path' => drupal_get_path('module', $item['module']),
-      'callback arguments' => array(),
-      'callback' => $name,
-      'enabled' => TRUE,
-      'tags' => array(),
-      'api_version' => 'ultimate_cron-2',
-      'pass job argument' => TRUE,
-    );
-  }
-}
-
-/**
- * Get all cron hooks defined.
- *
- * @param boolean $reset
- *   Reset static cache.
- *
- * @return array
- *   All hook definitions available.
- */
-function ultimate_cron_get_hooks($reset = FALSE) {
-  static $cache = NULL;
-  if (!$reset && isset($cache)) {
-    return $cache;
-  }
-
-  if (!$reset) {
-    $cache = \Drupal::cache()->get('ultimate_cron_hooks');
-    if ($cache && $cache->data) {
-      $cache = $cache->data;
-      return $cache;
-    }
-  }
-
-  $hooks = array();
-  // Generate list of jobs provided by modules.
-  $modules = array_keys(Drupal::moduleHandler()->getModuleList());
-  foreach ($modules as $module) {
-    $hooks += ultimate_cron_get_module_hooks($module);
-  }
-
-  // Generate list of jobs provided by plugins.
-  // Add default values to hooks.
-  ultimate_cron_prepare_hooks($hooks);
-
-  // Allow other to manipulate the hook list.
-  Drupal::moduleHandler()->alter('cron', $hooks);
-
-  // Keep track on when we first registered new cron jobs.
-  // This is used for as a base for time comparison in behind schedule
-  // calculation for jobs that haven't run.
-  $new = array();
-  foreach ($hooks as $name => $hook) {
-    $new[$name] = empty($registered[$name]) ? REQUEST_TIME : $registered[$name];
-  }
-
-  $cache = $hooks;
-  \Drupal::cache()->set('ultimate_cron_hooks', $cache);
-  return $cache;
+function ultimate_cron_modules_installed($modules) {
+  \Drupal::service('ultimate_cron.discovery')->discoverCronJobs();
 }
 
 // ---------- CRON RULE FUNCTIONS ----------

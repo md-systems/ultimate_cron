@@ -32,6 +32,20 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
   }
 
   /**
+   * Returns a list of plugin types.
+   * 
+   * @return array
+   */
+  public static function getPluginTypes() {
+    return array(
+      'scheduler' => t('Scheduler'),
+      'launcher' => t('Launcher'),
+      'logger' => t('Logger')
+    );
+  }
+
+
+  /**
    * {@inheritdoc}
    */
   public function getConfiguration() {
@@ -122,7 +136,7 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
    * Invoke hook_cron_pre_schedule() on plugins.
    */
   final static public function hook_cron_pre_schedule($job) {
-    $plugin_types = CronJobHelper::getPluginTypes();
+    $plugin_types = static::getPluginTypes();
     foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
@@ -137,7 +151,7 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
    * Invoke hook_cron_post_schedule() on plugins.
    */
   final static public function hook_cron_post_schedule($job, &$result) {
-    $plugin_types = CronJobHelper::getPluginTypes();
+    $plugin_types = static::getPluginTypes();
     foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
@@ -152,7 +166,7 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
    * Invoke hook_cron_pre_launch() on plugins.
    */
   final static public function hook_cron_pre_launch($job) {
-    $plugin_types = CronJobHelper::getPluginTypes();
+    $plugin_types = static::getPluginTypes();
     foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
@@ -167,7 +181,7 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
    * Invoke hook_cron_post_launch() on plugins.
    */
   final static public function hook_cron_post_launch($job) {
-    $plugin_types = CronJobHelper::getPluginTypes();
+    $plugin_types = static::getPluginTypes();
     foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
@@ -182,7 +196,7 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
    * Invoke hook_cron_pre_run() on plugins.
    */
   final static public function hook_cron_pre_run($job) {
-    $plugin_types = CronJobHelper::getPluginTypes();
+    $plugin_types = static::getPluginTypes();
     foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
@@ -197,7 +211,7 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
    * Invoke hook_cron_post_run() on plugins.
    */
   final static public function hook_cron_post_run($job) {
-    $plugin_types = CronJobHelper::getPluginTypes();
+    $plugin_types = static::getPluginTypes();
     foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
@@ -212,7 +226,7 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
    * Invoke hook_cron_pre_invoke() on plugins.
    */
   final static public function hook_cron_pre_invoke($job) {
-    $plugin_types = CronJobHelper::getPluginTypes();
+    $plugin_types = static::getPluginTypes();
     foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
@@ -227,7 +241,7 @@ class CronPlugin extends PluginBase implements PluginInspectionInterface, Config
    * Invoke hook_cron_post_invoke() on plugins.
    */
   final static public function hook_cron_post_invoke($job) {
-    $plugin_types = CronJobHelper::getPluginTypes();
+    $plugin_types = static::getPluginTypes();
     foreach (array_keys($plugin_types) as $plugin_type) {
       $plugins = ultimate_cron_plugin_load_all($plugin_type);
       foreach ($plugins as $plugin) {
