@@ -267,26 +267,27 @@ abstract class LogEntry {
       case RfcLogLevel::ALERT:
       case RfcLogLevel::CRITICAL:
       case RfcLogLevel::ERROR:
-        $file = 'misc/message-16-error.png';
+        $file = 'core/misc/icons/e32700/error.svg';
         break;
 
       case RfcLogLevel::WARNING:
-        $file = 'misc/message-16-warning.png';
+        $file = 'core/misc/icons/e29700/warning.svg';
         break;
 
       case RfcLogLevel::NOTICE:
-        $file = 'misc/message-16-info.png';
+        // @todo Look for a better icon.
+        $file = 'core/misc/icons/008ee6/twistie-up.svg';
         break;
 
       case RfcLogLevel::INFO:
       case RfcLogLevel::DEBUG:
       default:
-        $file = 'misc/message-16-ok.png';
+        $file = 'core/misc/icons/73b355/check.svg';
     }
-    $status = theme('image', array('path' => $file));
+    $status = ['#theme' => 'image', '#uri' => $file];
     $severity_levels = array(
         -1 => t('no info'),
-      ) + watchdog_severity_levels();
+      ) + RfcLogLevel::getLevels();
     $title = $severity_levels[$this->severity];
     return array($status, $title);
   }
