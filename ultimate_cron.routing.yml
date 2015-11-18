@@ -1,3 +1,43 @@
+ultimate_cron.settings:
+  path: '/admin/config/system/cron/settings'
+  defaults:
+    _form: '\Drupal\ultimate_cron\Form\GeneralSettingsForm'
+    _title: 'Manage Cron settings'
+  requirements:
+    _permission: 'administer ultimate cron'
+
+ultimate_cron.general_settings:
+  path: '/admin/config/system/cron/settings'
+  defaults:
+    _form: '\Drupal\ultimate_cron\Form\GeneralSettingsForm'
+    _title: 'General Cron Settings'
+  requirements:
+    _permission: 'administer ultimate cron'
+
+ultimate_cron.launcher_settings:
+  path: '/admin/config/system/cron/settings/launcher'
+  defaults:
+    _form: '\Drupal\ultimate_cron\Form\LauncherSettingsForm'
+    _title: 'Launcher settings'
+  requirements:
+    _permission: 'administer ultimate cron'
+
+ultimate_cron.logger_settings:
+  path: '/admin/config/system/cron/settings/logger'
+  defaults:
+    _form: '\Drupal\ultimate_cron\Form\LoggerSettingsForm'
+    _title: 'Logger settings'
+  requirements:
+    _permission: 'administer ultimate cron'
+
+ultimate_cron.scheduler_settings:
+  path: '/admin/config/system/cron/settings/scheduler'
+  defaults:
+    _form: '\Drupal\ultimate_cron\Form\SchedulerSettingsForm'
+    _title: 'Scheduler settings'
+  requirements:
+    _permission: 'administer ultimate cron'
+
 entity.ultimate_cron_job.collection:
   path: '/admin/config/system/cron/jobs'
   defaults:

@@ -1,11 +1,121 @@
 
 ultimate_cron.settings:
-  type: config_entity
-  label: 'Ultimate cron settings'
+  type: config_object
+  label: Ultimate cron settings
   mapping:
     bypass_transactional_safe_connection:
       type: boolean
       label: Bypass transactional connection
+    queue:
+      type: mapping
+      label: Queue settings
+      mapping:
+        enabled:
+          type: boolean
+          label: Toggle queing jobs
+        timeouts:
+          type: mapping
+          label: Timeouts
+          mapping:
+            lease_time:
+              type: integer
+              label: Time to claim item
+            time:
+              type: integer
+              label: Time to process item
+        delays:
+          type: mapping
+          label: Delays
+          mapping:
+            empty_delay:
+              type: integer
+              lebel: Time to idle when queue is empty
+            item_delay:
+              type: integer
+              label: Time to idle when finished with item
+        throttle:
+          type: mapping
+          label: Timeouts
+          mapping:
+            enabled:
+              type: boolean
+              label: Toggles throttling of queues
+            threads:
+              type: integer
+              label: Number of threads for queues
+            threshold:
+              type: integer
+              label: Number of items needed for a queue
+    launcher:
+      type: mapping
+      label: Launcher
+      mapping:
+        thread:
+          type: string
+          label: Which thread to use
+        max_threads:
+          type: integer
+          label: Maximum number of threads
+        lock_timeout:
+          type: integer
+          label: Time to lock job
+        max_execution_time:
+          type: integer
+          label: Maximum time for the job to run
+        poorman_keepalive:
+          type: boolean
+          label: Keepalive
+    logger:
+      type: mapping
+      label: Logger
+      mapping:
+        cache:
+          type: mapping
+          label: Cache
+          mapping:
+            bin:
+              type: string
+              label: The cache bin to use
+            timeout:
+              type: integer
+              label: Time until cache expires
+        database:
+          type: mapping
+          label: Database
+          mapping:
+            method:
+              type: integer
+              label: The method used for log retention
+            expire:
+              type: integer
+              label: Time until expiration
+            retain:
+              type: integer
+              label: Maximum number of logs to keep
+    scheduler:
+      type: mapping
+      label: Schedulr
+      mapping:
+        crontab:
+          type: mapping
+          label: Crontab
+          mapping:
+            catch_up:
+              type: integer
+              label: Stop between job runs
+            rules:
+              type: sequence
+              label: Array with rules
+              sequence:
+                type: string
+                label: Formatted rule
+        simple:
+          type: mapping
+          label: Simple
+          mapping:
+            rule:
+              type: string
+              label: Rule for Simple scheduler
 
 # @todo make schema pluggable
 ultimate_cron.job.*:

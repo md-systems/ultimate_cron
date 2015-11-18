@@ -122,7 +122,7 @@ class CronJobFormTest extends WebTestBase {
     // Assert drupal_set_message for successful enabled job.
     $this->assertText(t('Enabled cron job @name.', array('@name' => $this->job_name)));
     $this->drupalGet('admin/config/system/cron/jobs');
-    $this->assertFieldByXPath('//table/tbody/tr[1]/td[6]', 'Enabled');
+    $this->assertTrue(strpos($this->xpath('//table/tbody/tr[1]/td[6]/img')[0]->asXml(), 'core/misc/icons/73b355/check.svg'));
     $this->assertFieldByXPath('//table/tbody/tr[1]/td[7]/div/div/ul/li[1]/a', 'Run');
 
     // Test disabling a job with the checkbox on the edit page.
@@ -139,7 +139,7 @@ class CronJobFormTest extends WebTestBase {
       'status' => TRUE,
     );
     $this->drupalPostForm('admin/config/system/cron/jobs/manage/' . $this->job_id, $edit, t('Save'));
-    $this->assertFieldByXPath('//table/tbody/tr[1]/td[6]', 'Enabled');
+    $this->assertTrue(strpos($this->xpath('//table/tbody/tr[1]/td[6]/img')[0]->asXml(), 'core/misc/icons/73b355/check.svg'));
     $this->assertFieldByXPath('//table/tbody/tr[1]/td[7]/div/div/ul/li[1]/a', 'Run');
 
     $this->drupalGet('admin/config/system/cron/jobs');
@@ -151,7 +151,7 @@ class CronJobFormTest extends WebTestBase {
     );
     $this->drupalPostForm(NULL, $job_configuration, t('Save'));
     $this->drupalPostForm('admin/config/system/cron/jobs/manage/' . $this->job_id, ['scheduler[configuration][rules][0]' => '0+@ * * * *'], t('Save'));
-    $this->assertText('Rule: 0+@ * * * *');
+    $this->assertText('0+@ * * * *');
 
     // Try editing the rule to an invalid one.
     $this->clickLink('Edit');
