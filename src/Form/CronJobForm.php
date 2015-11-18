@@ -52,12 +52,6 @@ class CronJobForm extends EntityForm {
       '#description' => t('This checkbox enables the cron job. Disabled Cron jobs are not run.'),
     );
 
-    $options = array();
-
-    foreach(\Drupal::moduleHandler()->getImplementations('cron') as $module_name) {
-      $options[$module_name] = $module_name;
-    }
-
     $form['module_info'] = array(
       '#type' => 'item',
       '#title' => $this->t('Module'),
@@ -157,9 +151,9 @@ class CronJobForm extends EntityForm {
    * {@inheritdoc}
    */
   public function save(array $form, FormStateInterface $form_state) {
-    $job = $this->entity;
+    parent::save($form, $form_state);
 
-    drupal_set_message(t('job %label has been updated.', array('%label' => $job->label())));
+    drupal_set_message(t('job %label has been updated.', array('%label' => $this->entity->label())));
     $form_state->setRedirect('entity.ultimate_cron_job.collection');
 
   }

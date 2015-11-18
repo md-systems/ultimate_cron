@@ -60,7 +60,7 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
     if (!$entity->isValid()) {
       $row['status'] = $this->t('Missing');
     }
-    elseif ($entity->isValid() && !$entity->status()) {
+    elseif (!$entity->status()) {
       $row['status'] = $this->t('Disabled');
     }
     else {

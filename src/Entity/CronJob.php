@@ -43,6 +43,7 @@ use Exception;
  *   config_export = {
  *     "title",
  *     "id",
+ *     "status",
  *     "module",
  *     "callback",
  *     "scheduler",
