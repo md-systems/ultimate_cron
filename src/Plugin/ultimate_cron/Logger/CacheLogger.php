@@ -6,6 +6,7 @@
 
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Logger;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\ultimate_cron\Logger\LoggerBase;
 
 /**
@@ -67,12 +68,12 @@ class CacheLogger extends LoggerBase {
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(&$form, &$form_state, $job = NULL) {
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form['bin'] = array(
       '#type' => 'textfield',
       '#title' => t('Cache bin'),
       '#description' => t('Select which cache bin to use for storing logs.'),
-      '#default_value' => empty($this->configuration['bin']) ? $this->defaultConfiguration()['bin'] : $this->configuration['bin'],
+      '#default_value' => $this->configuration['bin'],
       '#fallback' => TRUE,
       '#required' => TRUE,
     );
@@ -81,7 +82,7 @@ class CacheLogger extends LoggerBase {
       '#type' => 'textfield',
       '#title' => t('Cache timeout'),
       '#description' => t('Seconds before cache entry expires (0 = never, -1 = on next general cache wipe).'),
-      '#default_value' => empty($this->configuration['timeout']) ? $this->defaultConfiguration()['timeout'] : $this->configuration['timeout'],
+      '#default_value' => $this->configuration['timeout'],
       '#fallback' => TRUE,
       '#required' => TRUE,
     );

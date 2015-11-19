@@ -57,13 +57,6 @@ abstract class LauncherBase extends CronPlugin implements LauncherInterface {
   /**
    * {@inheritdoc}
    */
-  public function defaultConfiguration() {
-    return array();
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function isLockedMultiple(array $jobs) {
     $lock_ids = array();
     foreach ($jobs as $name => $job) {

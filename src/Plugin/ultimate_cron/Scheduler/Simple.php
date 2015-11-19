@@ -5,6 +5,7 @@
  */
 
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Scheduler;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\ultimate_cron\CronRule;
 use Drupal\ultimate_cron\Entity\CronJob;
 
@@ -64,7 +65,7 @@ class Simple extends Crontab {
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(&$form, &$form_state, CronJob $job = NULL) {
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $date_formatter = \Drupal::service('date.formatter');
     $intervals = array_map(array($date_formatter, 'formatInterval'), $this->presets);
 

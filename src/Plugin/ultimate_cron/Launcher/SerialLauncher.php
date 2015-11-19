@@ -6,6 +6,7 @@
 
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Launcher;
 
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\ultimate_cron\CronJobInterface;
 use Drupal\ultimate_cron\Entity\CronJob;
 use Drupal\ultimate_cron\Launcher\LauncherBase;
@@ -54,7 +55,7 @@ class SerialLauncher extends LauncherBase {
   /**
    * {@inheritdoc}
    */
-  public function settingsForm(&$form, &$form_state, $job = NULL) {
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form['timeouts'] = array(
       '#type' => 'fieldset',
       '#title' => t('Timeouts'),
@@ -74,7 +75,9 @@ class SerialLauncher extends LauncherBase {
       '#required' => TRUE,
     );
 
-    if (!$job) {
+    // @todo: Figure this out when converting global settings to use plugin
+    // classes.
+    if (FALSE) {
       $form['timeouts']['max_execution_time'] = array(
         '#title' => t("Maximum execution time"),
         '#type' => 'textfield',
@@ -104,8 +107,7 @@ class SerialLauncher extends LauncherBase {
       return $form;
     }
     else {
-      $settings = $this->getConfiguration();
-      $max_threads = $settings['max_threads'];
+      $max_threads = $this->configuration['launcher']['max_threads'];
     }
 
     $options = array(
@@ -117,17 +119,17 @@ class SerialLauncher extends LauncherBase {
     }
 
 
-    $elements['launcher']['thread'] = array(
-      '#parents' => array('settings', $this->type, $this->name, 'thread'),
+    $form['launcher']['thread'] = array(
       '#title' => t("Run in thread"),
       '#type' => 'select',
-      '#default_value' => $this->configuration['thread'],
+      '#default_value' => isset($this->configuration['launcher']['thread']) ? $this->configuration['launcher']['thread'] : 'any',
       '#options' => $options,
       '#description' => t('Which thread to run in when invoking with ?thread=N. Note: This setting only has an effect when cron is run through cron.php with an argument ?thread=N or through Drush with --options=thread=N.'),
       '#fallback' => TRUE,
       '#required' => TRUE,
       '#weight' => 2,
     );
+    return $form;
   }
 
   /**

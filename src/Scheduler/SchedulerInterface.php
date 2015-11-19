@@ -39,30 +39,6 @@ interface SchedulerInterface extends PluginInspectionInterface, ConfigurablePlug
   public function formatLabelVerbose(CronJob $job);
 
   /**
-   * Settings form for the scheduler.
-   *
-   * @param string|array &$form
-   *   The form.
-   * @param string|array $form_state
-   *   The form's state.
-   * @param \Drupal\ultimate_cron\Entity\CronJob $job
-   *   The job for which the settings form applies.
-   */
-  public function settingsForm(&$form, &$form_state, CronJob $job = NULL);
-
-  /**
-   * Submit handler.
-   *
-   * @param array &$form
-   *   The form.
-   * @param array $form_state
-   *   The form's state.
-   * @param \Drupal\ultimate_cron\Entity\CronJob $job
-   *   The job for which the settings form applies.
-   */
-  public function settingsFormSubmit(&$form, &$form_state, CronJob $job = NULL);
-
-  /**
    * Check job schedule.
    *
    * @param \Drupal\ultimate_cron\Entity\CronJob $job

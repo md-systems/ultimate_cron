@@ -127,10 +127,9 @@ class CronJobForm extends EntityForm {
         '#attributes' => array('class' => array('js-hide')),
       );
 
-      // @TODO: Fix this.
       $plugin = $job->getPlugin($plugin_type);
       $temp_form = array();
-      $form[$plugin_type]['configuration'] = $plugin->settingsForm($temp_form, $form_state);
+      $form[$plugin_type]['configuration'] = $plugin->buildConfigurationForm($temp_form, $form_state);
       $form[$plugin_type]['configuration']['#prefix'] = '<div id="' . $plugin_type . '_settings' . '">';
       $form[$plugin_type]['configuration']['#suffix'] = '</div>';
     }

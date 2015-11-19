@@ -8,6 +8,7 @@
 namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Logger;
 
 use Database;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\ultimate_cron\CronJobInterface;
 use Drupal\ultimate_cron\Logger\DatabaseLogEntry;
 use Drupal\ultimate_cron\Logger\LoggerBase;
@@ -156,20 +157,20 @@ class DatabaseLogger extends LoggerBase {
   /**
    * Settings form.
    */
-  public function settingsForm(&$form, &$form_state, $job = NULL) {
+  public function buildConfigurationForm(array $form, FormStateInterface $form_state) {
     $form['method'] = array(
       '#type' => 'select',
       '#title' => t('Log entry cleanup method'),
       '#description' => t('Select which method to use for cleaning up logs.'),
       '#options' => $this->options['method'],
-      '#default_value' => empty($this->configuration['method']) ? $this->defaultConfiguration()['method'] : $this->configuration['method'],
+      '#default_value' => $this->configuration['method'],
     );
 
     $form['expire'] = array(
       '#type' => 'textfield',
       '#title' => t('Log entry expiration'),
       '#description' => t('Remove log entries older than X seconds.'),
-      '#default_value' => empty($this->configuration['expire']) ? $this->defaultConfiguration()['expire'] : $this->configuration['expire'],
+      '#default_value' => $this->configuration['expire'],
       '#fallback' => TRUE,
       '#states' => array(
         'visible' => array(
@@ -185,7 +186,7 @@ class DatabaseLogger extends LoggerBase {
       '#type' => 'textfield',
       '#title' => t('Retain logs'),
       '#description' => t('Retain X amount of log entries.'),
-      '#default_value' => empty($this->configuration['retain']) ? $this->defaultConfiguration()['retain'] : $this->configuration['retain'],
+      '#default_value' => $this->configuration['retain'],
       '#fallback' => TRUE,
       '#states' => array(
         'visible' => array(
