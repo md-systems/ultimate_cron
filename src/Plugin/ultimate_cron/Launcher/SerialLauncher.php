@@ -10,6 +10,7 @@ use Drupal\Core\Form\FormStateInterface;
 use Drupal\ultimate_cron\CronJobInterface;
 use Drupal\ultimate_cron\Entity\CronJob;
 use Drupal\ultimate_cron\Launcher\LauncherBase;
+use Drupal\ultimate_cron\PluginCleanupInterface;
 use Exception;
 
 /**
@@ -21,7 +22,7 @@ use Exception;
  *   description = @Translation("Launches scheduled jobs in the same thread and runs them consecutively."),
  * )
  */
-class SerialLauncher extends LauncherBase {
+class SerialLauncher extends LauncherBase implements PluginCleanupInterface {
 
   public $currentThread = NULL;
 

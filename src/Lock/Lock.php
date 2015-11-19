@@ -220,7 +220,7 @@ class Lock implements LockInterface {
   public function cleanup() {
     $target = _ultimate_cron_get_transactional_safe_connection();
     $count = 0;
-    $class = _ultimate_cron_get_class('job');
+    $class = \Drupal::entityTypeManager()->getDefinition('ultimate_cron_job')->getClass();
     $now = microtime(TRUE);
 
     $this->connection->update('ultimate_cron_lock', array('target' => $target))
