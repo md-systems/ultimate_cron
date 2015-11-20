@@ -112,6 +112,14 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
    */
   protected $logger = array('id' => 'database');
 
+  /**
+   * @var \Drupal\ultimate_cron\CronPlugin
+   */
+  protected $plugins = [];
+
+  /**
+   * {@inheritdoc}
+   */
   public function postSave(EntityStorageInterface $storage, $update = TRUE) {
     parent::postSave($storage, $update);
     if ($update && empty($this->dont_log)) {
@@ -121,7 +129,15 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
     }
   }
 
-  public function setConfiguration($plugin_type, $configuration) {
+  /**
+   * Set configuration for a given plugin type.
+   *
+   * @param string $plugin_type
+   *   launcher, logger or scheduler.
+   * @param array $configuration
+   *   The configuration array.
+   */
+  public function setConfiguration($plugin_type, array $configuration) {
     $this->{$plugin_type}['configuration'] = $configuration;
   }
 
@@ -134,30 +150,6 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
         $log = $entity->startLog(uniqid($entity->id(), TRUE), 'modification', ULTIMATE_CRON_LOG_TYPE_ADMIN);
         $log->log($entity->id(), 'Job deleted by ' . $log->formatUser(), array(), RfcLogLevel::INFO);
         $log->finish();
-      }
-    }
-  }
-
-  /**
-   * Invoke plugin cron_alter().
-   *
-   * Calls on cron_alter() on all valid plugins for this job.
-   */
-  public function cron_alter() {
-    $plugin_types = ctools_plugin_get_plugin_type_info();
-    foreach ($plugin_types['ultimate_cron'] as $plugin_type => $info) {
-      $class = $info['defaults']['static']['class'];
-      if ($class::$multiple) {
-        $plugins = ultimate_cron_plugin_load_all($plugin_type);
-        foreach ($plugins as $plugin) {
-          if ($plugin->isValid($this)) {
-            $plugin->cron_alter($this);
-          }
-        }
-      }
-      else {
-        $plugin = $this->getPlugin($plugin_type);
-        $plugin->cron_alter($this);
       }
     }
   }
@@ -284,29 +276,6 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
   public function signal($item, $plugin_type, $plugin_name, $signal) {
     $plugin = ultimate_cron_plugin_load($plugin_type, $plugin_name);
     return $plugin->signal($item, $signal);
-  }
-
-  /**
-   * Allow a job to alter the allowed operations on it in the Export UI.
-   */
-  public function build_operations_alter(&$allowed_operations) {
-    $plugin_types = ctools_plugin_get_plugin_type_info();
-    foreach ($plugin_types['ultimate_cron'] as $name => $info) {
-      $static = $info['defaults']['static'];
-      $class = $static['class'];
-      if (!$class::$multiple) {
-        $this->getPlugin($name)
-          ->build_operations_alter($this, $allowed_operations);
-      }
-      else {
-        $plugins = ultimate_cron_plugin_load_all($name);
-        foreach ($plugins as $plugin) {
-          $this->getPlugin($name, $plugin->name)
-            ->build_operations_alter($this, $allowed_operations);
-        }
-      }
-    }
-    drupal_alter('ultimate_cron_plugin_build_operations', $this, $allowed_operations);
   }
 
   /**
@@ -741,26 +710,6 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
     $this->addDependency('module', $this->getModule());
 
     return $this->dependencies;
-  }
-
-  /**
-   * Rebuild a row on the export ui.
-   */
-  public function rebuild_ctools_export_ui_table_row() {
-    $plugin = ctools_get_export_ui('ultimate_cron_job_ctools_export_ui');
-    $handler = ctools_export_ui_get_handler($plugin);
-    $operations = $handler->build_operations($this);
-    $form_state = array();
-    $form_state['values']['order'] = '';
-    $handler->list_build_row($this, $form_state, $operations);
-    $row = $handler->rows[$this->id()];
-    $cells = isset($row['data']) ? $row['data'] : $row;
-    $final_cells = array();
-    foreach ($cells as $cell) {
-      $data = _theme_table_cell($cell);
-      $final_cells[] = $data;
-    }
-    return $final_cells;
   }
 
   /**
