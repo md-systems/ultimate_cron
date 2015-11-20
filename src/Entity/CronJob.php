@@ -184,8 +184,8 @@ class CronJob extends ConfigEntityBase implements CronJobInterface {
       unset(self::$signals[$this->id()][$signal]);
       return TRUE;
     }
-    $signal = \Drupal::service('ultimate_cron.signal');;
-    return $signal->get($this->id(), $signal);
+    $service = \Drupal::service('ultimate_cron.signal');;
+    return $service->get($this->id(), $signal);
   }
 
   /**

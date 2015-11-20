@@ -10,8 +10,10 @@ namespace Drupal\ultimate_cron\Plugin\ultimate_cron\Logger;
 use Database;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\ultimate_cron\CronJobInterface;
+use Drupal\ultimate_cron\Entity\CronJob;
 use Drupal\ultimate_cron\Logger\DatabaseLogEntry;
 use Drupal\ultimate_cron\Logger\LoggerBase;
+use Drupal\ultimate_cron\PluginCleanupInterface;
 use PDO;
 
 /**
@@ -24,7 +26,7 @@ use PDO;
  *   default = TRUE,
  * )
  */
-class DatabaseLogger extends LoggerBase {
+class DatabaseLogger extends LoggerBase implements PluginCleanupInterface {
   public $options = array();
   public $logEntryClass = '\Drupal\ultimate_cron\Logger\DatabaseLogEntry';
 
@@ -59,18 +61,18 @@ class DatabaseLogger extends LoggerBase {
    * {@inheritdoc}
    */
   public function cleanup() {
-    $jobs = ultimate_cron_job_load_all();
+    $jobs = CronJob::loadMultiple();
     $current = 1;
     $max = 0;
     foreach ($jobs as $job) {
-      if ($job->getPlugin($this->type)->name === $this->name) {
+      if ($job->getLoggerId() === $this->getPluginId()) {
         $max++;
       }
     }
     foreach ($jobs as $job) {
-      if ($job->getPlugin($this->type)->name === $this->name) {
+      if ($job->getLoggerId() === $this->getPluginId()) {
         $this->cleanupJob($job);
-        $class = _ultimate_cron_get_class('job');
+        $class = \Drupal::entityTypeManager()->getDefinition('ultimate_cron_job')->getClass();
         if ($class::$currentJob) {
           $class::$currentJob->setProgress($current / $max);
           $current++;
