@@ -5,7 +5,7 @@ ultimate_cron.settings:
   mapping:
     bypass_transactional_safe_connection:
       type: boolean
-      label: Bypass transactional connection
+      label: 'Bypass transactional connection'
     queue:
       type: mapping
       label: Queue settings
@@ -134,77 +134,71 @@ ultimate_cron.job.*:
     callback:
       type: string
       label: 'Callback'
-    scheduler:
+    plugins:
+      type: sequence
+      label: 'Plugins'
+      sequence:
+        type: ultimate_cron.job.plugins
+
+ultimate_cron.job.plugins:
+  type: mapping
+  label: 'Scheduler'
+  mapping:
+    id:
+      type: string
+      label: 'id'
+    configuration:
+      type: ultimate_cron.job.plugins.settings.[%parent.type]
+
+ultimate_cron.job.plugins.settings.scheduler:
+  type: mapping
+  label: 'Scheduler configuration'
+  mapping:
+    rules:
+      type: sequence
+      label: 'Scheduler rules'
+      sequence:
+        - type: string
+        label: 'Scheduling rule'
+    catch_up:
+      type: integer
+      label: 'Timeout (s) after job run'
+
+ultimate_cron.job.plugins.settings.launcher:
+  type: mapping
+  label: 'Scheduler configuration'
+  mapping:
+    timeouts:
       type: mapping
-      label: 'Scheduler'
+      label: 'Timeout settings'
       mapping:
-        id:
-          type: string
-          label: 'Scheduler'
-        configuration:
-          type: mapping
-          label: 'Scheduler configuration'
-          mapping:
-            rules:
-              type: sequence
-              label: Scheduler rules
-              sequence:
-                - type: string
-                  label: Scheduling rule
-            catch_up:
-              type: integer
-              label: 'Timeout (s) after job run'
+        lock_timeout:
+          type: integer
+          label: 'Lock timeout'
+        max_execution_time:
+          type: integer
+          label: 'Max execution time'
     launcher:
       type: mapping
-      label: 'Scheduler'
+      label: 'Launcher settings'
       mapping:
-        id:
-          type: string
-          label: 'Launcher'
-        configuration:
-          type: mapping
-          label: 'Scheduler configuration'
-          mapping:
-            timeouts:
-              type: mapping
-              label: Timeout settings
-              mapping:
-                lock_timeout:
-                  type: integer
-                  label: Lock timeout
-                max_execution_time:
-                  type: integer
-                  label: Max execution time
-            launcher:
-              type: mapping
-              label: Launcher settings
-              mapping:
-                max_threads:
-                  type: integer
-                  label: Max threads
-                thread:
-                  type: integer
-                  label: Thread
-                poorman_keepalive:
-                  type: boolean
-                  label: Keepalive
-    logger:
-      type: mapping
-      label: 'Scheduler'
-      mapping:
-        id:
-          type: string
-          label: 'Logger'
-        configuration:
-          type: mapping
-          label: 'Scheduler configuration'
-          mapping:
-            method:
-              type: string
-              label: Method
-            expire:
-              type: integer
-              label: Expiration
-            retain:
-              type: integer
-              label: Retain X amount of logs
+        max_threads:
+          type: integer
+          label: 'Max threads'
+        poorman_keepalive:
+          type: boolean
+          label: 'Keepalive'
+
+ultimate_cron.job.plugins.settings.logger:
+  type: mapping
+  label: 'Scheduler configuration'
+    mapping:
+      method:
+        type: string
+        label: 'Method'
+      expire:
+        type: integer
+        label: 'Expiration'
+      retain:
+        type: integer
+        label: 'Retain X amount of logs'
