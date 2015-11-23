@@ -41,7 +41,7 @@ class UltimateCron extends Cron {
       //uasort($launcher_job['jobs'], '_ultimate_cron_multi_column_sort');
       $launcher_job['launcher']->launchJobs($launcher_job['jobs']);
     }
-
+    $this->processQueues();
     $this->setCronLastTime();
 
     return TRUE;
