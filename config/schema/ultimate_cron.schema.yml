@@ -1,4 +1,3 @@
-
 ultimate_cron.settings:
   type: config_object
   label: Ultimate cron settings
@@ -134,21 +133,25 @@ ultimate_cron.job.*:
     callback:
       type: string
       label: 'Callback'
-    plugins:
-      type: sequence
-      label: 'Plugins'
-      sequence:
-        type: ultimate_cron.job.plugins
+    scheduler:
+      type: ultimate_cron.job.plugins.scheduler
+      label: 'Scheduler'
+    launcher:
+      type: ultimate_cron.job.plugins.launcher
+      label: 'Launcher'
+    logger:
+      type: ultimate_cron.job.plugins.logger
+      label: 'Logger'
 
-ultimate_cron.job.plugins:
+ultimate_cron.job.plugins.*:
   type: mapping
   label: 'Scheduler'
   mapping:
     id:
       type: string
-      label: 'id'
+      label: [type]
     configuration:
-      type: ultimate_cron.job.plugins.settings.[%parent.type]
+      type: ultimate_cron.job.plugins.settings.[%parent.%key]
 
 ultimate_cron.job.plugins.settings.scheduler:
   type: mapping
@@ -159,7 +162,7 @@ ultimate_cron.job.plugins.settings.scheduler:
       label: 'Scheduler rules'
       sequence:
         - type: string
-        label: 'Scheduling rule'
+          label: 'Scheduling rule'
     catch_up:
       type: integer
       label: 'Timeout (s) after job run'
@@ -192,13 +195,13 @@ ultimate_cron.job.plugins.settings.launcher:
 ultimate_cron.job.plugins.settings.logger:
   type: mapping
   label: 'Scheduler configuration'
-    mapping:
-      method:
-        type: string
-        label: 'Method'
-      expire:
-        type: integer
-        label: 'Expiration'
-      retain:
-        type: integer
-        label: 'Retain X amount of logs'
+  mapping:
+    method:
+      type: string
+      label: 'Method'
+    expire:
+      type: integer
+      label: 'Expiration'
+    retain:
+      type: integer
+      label: 'Retain X amount of logs'
