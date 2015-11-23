@@ -70,8 +70,8 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
       $row['status'] = $this->t('Disabled');
     }
     else {
-
-      // Status.
+      // Get the status from the launcher when running, otherwise use the last
+      // log entry.
       if ($entity->isLocked() && $log_entry->lid == $entity->isLocked()) {
         list($status, $title) = $entity->getPlugin('launcher')->formatRunning($entity);
       }

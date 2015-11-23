@@ -85,6 +85,7 @@ class CronJobDiscovery {
     $titles['update_cron'] = t('Update indexes');
     $titles['node_cron'] = t('Mark old nodes as read');
     $titles['aggregator_cron'] = t('Refresh feeds');
+    $titles['ultimate_cron_cron'] = t('Runs internal cleanup operations');
     $titles['statistics_cron'] = t('Reset counts and clean up');
     $titles['tracker_cron'] = t('Update tracker index');
 
