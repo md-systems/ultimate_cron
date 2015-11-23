@@ -32,7 +32,7 @@ class CronJobEnableForm extends EntityConfirmFormBase {
    * {@inheritdoc}
    */
   public function getCancelUrl() {
-    return $this->getEntity()->urlInfo();
+    return $this->getEntity()->toUrl('collection');
   }
 
   /**
