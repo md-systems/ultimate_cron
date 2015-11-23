@@ -108,7 +108,7 @@ class SerialLauncher extends LauncherBase implements PluginCleanupInterface {
       return $form;
     }
     else {
-      $max_threads = $this->configuration['launcher']['max_threads'];
+      $max_threads = isset($this->configuration['launcher']['max_threads']) ? $this->configuration['launcher']['max_threads'] : 1;
     }
 
     $options = array(

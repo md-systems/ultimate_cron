@@ -182,6 +182,9 @@ ultimate_cron.job.*:
                 max_threads:
                   type: integer
                   label: Max threads
+                thread:
+                  type: integer
+                  label: Thread
                 poorman_keepalive:
                   type: boolean
                   label: Keepalive
