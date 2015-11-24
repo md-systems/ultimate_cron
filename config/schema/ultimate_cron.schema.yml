@@ -169,13 +169,13 @@ ultimate_cron.plugin.scheduler.*:
       type: sequence
       label: 'Scheduler rules'
       sequence:
-        - type: string
-          label: 'Scheduling rule'
+        type: string
+        label: 'Scheduling rule'
     catch_up:
       type: integer
       label: 'Timeout (s) after job run'
 
-ultimate_cron.job.plugin.launcher.*:
+ultimate_cron.plugin.launcher.*:
   type: mapping
   label: 'Scheduler configuration'
   mapping:
@@ -199,8 +199,11 @@ ultimate_cron.job.plugin.launcher.*:
         poorman_keepalive:
           type: boolean
           label: 'Keepalive'
+        thread:
+          type: integer
+          label: 'Thread'
 
-ultimate_cron.job.plugin.logger.*:
+ultimate_cron.plugin.logger.*:
   type: mapping
   label: 'Scheduler configuration'
   mapping:
