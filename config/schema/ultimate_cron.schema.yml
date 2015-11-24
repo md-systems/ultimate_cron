@@ -134,16 +134,16 @@ ultimate_cron.job.*:
       type: string
       label: 'Callback'
     scheduler:
-      type: ultimate_cron.job.plugins.scheduler
+      type: ultimate_cron.job.*.plugins
       label: 'Scheduler'
     launcher:
-      type: ultimate_cron.job.plugins.launcher
+      type: ultimate_cron.job.*.plugins
       label: 'Launcher'
     logger:
-      type: ultimate_cron.job.plugins.logger
+      type: ultimate_cron.job.*.plugins
       label: 'Logger'
 
-ultimate_cron.job.plugins.*:
+ultimate_cron.job.*.plugins:
   type: mapping
   label: 'Scheduler'
   mapping:
@@ -151,9 +151,9 @@ ultimate_cron.job.plugins.*:
       type: string
       label: [type]
     configuration:
-      type: ultimate_cron.job.plugins.settings.[%parent.%key]
+      type: ultimate_cron.job.*.plugins.settings.[%parent.%key]
 
-ultimate_cron.job.plugins.settings.scheduler:
+ultimate_cron.job.*.plugins.settings.scheduler:
   type: mapping
   label: 'Scheduler configuration'
   mapping:
@@ -167,7 +167,7 @@ ultimate_cron.job.plugins.settings.scheduler:
       type: integer
       label: 'Timeout (s) after job run'
 
-ultimate_cron.job.plugins.settings.launcher:
+ultimate_cron.job.*.plugins.settings.launcher:
   type: mapping
   label: 'Scheduler configuration'
   mapping:
@@ -192,7 +192,7 @@ ultimate_cron.job.plugins.settings.launcher:
           type: boolean
           label: 'Keepalive'
 
-ultimate_cron.job.plugins.settings.logger:
+ultimate_cron.job.*.plugins.settings.logger:
   type: mapping
   label: 'Scheduler configuration'
   mapping:
