@@ -161,7 +161,18 @@ ultimate_cron.job.*:
         configuration:
           type: ultimate_cron.plugin.logger.[%parent.id]
 
-ultimate_cron.plugin.scheduler.*:
+ultimate_cron.plugin.scheduler.simple:
+  type: mapping
+  label: 'Scheduler configuration'
+  mapping:
+    rules:
+      type: sequence
+      label: 'Scheduler rules'
+      sequence:
+        type: string
+        label: 'Scheduling rule'
+
+ultimate_cron.plugin.scheduler.crontab:
   type: mapping
   label: 'Scheduler configuration'
   mapping:
@@ -175,7 +186,7 @@ ultimate_cron.plugin.scheduler.*:
       type: integer
       label: 'Timeout (s) after job run'
 
-ultimate_cron.plugin.launcher.*:
+ultimate_cron.plugin.launcher.serial:
   type: mapping
   label: 'Scheduler configuration'
   mapping:
@@ -203,7 +214,7 @@ ultimate_cron.plugin.launcher.*:
           type: integer
           label: 'Thread'
 
-ultimate_cron.plugin.logger.*:
+ultimate_cron.plugin.logger.database:
   type: mapping
   label: 'Scheduler configuration'
   mapping:
@@ -216,3 +227,14 @@ ultimate_cron.plugin.logger.*:
     retain:
       type: integer
       label: 'Retain X amount of logs'
+
+ultimate_cron.plugin.logger.cache:
+  type: mapping
+  label: 'Scheduler configuration'
+  mapping:
+    bin:
+      type: string
+      label: 'Cache bin to use for storing logs'
+    timeout:
+      type: integer
+      label: 'Timeout (s) before cache entry expires'
