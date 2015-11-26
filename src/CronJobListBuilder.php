@@ -99,11 +99,17 @@ class CronJobListBuilder extends ConfigEntityListBuilder {
   public function getDefaultOperations(EntityInterface $entity) {
     $operations = parent::getDefaultOperations($entity);
     if ($entity->status() && $entity->isValid()) {
-      $operations += ['run' => [
+      $operations += [
+        'run' => [
         'title' => t('Run'),
         'weight' => 9,
         'url' => $entity->toUrl('run'),
-      ]];
+      ],
+        'logs' => [
+          'title' => t('Logs'),
+          'weight' => 10,
+          'url' => $entity->toUrl('logs'),
+        ]];
     }
 
     // Invalid jobs can not be enabled nor disabled.
