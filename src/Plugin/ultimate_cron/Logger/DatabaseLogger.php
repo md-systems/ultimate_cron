@@ -278,7 +278,7 @@ class DatabaseLogger extends LoggerBase implements PluginCleanupInterface {
   public function getLogEntries($name, array $log_types, $limit = 10) {
     $result = db_select('ultimate_cron_log', 'l')
       ->fields('l')
-      ->extend('PagerDefault')
+      ->extend('Drupal\Core\Database\Query\PagerSelectExtender')
       ->condition('l.name', $name)
       ->condition('l.log_type', $log_types, 'IN')
       ->limit($limit)

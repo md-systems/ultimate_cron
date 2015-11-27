@@ -31,7 +31,6 @@ use Exception;
  *       "delete" = "\Drupal\Core\Entity\EntityDeleteForm",
  *       "disable" = "Drupal\ultimate_cron\Form\CronJobDisableForm",
  *       "enable" = "Drupal\ultimate_cron\Form\CronJobEnableForm",
- *       "logs" = "Drupal\ultimate_cron\Form\CronJobLogsListBuilder",
  *     }
  *   },
  *   config_prefix = "job",

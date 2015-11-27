@@ -39,4 +39,60 @@ class JobController extends ControllerBase {
     return $this->redirect('entity.ultimate_cron_job.collection');
   }
 
+  /**
+   * Displays a detailed cron job logs table.
+   *
+   * @param \Drupal\ultimate_cron\Entity\CronJob $ultimate_cron_job
+   *   The cron job which will be run.
+   *
+   * @return array
+   *   A render array as expected by drupal_render().
+   */
+  public function showLogs(CronJob $ultimate_cron_job) {
+
+    $rows = array();
+    $header = array(
+      $this->t('Severity'),
+      $this->t('User'),
+      $this->t('Name'),
+      $this->t('Lid'),
+      $this->t('Start Time'),
+      $this->t('End Time'),
+      $this->t('Init Message'),
+      $this->t('Message'),
+      $this->t('Duration'),
+    );
+
+    $log_entries = $ultimate_cron_job->getLogEntries();
+    //debug($log_entries->getData());
+    foreach ($log_entries as $log_entry) {
+      $row = array();
+      $row[] = array(
+        'data' => array(
+          '#type' => 'item',
+          '#title' => $log_entry->formatSeverity()[0]['#theme'],
+        ),
+      );
+      $row[] = $log_entry->formatUser();
+      $row[] = $log_entry->name;
+      $row[] = $log_entry->lid;
+      $row[] = $log_entry->formatStartTime();
+      $row[] = $log_entry->formatEndTime();
+      $row[] = $log_entry->formatInitMessage();
+      $row[] = $log_entry->message;
+      $row[] = $log_entry->formatDuration();
+
+      $rows[] = $row;
+    }
+    $form['ultimate_cron_job_logs_table'] = array(
+      '#type' => 'table',
+      '#header' => $header,
+      '#rows' => $rows,
+      '#empty' => $this->t('No log information available.'),
+      '#weight' => 120,
+    );
+    return $form;
+
+  }
+
 }
