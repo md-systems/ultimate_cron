@@ -226,9 +226,7 @@ abstract class LogEntry {
    * Format end time.
    */
   public function formatEndTime() {
-    return $this->end_time ? t('Previous run finished @end_time', array(
-      '@end_time' => format_date((int) $this->end_time, 'custom', 'Y-m-d H:i:s')
-    )) : '';
+    return $this->end_time ? format_date((int) $this->end_time, 'custom', 'Y-m-d H:i:s') : '';
   }
 
   /**

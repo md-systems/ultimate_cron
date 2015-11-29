@@ -54,32 +54,27 @@ class JobController extends ControllerBase {
     $header = array(
       $this->t('Severity'),
       $this->t('User'),
-      $this->t('Name'),
-      $this->t('Lid'),
       $this->t('Start Time'),
       $this->t('End Time'),
-      $this->t('Init Message'),
       $this->t('Message'),
       $this->t('Duration'),
     );
 
     $log_entries = $ultimate_cron_job->getLogEntries();
-    //debug($log_entries->getData());
     foreach ($log_entries as $log_entry) {
+      list($status, $title) = $log_entry->formatSeverity();
+      $title = $log_entry->message ? $log_entry->message : $title;
+
       $row = array();
       $row[] = array(
-        'data' => array(
-          '#type' => 'item',
-          '#title' => $log_entry->formatSeverity()[0]['#theme'],
-        ),
+        'data' => $status,
+        'class' => array('ctools-export-ui-status'),
+        'title' => strip_tags($title),
       );
       $row[] = $log_entry->formatUser();
-      $row[] = $log_entry->name;
-      $row[] = $log_entry->lid;
       $row[] = $log_entry->formatStartTime();
       $row[] = $log_entry->formatEndTime();
-      $row[] = $log_entry->formatInitMessage();
-      $row[] = $log_entry->message;
+      $row[] = ($log_entry->formatInitMessage() != "N/A") ? $log_entry->formatInitMessage() : $log_entry->message;
       $row[] = $log_entry->formatDuration();
 
       $rows[] = $row;
