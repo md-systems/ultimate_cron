@@ -179,6 +179,20 @@ class CronJobFormTest extends WebTestBase {
     $this->drupalGet('admin/config/system/cron/jobs');
     $this->assertNoText($job->label());
 
+    // Test logs details page.
+    $this->drupalGet('admin/config/system/cron/jobs');
+    $user = $this->admin_user->getAccountName() . ' (' . $this->admin_user->id() . ')';
+    $this->clickLink('Logs');
+    $xpath = $this->xpath('//tbody/tr[@class="odd"]');
+    $parameter_date = \Drupal::service('date.formatter')->format(\Drupal::state()->get('system.cron_last'), 'custom', 'Y-m-d H:i:s');
+    $this->assertEqual((string) $xpath[0]->td[1], $user);
+    $this->assertEqual((string) $xpath[0]->td[2], $parameter_date);
+    $this->assertEqual((string) $xpath[0]->td[3], $parameter_date);
+    $this->assertEqual((string) $xpath[0]->td[4], 'Launched manually by ' . $user);
+    $this->assertEqual((string) $xpath[0]->td[5], '00:00');
+
+
+
   }
 
 }
