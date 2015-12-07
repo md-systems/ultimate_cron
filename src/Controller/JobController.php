@@ -79,6 +79,7 @@ class JobController extends ControllerBase {
 
       $rows[] = $row;
     }
+    $form['#title'] = $this->t('Logs for %label', array('%label' => $ultimate_cron_job->label()));
     $form['ultimate_cron_job_logs_table'] = array(
       '#type' => 'table',
       '#header' => $header,
