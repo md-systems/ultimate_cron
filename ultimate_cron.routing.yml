@@ -94,3 +94,11 @@ entity.ultimate_cron_job.enable:
     _title: 'Enable cron job'
   requirements:
     _entity_access: 'ultimate_cron_job.enable'
+
+entity.ultimate_cron_job.logs:
+  path: '/admin/config/system/cron/jobs/logs/{ultimate_cron_job}'
+  defaults:
+    _controller: '\Drupal\ultimate_cron\Controller\JobController::showLogs'
+    _title: 'Cron jobs logs'
+  requirements:
+    _entity_access: 'ultimate_cron_job.views'

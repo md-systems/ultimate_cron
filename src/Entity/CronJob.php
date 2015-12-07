@@ -57,6 +57,7 @@ use Exception;
  *     "run" = "/admin/config/system/cron/jobs/{ultimate_cron_job}/run",
  *     "disable" = "/admin/config/system/cron/jobs/manage/{ultimate_cron_job}/disable",
  *     "enable" = "/admin/config/system/cron/jobs/manage/{ultimate_cron_job}/enable",
+ *     "logs" = "/admin/config/system/cron/jobs/logs/{ultimate_cron_job}",
  *   }
  * )
  *
