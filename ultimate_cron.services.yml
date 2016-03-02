@@ -16,10 +16,10 @@ services:
     parent: default_plugin_manager
   ultimate_cron.lock:
     class: Drupal\ultimate_cron\Lock\Lock
-    arguments: [@database]
+    arguments: ['@database']
   ultimate_cron.progress:
     class: Drupal\ultimate_cron\Progress\Progress
-    arguments: [@keyvalue]
+    arguments: ['@keyvalue']
   ultimate_cron.signal:
     class: Drupal\ultimate_cron\Signal\SignalCache
-    arguments: [@cache.signal, @lock]
+    arguments: ['@cache.signal', '@lock']
