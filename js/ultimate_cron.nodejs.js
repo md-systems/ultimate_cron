@@ -1,9 +1,10 @@
 (function ($) {
+  'use strict';
   Drupal.Nodejs.callbacks.nodejsUltimateCron = {
     disabled: false,
     runningJobs: {},
     callback: function (message) {
-      if (this.disabled) return;
+      if (this.disabled) {return;}
       var action = message.data.action;
       var job = message.data.job;
       var elements = message.data.elements;
@@ -15,12 +16,12 @@
           break;
 
         case 'unlock':
-          delete(this.runningJobs[job.name]);
+          delete this.runningJobs[job.name];
           break;
 
         case 'progress':
           if (!this.runningJobs[job.name]) {
-            $("#ctools-export-ui-list-items-reload").click();
+            $('#ctools-export-ui-list-items-reload').click();
             return;
           }
           break;
@@ -39,23 +40,23 @@
 
   Drupal.behaviors.ultimateCronJobNodejs = {
     attach: function (context) {
-      $("tr td.ctools-export-ui-status", context).each(function() {
+      $('tr td.ctools-export-ui-status', context).each(function () {
         var row = $(this).parent('tr');
         var name = $(row).attr('id');
-        if ($(this).attr('title') == 'running') {
-          var duration = $("tr#" + name + " td.ctools-export-ui-duration span.duration-time").attr('data-src');
+        if ($(this).attr('title') === 'running') {
+          var duration = $('tr#' + name + ' td.ctools-export-ui-duration span.duration-time').attr('data-src');
           Drupal.Nodejs.callbacks.nodejsUltimateCron.runningJobs[name] = {
-            started: (new Date().getTime()) - (duration * 1000),
+            started: (new Date().getTime()) - (duration * 1000)
           };
         }
         else {
-          delete(Drupal.Nodejs.callbacks.nodejsUltimateCron.runningJobs[name]);
+          delete Drupal.Nodejs.callbacks.nodejsUltimateCron.runningJobs[name];
         }
       });
     }
   };
 
-  setInterval(function() {
+  setInterval(function () {
     var time = new Date().getTime();
     var jobs = Drupal.Nodejs.callbacks.nodejsUltimateCron.runningJobs;
 
@@ -66,10 +67,10 @@
         var minutes = '00' + date.getUTCMinutes();
         var seconds = '00' + date.getUTCSeconds();
         var formatted = minutes.substring(minutes.length - 2) + ':' + seconds.substring(seconds.length - 2);
-        $("tr#" + name + " td.ctools-export-ui-duration .duration-time").html(formatted);
+        $('tr#' + name + ' td.ctools-export-ui-duration .duration-time').html(formatted);
       }
     }
-  }, 1000)
+  }, 1000);
 
 }(jQuery));
 
